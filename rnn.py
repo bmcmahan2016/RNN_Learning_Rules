@@ -271,7 +271,7 @@ class RNN(nn.Module):
         raise NotImplementedError() 
     
     def SaveWeights(self):
-        self.w_hist.append(self.J['rec'].cpu().detach().numpy())
+        self._w_hist.append(self._J['rec'].cpu().detach().numpy())
 
     def save(self, N="", tElapsed=0, *kwargs):
         '''
