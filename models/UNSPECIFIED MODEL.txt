@@ -1,0 +1,11 @@
+inputSize : 1
+hiddenSize : 2500
+outputSize : 50
+g : 1
+inputVariance : 0.5
+outputVariance : 0.5
+biasScale : 0
+initScale : 0.3
+dt : 0.1
+batchSize : 500
+task mean :0.1857task variance : 0.1
