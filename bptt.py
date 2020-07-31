@@ -154,10 +154,10 @@ class Bptt(RNN):
     # TODO: make a folder if the existing folder does not exist
 
     def saveProgress(self):
-        self.rnn_model.targets = self.targets        #hacky
-        self.rnn_model.losses = np.array(self.all_losses)#self.all_losses      #also hacky
+        self._targets = self.targets        #hacky
+        self._losses = np.array(self.all_losses)#self.all_losses      #also hacky
         #self.rnn_model.activity_tensor = self.rnn_model.activity_tensor[:self.trial_count,:,:]
-        self.rnn_model.save('models/bptt_model'+str(self.identifier))
+        self.save()
         print('model back-ed up')
 
 
