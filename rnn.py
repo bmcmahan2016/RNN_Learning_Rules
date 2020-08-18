@@ -17,6 +17,7 @@ import matplotlib
 import time
 from FP_Analysis import FindFixedPoints
 from task.williams import Williams
+import os
 
 
 hyperParams = {       # dictionary of all hyper-parameters
@@ -29,7 +30,7 @@ hyperParams = {       # dictionary of all hyper-parameters
     "biasScale" : 0,
     "initScale" : 0.3,
     "dt" : 0.1,
-    "batchSize" : 500
+    "batchSize" : 500,
     }
 
 class RNN(nn.Module):
@@ -48,6 +49,7 @@ class RNN(nn.Module):
         self._init_hidden()   
         self._totalTrainTime = 0                                               # accumulates training time
         self._timerStarted = False
+        self._useForce = False            # if set to true this slightly changes the forward pass 
         
         self._task = Williams(N=750, mean=hyperParams["taskMean"], \
                               variance=hyperParams["taskVar"])                
@@ -234,7 +236,10 @@ class RNN(nn.Module):
         
         # compute the forward pass
         self._UpdateHidden(inpt)
-        output = torch.matmul(self._J['out'], self._hidden)
+        if self._useForce:
+            output = torch.tanh(torch.matmul(self._J['out'], torch.tanh(self._hidden)))
+        else:
+            output = torch.matmul(self._J['out'], self._hidden)
 
         return output, self._hidden.clone()
 
@@ -258,10 +263,9 @@ class RNN(nn.Module):
         for t_step in range(len(inpt_data)):
             output, hidden = self._forward(inpt_data[t_step])
             if return_hidden:
-                hidden_trace.append(hidden.cpu().detach().numpy().reshape(-1,1))
-            # the following line passes the output through a tanh() function when uncommented
-            output_trace[t_step,:] = output#torch.tanh(output)
-            #output_trace.append(torch.tanh(output))
+                hidden_trace.append(hidden.cpu().detach().numpy())
+                
+            output_trace[t_step,:] = output
         if return_hidden:
             return output_trace, hidden_trace
         #print('shape of output trace', len(output_trace[0]))
@@ -408,16 +412,18 @@ class RNN(nn.Module):
         plt.figure()
         cmap=matplotlib.cm.bwr
         neuron_sorting=self._neuronIX
+        MINIMUM_DISPLAY_VALUE = -0.5
+        MAXIMUM_DISPLAY_VALUE = 0.5
         if not neuron_sorting is None:
             weight_matrix=self._J['rec'].cpu().detach().numpy()
             weights_ordered = weight_matrix[:,neuron_sorting]
             weights_ordered = weights_ordered[neuron_sorting, :]
-            plt.imshow(weights_ordered, cmap=cmap, vmin=-0.1, vmax=0.1)
+            plt.imshow(weights_ordered, cmap=cmap, vmin=MINIMUM_DISPLAY_VALUE, vmax=MAXIMUM_DISPLAY_VALUE)
             #plt.imshow(weights_ordered, cmap=cmap, vmin=np.min(weight_matrix), vmax=np.max(weight_matrix))
             plt.title('Recurrent Weights (Ordered by Neuron Factor)')
         else:
             weight_matrix = self._J['rec'].cpu().detach().numpy()
-            plt.imshow(weight_matrix, cmap=cmap, vmin=-0.1, vmax=0.1)
+            plt.imshow(weight_matrix, cmap=cmap, vmin=MINIMUM_DISPLAY_VALUE, vmax=MAXIMUM_DISPLAY_VALUE)
             plt.title('Network Weight Matrix (unsorted)')
         plt.ylabel('Postsynaptic Neuron')
         plt.xlabel('Presynaptic Neuron')
@@ -444,7 +450,31 @@ class RNN(nn.Module):
         plt.xlabel('Trial')
         plt.title(self.model_name)
 
+###########################################################
+# AUXILLARY FUNCTIONS
+###########################################################
 
+def loadRNN(fName):
+    '''
+    loads an rnn object that was previously saved
+
+    Returns
+    -------
+    model if it was succesfully loaded, otherwise false       
+
+    '''
+    if os.path.exists(fName+".pt"):
+        f = open(fName+".txt", 'r')
+        hyperParams = {}
+        for line in f:
+            key, value = line.strip().split(':')
+            hyperParams[key.strip()] = float(value.strip())
+        f.close()
+        model = RNN(hyperParams)
+        model.load(fName)      # loads the RNN object
+        return model
+    else:       # file does not exist
+        return False
 
 ###########################################################
 #DEBUG RNN CLASSS

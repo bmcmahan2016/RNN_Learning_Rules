@@ -12,8 +12,31 @@ analysis based on the work by Piexoto et al., 2019 found at:
 import numpy as np
 import torch
 import matplotlib.pyplot as plt
-from rnn import RNN
+from rnn import RNN, loadRNN
 from task.williams import Williams
+
+
+
+def detectVacillationTrials(rnnOutput):
+    '''
+    Detects vacillation in the output of an RNN and returns the indices of trials
+    for which a vacillation was detected
+
+    Args:
+        rnnOutputs (NumPy array): rnn output with shape numBatches x timeSteps.
+
+    Returns:
+        vacillationTrialIXs (NumPy int64 array): array containing the trials where
+            vacillation was detected.
+
+    '''
+    rnnOutputSign = np.sign(rnnOutput[:,250:])        # omit first 200 timesteps from analysis
+    rnnOutputCeil = np.max(rnnOutputSign, axis=-1)
+    rnnOutputFloor = np.min(rnnOutputSign, axis=-1)
+    rnnOutputRange = rnnOutputCeil - rnnOutputFloor
+    
+    vacillationTrialIXs = np.where(rnnOutputRange>1)[0]       # array of trial indices with vacillations
+    return vacillationTrialIXs
 
 def isCOM(rnnOutput, zeroIX, showPlots=False):
     '''
@@ -204,3 +227,69 @@ def fractionCorrective(model):
     # end loop over all experiments
     
     return com_correct / (com_correct + com_wrong)   # total fraction of corrective coms accross all input levels tested
+
+def generateTaskData(task, coherenceVal, numTrials=5_000):
+    taskData = torch.zeros(task.N, 5_000).cuda()        # 750x5,000
+    for trial_num in range(numTrials):
+        taskData[:, trial_num] = task.PsychoTest(coherenceVal).t()
+    return taskData
+
+
+if __name__=="__main__":
+    print("This is a prototype for vacillation analysis script")
+    base = "809"
+    #MODEL_NAMES = ["models/ga_080", "models/ga_081", "models/ga_082", "models/ga_083", "models/ga_84"]
+    MODEL_NAMES = ["models/ga_040", "models/ga_041", "models/ga_042", "models/ga_043", "models/ga_44"]
+    coherenceVals = np.array([0, 0.02, 0.03, 0.04, 0.05])
+    
+    #MODEL_NAMES = ["models/bptt_model808", "models/genetic_model808", "models/FullForce0.75004"]
+    fracVacillations = np.zeros((len(MODEL_NAMES), len(coherenceVals)))
+    for modelCounter, modelName in enumerate(MODEL_NAMES):
+        model = loadRNN(modelName)
+        
+        
+        for _, coherence in enumerate(coherenceVals):
+            if model == False:
+                print("model not loaded!")
+                continue
+            taskData = generateTaskData(model._task, coherence)
+            # get the decisions for COM trials
+            rnnOutput = model.feed(taskData)
+            rnnOutput = rnnOutput.detach().cpu().numpy()
+            rnnOutput = rnnOutput.T
+            
+            fracVacillations[modelCounter, _] = len(detectVacillationTrials(rnnOutput))/5_000
+        #fracVacillations = np.array(fracVacillations[modelCounter,:])
+    meanFracVacillations = np.mean(fracVacillations, axis=-1)
+    stdFracVacillations = np.std(fracVacillations, axis=-1)
+    
+    
+    Plot(coherenceVals, fracVacillations)
+
+    
+    
+    
+    #plt.plot(coherenceVals, fracVacillations)
+    #plt.legend(["FF (var=0.1)", "FF (var=0.25)", "FF (var=0.5)", "FF (var=0.75)", "FF (var=1.0)"])
+    #plt.ylabel("Fraction of Trials with Vacillation")
+    #plt.xlabel("Input Mean")
+    
+        
+'''        
+            comDecisions = np.array(comDecisions)
+            targetOutputs = np.array(targetOutputs)
+            #com_idxs = COM_Flag(output)
+            # com_idxs contain the trial #s for all trials where a COM occured
+            # contains the decision made on each com trial
+            #com_decisions = torch.sign(output[-1, com_idxs])
+            #target_output = np.sign(coherence)
+            #if (coherence==0): target_output = 1    # randomly pick a direction
+            num_com_wrong = np.nonzero(comDecisions-targetOutputs)[0].shape[0]
+            num_com_trials = comDecisions.shape[0]
+            num_com_corrective = num_com_trials - num_com_wrong
+            #print("chorence:", coherence, "corrective COM:", num_com_corrective*100 / num_com_trials, "%" )
+            
+            com_correct[_] = com_correct[_] + num_com_corrective
+            com_wrong[_] = com_wrong[_] + num_com_wrong
+    
+'''

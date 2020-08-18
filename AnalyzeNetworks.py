@@ -26,7 +26,7 @@ TCAFlag = False
 
 # these flags will determine what RNNs to perform above analysis on
 ForceFlag = False       # will analyze FORCE trained RNN
-BpttFlag = False          # will analyze BPTT trained RNN
+BpttFlag = True          # will analyze BPTT trained RNN
 GeneticFlag = True       # will analyze Genetic trained RNN
 HebbianFlag = False       # will analyze Hebbian trained RNN
 ComplexityFlag = False     # will run analysis to determine model complexity
@@ -40,13 +40,13 @@ NoiseFlag = False          # will run analysis to determine how robust model is 
 if StandardFlag:
 	print('performing standard analysis ... \n\n')
 	if GeneticFlag:
-		niave_network('models/GA_001', xmin=-30, xmax=30, ymin=-6, ymax=6)
+		niave_network('models/GA_085', xmin=-30, xmax=30, ymin=-6, ymax=6)
 	if HebbianFlag:
 		niave_network('models/hebian_model1')
 	if ForceFlag:
-		niave_network('models/FullForce0.75', xmin=-150, xmax=150, ymin=-6, ymax=6)
+		niave_network('models/FullForce080', xmin=-150, xmax=150, ymin=-6, ymax=6)
 	if BpttFlag:
-		niave_network('models/bptt_model8084', xmin=-10, xmax=10, ymin=-10, ymax=10)
+		niave_network('models/bptt_091', xmin=-10, xmax=10, ymin=-10, ymax=10)
 
 # analysis to perform get neuron factors
 if TCAFlag:

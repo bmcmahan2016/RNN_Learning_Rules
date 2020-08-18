@@ -25,15 +25,16 @@ class Bptt(RNN):
         '''
 
         self._num_epochs = 20000
-        self._learning_rate = 10e-4
+        self._learning_rate = 1e-4
         self._hParams["learning_rate"] = self._learning_rate
         
         # cast as PyTorch variables
-        self._J['in'] = Variable(self._J['in'], requires_grad=True)
+        #self._J['in'] = Variable(self._J['in'], requires_grad=True)
         self._J['rec'] = Variable(self._J['rec'], requires_grad=True)
-        self._J['out'] = Variable(self._J['out'], requires_grad=True)
+        #self._J['out'] = Variable(self._J['out'], requires_grad=True)
         
-        self._params = [self._J['in'], self._J['rec'], self._J['out']]
+        #self._params = [self._J['in'], self._J['rec'], self._J['out']]
+        self._params = [self._J['rec']]
         self._optimizer = torch.optim.Adam(self._params, lr=self._learning_rate)
 
 

@@ -345,7 +345,8 @@ def FindFixedPoints(master_function, inpts, just_get_roots=False, just_get_fract
 
     # embed all the roots found with a t-SNE (or LLE)
     # prior to embedding we want to center points around their mean
-    roots_centered = all_roots-np.mean(all_roots)
+    roots_centered = all_roots-np.mean(all_roots, axis=0).reshape(1, 50)
+    assert(roots_centered.shape == all_roots.shape)
     
     print('-'*50)
     if embedding == 't-SNE':
@@ -362,7 +363,7 @@ def FindFixedPoints(master_function, inpts, just_get_roots=False, just_get_fract
         print('\nusing PCA to visualize roots ...')
         pca = PCA()
         roots_embedded=pca.fit_transform(roots_centered)
-        pca.offset_ = np.mean(all_roots)
+        pca.offset_ = np.mean(all_roots, axis=0).reshape(1,50)
         print(pca.explained_variance_ratio_)
 
 

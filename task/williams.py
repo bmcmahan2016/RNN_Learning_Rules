@@ -13,7 +13,7 @@ class Williams():
         self.N = N
         self.mean = mean
         self.variance = variance
-    def GetInput(self, mean_overide=-1):
+    def GetInput(self, mean_overide=-1, var_overide=False):
         '''
         GetInput will randomly generate a positive or negative 
         data sequence of length N
@@ -37,11 +37,17 @@ class Williams():
             mean = mean_overide
         if torch.rand(1) < 0.5:
             # create a negative input
-            inp = utils.GetGaussianVector(-mean, self.variance, self.N)  # changed from 0.5
+            if var_overide:
+                inp = -mean*torch.ones((750,1))
+            else:
+                inp = utils.GetGaussianVector(-mean, self.variance, self.N)  # changed from 0.5
             condition = torch.tensor([-1]).float()
         else:
             # create a positive input
-            inp = utils.GetGaussianVector(mean, self.variance, self.N)  # changed from 0.5
+            if var_overide:
+                inp = mean*torch.ones((750, 1))
+            else:
+                inp = utils.GetGaussianVector(mean, self.variance, self.N)  # changed from 0.5
             condition = torch.tensor([1]).float()
 
         #ensures a PyTorch Tensor object is returned
@@ -68,6 +74,7 @@ class Williams():
     def Loss(self, y, mu, errorTrigger=-1):
         if errorTrigger != -1:
             yt = y[errorTrigger:]
+            print("y", torch.mean(yt[:]).item())
         else:
             yt = y[-1]#errorTrigger:]
         ys = y[0]

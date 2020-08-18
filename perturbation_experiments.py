@@ -1,7 +1,7 @@
 import numpy as np 
 import numpy.linalg as LA
 import torch
-from rnn import RNN 
+from rnn import RNN, loadRNN 
  
 import rnntools as r
 from FP_Analysis import FindFixedPoints, FindFixedPointsC, GetDerivatives, ComputeDistance
@@ -36,9 +36,10 @@ def a_dummy_func():
     return x
 
 
-def plotPCTrajectories(trial_data, pca):
+def plotPCTrajectories(trial_data, trial_labels, pca, average=True):
     '''
-    plots the PC trajectories for an RNN
+    plots the mean PC trajectories for positive and negative trials for an RNN
+    trained on the RDM task.
 
     Returns:
         None.
@@ -46,28 +47,43 @@ def plotPCTrajectories(trial_data, pca):
     '''
     plot_traj_from = 0
     plot_traj_up2 = -1
+    
+    if not average:    # do not average trials
+        for curr_trial in range(10):
+            transformedData = pca.transform(trial_data[curr_trial]-pca.offset_)
+            if trial_labels[curr_trial] > 0:
+                pltC = 'r'
+            else:
+                pltC = 'b'
+            plt.plot(transformedData[plot_traj_from:plot_traj_up2,0], transformedData[plot_traj_from:plot_traj_up2,1], alpha=0.2, c=pltC)
 
-    meanPlusTrajectory = np.zeros((750, 3))       # saves top 3 PC components for 750 timesteps
-    for curr_trial in range(5):
-        N = curr_trial+1
-        a = 1/N
-        b = 1 - a
-        meanPlusTrajectory = a * meanPlusTrajectory + b * pca.transform(trial_data[curr_trial]-pca.offset_)[:,:3]
-    plt.plot(meanPlusTrajectory[plot_traj_from:plot_traj_up2,0], meanPlusTrajectory[plot_traj_from:plot_traj_up2,1], alpha=0.5, c='r')
-    
-    meanNegTrajectory = np.zeros((750, 3))
-    for curr_trial in range(5,10):
-        N = curr_trial-4
-        a = 1/N
-        b = 1 - a
-        meanNegTrajectory = a * meanNegTrajectory + b * pca.transform(trial_data[curr_trial]-pca.offset_)[:,:3]
-    plt.plot(meanNegTrajectory[plot_traj_from:plot_traj_up2,0], meanNegTrajectory[plot_traj_from:plot_traj_up2,1], alpha=0.5, c='b')
-    
-    # set the limits for the fixed point plot
-    minX = np.min( (np.min(meanPlusTrajectory[:,0]), np.min(meanNegTrajectory[:,0])) )
-    maxX = np.max( (np.max(meanPlusTrajectory[:,0]), np.max(meanNegTrajectory[:,0])) )
-    minY = np.min( (np.min(meanPlusTrajectory[:,1]), np.min(meanNegTrajectory[:,1])) )
-    maxY = np.max( (np.max(meanPlusTrajectory[:,1]), np.max(meanNegTrajectory[:,1])) )
+        minX = -10
+        maxX = 10
+        minY = -10
+        maxY = 10
+        
+    else:              # plots trajectory averaged over pos/neg trials
+        meanPlusTrajectory = np.zeros((750, 3))       # saves top 3 PC components for 750 timesteps
+        for curr_trial in range(5):
+            N = curr_trial+1
+            a = 1/N
+            b = 1 - a
+            meanPlusTrajectory = a * meanPlusTrajectory + b * pca.transform(trial_data[curr_trial]-pca.offset_)[:,:3]
+        plt.plot(meanPlusTrajectory[plot_traj_from:plot_traj_up2,0], meanPlusTrajectory[plot_traj_from:plot_traj_up2,1], alpha=0.5, c='r')
+        
+        meanNegTrajectory = np.zeros((750, 3))
+        for curr_trial in range(5,10):
+            N = curr_trial-4
+            a = 1/N
+            b = 1 - a
+            meanNegTrajectory = a * meanNegTrajectory + b * pca.transform(trial_data[curr_trial]-pca.offset_)[:,:3]
+        plt.plot(meanNegTrajectory[plot_traj_from:plot_traj_up2,0], meanNegTrajectory[plot_traj_from:plot_traj_up2,1], alpha=0.5, c='b')
+        
+        # set the limits for the fixed point plot
+        minX = np.min( (np.min(meanPlusTrajectory[:,0]), np.min(meanNegTrajectory[:,0])) )
+        maxX = np.max( (np.max(meanPlusTrajectory[:,0]), np.max(meanNegTrajectory[:,0])) )
+        minY = np.min( (np.min(meanPlusTrajectory[:,1]), np.min(meanNegTrajectory[:,1])) )
+        maxY = np.max( (np.max(meanPlusTrajectory[:,1]), np.max(meanNegTrajectory[:,1])) )
     windowScale = 1.5
     
     plt.xlim([windowScale*minX, windowScale*maxX])
@@ -121,7 +137,7 @@ def AnalyzeLesioned(model, fig_name, PC1_min=-10, PC1_max=10, PC2_min=-10, PC2_m
     ###########################################################################
     #VISUALIZE RECURRENT WEIGHTS
     ###########################################################################
-    model.neuron_idx = neuron_idx
+    model._neuronIX = neuron_idx
     model.VisualizeWeightMatrix()
     model.VisualizeWeightClusters(neuron_idx, p)
      
@@ -131,7 +147,7 @@ def AnalyzeLesioned(model, fig_name, PC1_min=-10, PC1_max=10, PC2_min=-10, PC2_m
     ###########################################################################
     
     cs = ['r', 'r', 'r', 'r', 'r', 'b', 'b', 'b', 'b', 'b']
-    trial_data = r.record(model, \
+    trial_data, trial_labels = r.record(model, \
         title='fixed points', print_out=True, plot_recurrent=False, cs=cs)
     # find the fixed points for the model using the PC axis found on the niave model
     F = model.GetF()
@@ -161,7 +177,7 @@ def AnalyzeLesioned(model, fig_name, PC1_min=-10, PC1_max=10, PC2_min=-10, PC2_m
     plt.plot(np.linspace(0, W_in_PC[1,0], 100), np.linspace(0, W_in_PC[1,1], 100), 'b--', linewidth=3)
     
     # this will plot trajectories of artificial neurons on top of fixed points
-    plotPCTrajectories(trial_data, pca)
+    plotPCTrajectories(trial_data, trial_labels, pca, average=False)
     
     # plot the output of this lesioned network when feed a noisy input with mean +/-1
     plt.figure()
@@ -398,14 +414,10 @@ def remove_excitation(model_choice, xmin=-10, xmax=10, ymin=-10, ymax=10, test_i
     AnalyzeLesioned(model, model_choice, xmin, xmax, ymin, ymax)
 
 def niave_network(modelPath, xmin=-10, xmax=10, ymin=-10, ymax=10, test_inpt=.1):
-    f = open(modelPath+".txt", 'r')
-    hyperParams = {}
-    for line in f:
-        key, value = line.strip().split(':')
-        hyperParams[key.strip()] = float(value.strip())
-    f.close()
-    model = RNN(hyperParams)
-    model.load(modelPath)
+    model = loadRNN(modelPath)
+    if modelPath[7] == 'F':
+        model._useForce = True
+        print("Using force forward pass")
     modelPath+='_control'
     #AnalyzePerturbedNetwork(model, model_choice, test_inpt=test_inpt)
     AnalyzeLesioned(model, model_choice, xmin, xmax, ymin, ymax)

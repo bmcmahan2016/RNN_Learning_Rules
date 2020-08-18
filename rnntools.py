@@ -269,6 +269,7 @@ def record(model, cs=['r', 'b', 'k', 'g', 'y'], title='', print_out=False, plot_
             name of the model
     '''
     trial_data = [] #each element will be hidden trajectories for a given trial
+    trial_labels = []
 
     #create new figure if network output requested
     #if print_out:
@@ -277,11 +278,14 @@ def record(model, cs=['r', 'b', 'k', 'g', 'y'], title='', print_out=False, plot_
         #plot_annotated = False
     outputs = []
 
+    model._hiddenInitScale = model._hiddenInitScale * 1
+
     #loop over conditions to create trials
     for _ in range(10):
         length_of_data=750    #200   #100
         #create identical valued input data and feed it to network
-        taskData, target = model._task.GetInput()
+        taskData, target = model._task.GetInput(mean_overide=model._task.mean, var_overide=False)
+        trial_labels.append(target)
         #data = np.linspace(conditions[_], conditions[_], length_of_data).reshape(length_of_data,1)
         #data = torch.from_numpy(data).float().cuda()
         #if add_in_noise:
@@ -315,10 +319,11 @@ def record(model, cs=['r', 'b', 'k', 'g', 'y'], title='', print_out=False, plot_
             plt.figure()
             plotMultiUnit(data, normalize_cols=True)
 
+    model._hiddenInitScale = model._hiddenInitScale / 10
     if only_out:
-        return np.array(outputs)
+        return np.array(outputs), trial_labels
     else:
-        return np.array(trial_data)
+        return np.array(trial_data), trial_labels
 
 
 
