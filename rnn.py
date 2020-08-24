@@ -277,6 +277,11 @@ class RNN(nn.Module):
     
     def SaveWeights(self):
         self._w_hist.append(self._J['rec'].cpu().detach().numpy())
+        
+    def updateFixedPoints(self, roots, pca):
+        self._fixedPoints = roots
+        self._pca = pca
+        self.save()
 
     def save(self, N="", tElapsed=0, *kwargs):
         '''
