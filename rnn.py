@@ -50,6 +50,7 @@ class RNN(nn.Module):
         self._totalTrainTime = 0                                               # accumulates training time
         self._timerStarted = False
         self._useForce = False            # if set to true this slightly changes the forward pass 
+        self._fixedPoints = []
         
         self._task = Williams(N=750, mean=hyperParams["taskMean"], \
                               variance=hyperParams["taskVar"])                
@@ -296,7 +297,8 @@ class RNN(nn.Module):
                         'losses': self._losses, \
                         'rec_magnitude' : self._recMagnitude, \
                         'neuron_idx': self._neuronIX,\
-                        'validation_history' : self._valHist}, model_name)
+                        'validation_history' : self._valHist,
+                        'fixed_points': self._fixedPoints}, model_name)
                 
             # save model hyper-parameters to text file
             f = open(self._MODEL_NAME+".txt","w")
@@ -316,7 +318,8 @@ class RNN(nn.Module):
                         'neuron_idx': self.neuron_idx, \
                         'fractions' : self.fractions, \
                         'validation_history' : self.valHist, \
-                        'tElapsed' : tElapsed}, model_name)
+                        'tElapsed' : tElapsed,
+                        'fixed_points' : self._fixedPoints}, model_name)
         
         #torch.save({'weights': self.J, 'targets': self.targets,  'losses': self.losses,'validation_history' : self.valHist}, model_name)
 
@@ -353,6 +356,9 @@ class RNN(nn.Module):
             self._valHist = model_dict['validation_history']
         else:
             print('WARNING!! NO VALIDATION HISTORY FOUND\n\n')
+            
+        if 'fixed_points' in model_dict:
+            self._fixedPoints = model_dict['fixed_points']
             
         # try to load additional attributes specified for kwargs
         for key in kwargs:
@@ -472,6 +478,7 @@ def loadRNN(fName):
         f.close()
         model = RNN(hyperParams)
         model.load(fName)      # loads the RNN object
+        model._MODEL_NAME = fName
         return model
     else:       # file does not exist
         return False
