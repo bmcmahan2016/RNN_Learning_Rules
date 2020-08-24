@@ -267,7 +267,7 @@ class RNN(nn.Module):
                 
             output_trace[t_step,:] = output
         if return_hidden:
-            return output_trace, hidden_trace
+            return output_trace, np.array(hidden_trace)
         #print('shape of output trace', len(output_trace[0]))
         return output_trace
     
@@ -475,6 +475,29 @@ def loadRNN(fName):
         return model
     else:       # file does not exist
         return False
+
+def loadHeb():
+    hyperParams = {       # dictionary of all hyper-parameters
+    "inputSize" : 5,
+    "hiddenSize" : 50,
+    "outputSize" : 1,
+    "g" : 1 ,
+    "inputVariance" : 0.5,
+    "outputVariance" : 0.5,
+    "biasScale" : 0,
+    "initScale" : 0.3,
+    "dt" : 0.1,
+    "batchSize" : 500,
+    "taskMean" : 0.1857, 
+    "taskVar" : 0.1
+    }
+    rnnModel = RNN(hyperParams)
+    Jin = np.loadtxt("Win.txt")
+    Jrec = np.loadtxt("Jrec.txt")
+    Jout = np.zeros((1,50))
+    rnnModel.AssignWeights(Jin, Jrec, Jout)
+    
+    return rnnModel
 
 ###########################################################
 #DEBUG RNN CLASSS
