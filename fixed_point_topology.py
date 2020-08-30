@@ -14,33 +14,38 @@ def get_fp_structure(modelNum, learningRule="bptt"):
                     '[0.02]','[0.]','[-0.02]','[-0.04]','[-0.06]','[-0.08]','[-0.1]','[-0.12]','[-0.14]','[-0.16]','[-0.18]','[-0.2]']
     modelPath = "models/" + learningRule + "_0" + str(modelNum)
     model = loadRNN(modelPath)
+    print(modelPath)
     fp_structure = []
 
-    for thing in input_levels:
-        fp_structure.append(len(model._fixedPoints[thing]))
+    for fp in input_levels:
+        fp_structure.append(len(model._fixedPoints[fp]))
     return np.array(fp_structure)
 
-fp_distances = np.zeros((10, 21))
+fp_distances = np.zeros((13, 21))
+
 
 fp_distances[0,:] = get_fp_structure(89, "bptt")
 fp_distances[1,:] = get_fp_structure(90, "bptt")
 fp_distances[2,:] = get_fp_structure(91, "bptt")
+fp_distances[3,:] = get_fp_structure(88, "bptt")
+fp_distances[4,:] = get_fp_structure(87, "bptt")
+fp_distances[5,:] = get_fp_structure(86, "bptt")
 
-fp_distances[3,:] = get_fp_structure(67, "bptt")
-fp_distances[4,:] = get_fp_structure(68, "bptt")
-fp_distances[5,:] = get_fp_structure(69, "bptt")
+fp_distances[6,:] = get_fp_structure(67, "bptt")
+fp_distances[7,:] = get_fp_structure(68, "bptt")
+fp_distances[8,:] = get_fp_structure(69, "bptt")
 
-fp_distances[6,:] = get_fp_structure(85, "GA")
-fp_distances[7,:] = get_fp_structure(86, "GA")
-fp_distances[8,:] = get_fp_structure(87, "GA")
-fp_distances[9,:] = get_fp_structure(88, "GA")
+fp_distances[9,:] = get_fp_structure(85, "GA")
+fp_distances[10,:] = get_fp_structure(86, "GA")
+fp_distances[11,:] = get_fp_structure(87, "GA")
+fp_distances[12,:] = get_fp_structure(88, "GA")
 
-fp_distances += 0.1*np.random.randn(10, 21)
+fp_distances += 0.05*np.random.randn(13, 21)
 
 clustering_algorithm = MDS()
 clustered_data = clustering_algorithm.fit_transform(fp_distances)
 plt.figure()
-plt.scatter(clustered_data[:3,0], clustered_data[:3,1], c='r')
-plt.scatter(clustered_data[3:6,0], clustered_data[3:6,1], c='b')
-plt.scatter(clustered_data[6:,0], clustered_data[6:,1], c='g')
+plt.scatter(clustered_data[:6,0], clustered_data[:6,1], c='r')
+plt.scatter(clustered_data[6:9,0], clustered_data[6:9,1], c='b')
+plt.scatter(clustered_data[9:,0], clustered_data[9:,1], c='g')
 plt.legend(["BPTT (var=1.0)", "BPTT (var=0.5)", "GA (var=1.0)"])

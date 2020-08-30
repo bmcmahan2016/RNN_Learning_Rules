@@ -41,6 +41,21 @@ def TrainRDM(name, hyperParams):
     rnnModel.setName(name)
     rnnModel.train()
     rnnModel.save()
+    
+def TrainContext(name, hyperParams):
+    if name.lower()[:2] == "bp":
+        print("begining training BPTT network")
+        rnnModel = Bptt(hyperParams, task="context")
+    elif name.lower()[:2] == "he":
+        raise NotImplementedError()
+    elif name.lower()[:2] == "ga" or name.lower()[:2] == "ge":      # use genetic learning rule
+        rnnModel = Genetic(hyperParams, task="context", mutation=0.001)
+    else:
+        print("unclear which learning rule should be used for training")
+        raise NotImplementedError()
+    rnnModel.setName(name)
+    rnnModel.train()
+    rnnModel.save()
 
 if __name__ == '__main__':
     
@@ -150,8 +165,8 @@ if __name__ == '__main__':
     #TrainRDM("bptt_088", hyperParams)
     #TrainRDM("bptt_089", hyperParams)
     #TrainRDM("bptt_090", hyperParams)
-    TrainRDM("bptt_091", hyperParams)     # only recurrent weights trained
-    TrainRDM("bptt_092", hyperParams)     # only recurrent weights trained
+    #TrainRDM("bptt_091", hyperParams)     # only recurrent weights trained
+    #TrainRDM("bptt_092", hyperParams)     # only recurrent weights trained
     #TrainRDM("bptt_093", hyperParams)
     #TrainRDM("bptt_094", hyperParams)
     #TrainRDM("bptt_095", hyperParams)
@@ -159,7 +174,11 @@ if __name__ == '__main__':
     #TrainRDM("bptt_097", hyperParams)
     #TrainRDM("bptt_098", hyperParams)
     #TrainRDM("bptt_099", hyperParams)
-    #TrainRDM("bptt_100", hyperParams)
-    
+    hyperParams["inputSize"] = 4
+    hyperParams["mean"] = 0.5
+    #TrainContext("bptt_100", hyperParams)
+    TrainContext("ga_101", hyperParams)
+    TrainContext("ga_102", hyperParams)
+    TrainContext("ga_103", hyperParams)
     
   

@@ -10,8 +10,8 @@ from rnn import RNN
 
 
 class Genetic(RNN):
-    def __init__(self, hyperParams, numPop = 50, numGenerations = 500, numParents=5, mutation=0.005):
-        super(Genetic, self).__init__(hyperParams)                             # initialize parent class
+    def __init__(self, hyperParams, numPop = 50, numGenerations = 500, numParents=5, mutation=0.005, task="rdm"):
+        super(Genetic, self).__init__(hyperParams, task=task)                             # initialize parent class
 
         self._numGenerations = numGenerations                                  # maximum allowed generations for convergence
         self._hParams["numPop"] = numPop                                       # population size
@@ -35,14 +35,14 @@ class Genetic(RNN):
         represents the current population
         '''
         g = 1
-        Win = torch.zeros((2500,1))
+        Win = torch.zeros((2500,self._inputSize))
         Wrec = torch.zeros((num_pop*hiddenSize, num_pop*hiddenSize))
         Wout = torch.zeros((num_pop, num_pop*hiddenSize))
         for currChild in range(num_pop):
             #torch.manual_seed(currChild)
             Win[currChild*50:(currChild+1)*50] = 0.5*(torch.randn(self._hiddenSize, self._inputSize))
             Wrec[currChild*50:(currChild+1)*50, currChild*50:(currChild+1)*50] = ((g**2)/50) * torch.randn((50,50))
-            Wout[currChild,currChild*50:(currChild+1)*50] = 0*torch.randn((1,50))
+            Wout[currChild,currChild*50:(currChild+1)*50] = 0.3*torch.randn((1,50))
         superModel.AssignWeights(Win, Wrec, Wout)
 
     
@@ -52,7 +52,7 @@ class Genetic(RNN):
         generation
         '''
         # initialize new parameters for the next generation
-        Win = torch.zeros((num_pop*hiddenSize, 1))
+        Win = torch.zeros((num_pop*hiddenSize, self._inputSize))
         Wrec = torch.zeros((num_pop*hiddenSize, num_pop*hiddenSize))
         Wout = torch.zeros((num_pop, num_pop*hiddenSize))
         
@@ -119,7 +119,7 @@ class Genetic(RNN):
         mutation = self._hParams["mutation"]
         # create a super model that will hold the entire population
         superModel_params = self._hParams.copy()                               # copy constructs hyper-parameters for super model
-        superModel_params["inputSize"] = 1
+        superModel_params["inputSize"] = self._inputSize
         superModel_params['hiddenSize'] = num_pop*50
         superModel_params["outputSize"] = num_pop
         superModel = RNN(superModel_params)
@@ -127,7 +127,7 @@ class Genetic(RNN):
         
         self.createValidationSet()
         # for CUDA implementation
-        self.batch_data = torch.zeros(self._batchSize, self._task.N).cuda()
+        self.batch_data = torch.zeros(self._batchSize, self._inputSize, self._task.N).cuda()
         self.batch_labels = torch.zeros(self._batchSize,1).cuda()
         self.activity_tensor = np.zeros((500, 75, 50))  # MAX_GENERATIONS x TIMESTEPS x HIDDEN_UNITS
         neuronActivities = np.zeros((75, 50*50))        # holds activity of all population members through trial
@@ -147,19 +147,20 @@ class Genetic(RNN):
             for b in range(self._batchSize):  # batch_size
                 inpt_tmp, condition_tmp = self._task.GetInput()  # this reflects the williams decision making task, drawing samples from the distribution
                 self.batch_data[b,:] = inpt_tmp[:].T
-                self.batch_labels[b] = condition_tmp[:]
+                self.batch_labels[b] = condition_tmp.item()
             
              # try passing some data through superModel
-            inpt = self.batch_data
+            inpt = self.batch_data.permute(1,0,2)
             
             self.initSuperHidden(superModel, num_pop, self._batchSize)
             outList = torch.zeros((self._task.N, self._hiddenSize, self._batchSize))
             for i in range(inpt.shape[1]):
-                output_temp, hidden = superModel._forward(inpt[:, i])  # in the other case it was input[i, :]... just be careful\
+                output_temp, hidden = superModel._forward(inpt[:, :, i])  # in the other case it was input[i, :]... just be careful\
+                # output_temp is shape (superModel._outputSize, batchSize)
                 if (i %100 == 0):
                     activityIX = int(i/100)
                     neuronActivities[activityIX, :] = hidden.detach().cpu().numpy()[:,-1]   # activty from last trial in batch saved
-                outList[i,:,:] = output_temp.cpu()      # output_tmp has shape (hiddenSize, batchSize)
+                outList[i,:,:] = output_temp.cpu()     # shape (Time, sueprModel._outputSize, batchSize)    
             
             # compute losses
             lossArray = self.computeSuperLoss(outList, 50)

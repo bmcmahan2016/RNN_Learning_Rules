@@ -13,4 +13,4 @@ taskVar : 0.5
 numPop : 50
 numParents : 5
 mutation : 0.005
-total training time: 390.4910249710083
+total training time: 510.5287344455719

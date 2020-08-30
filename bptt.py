@@ -17,8 +17,8 @@ from torch.autograd import Variable
 
 class Bptt(RNN):
     '''create a trainer object that will be used to trian an RNN object'''
-    def __init__(self, hyperParams):
-        super(Bptt, self).__init__(hyperParams)
+    def __init__(self, hyperParams, task="rdm"):
+        super(Bptt, self).__init__(hyperParams, task=task)
         '''
         description of parameters:
 
@@ -57,14 +57,15 @@ class Bptt(RNN):
         self._optimizer.zero_grad()
         self.StoreRecMag()
 
-        output = torch.zeros((750, 500*self._outputSize))      #i am lazy and this is a hack
+        output = torch.zeros((self._task.N, 500*self._outputSize))      #i am lazy and this is a hack
         output_temp = torch.Tensor([0])
 
         trial_length = self._task.N
         for i in range(trial_length): 
-            output_temp, hidden = self._forward(input[i, :])           #I need to generalize this line to work for context task
+            inputNow = input[:,i,:].t()
+            output_temp, hidden = self._forward(inputNow)           #I need to generalize this line to work for context task
             #output_temp, hidden = self.rnn_model.forward(input[:,i], hidden, dt)             #this incridebly hacky must improve data formatting accross all modules to correctly implement a context task that doesn't clash with DM task
-            output[i] = output_temp[0,:]
+            output[i] = np.squeeze(output_temp)
             if (i %10 == 0):
                 activityIX = int(i/10)
                 self._activityTensor[self.trial_count, activityIX, :] = np.squeeze(torch.tanh(self._hidden).cpu().detach().numpy())[:,0]
@@ -78,12 +79,13 @@ class Bptt(RNN):
         return output, loss.item()
     
     def getBatch(self):
-        x_batch = torch.zeros((750, self._batchSize))
+        x_batch = torch.zeros((self._batchSize, self._task.N, self._inputSize))
+        #x_batch = torch.zeros((750, self._inputSize, self._batchSize))
         y_batch = torch.zeros(self._batchSize)
-        for _ in range(self._batchSize):
+        for dataPtIX in range(self._batchSize):
             inpt, condition = self._task.GetInput()
-            x_batch[:,_] = inpt[:,0]
-            y_batch[_] = condition
+            x_batch[dataPtIX,:,:] = inpt
+            y_batch[dataPtIX] = condition
         return x_batch, y_batch
 
     def train(self):
@@ -102,7 +104,7 @@ class Bptt(RNN):
         loss_hist = []
         
         # for CUDA implementation
-        inpt = Variable(torch.zeros(self._task.N,self._batchSize).cuda())
+        inpt = Variable(torch.zeros(self._batchSize, self._task.N, self._inputSize).cuda())
         
         #trial = 0
         loss = np.inf

@@ -17,6 +17,7 @@ import matplotlib
 import time
 from FP_Analysis import FindFixedPoints
 from task.williams import Williams
+from task.context import context_task
 import os
 
 
@@ -31,11 +32,13 @@ hyperParams = {       # dictionary of all hyper-parameters
     "initScale" : 0.3,
     "dt" : 0.1,
     "batchSize" : 500,
+    "taskMean" : 0.5,
+    "taskVar" : 1
     }
 
 class RNN(nn.Module):
     # recently changed var by normalizing it by N, before was 0.045 w/o normilazation
-    def __init__(self, hyperParams):
+    def __init__(self, hyperParams, task="rdm"):
 
         super(RNN, self).__init__()                                            # initialize parent class
         self._inputSize = int(hyperParams["inputSize"])
@@ -52,8 +55,12 @@ class RNN(nn.Module):
         self._useForce = False            # if set to true this slightly changes the forward pass 
         self._fixedPoints = []
         
-        self._task = Williams(N=750, mean=hyperParams["taskMean"], \
-                              variance=hyperParams["taskVar"])                
+        if task == "context":
+            self._task = context_task(N=750, mean=hyperParams["taskMean"], \
+                                      var = hyperParams["taskVar"])
+        else:
+            self._task = Williams(N=750, mean=hyperParams["taskMean"], \
+                                  variance=hyperParams["taskVar"])                
 
         #create an activity tensor that will hold a history of all hidden states
         self._activityTensor = np.zeros((50))
@@ -105,6 +112,19 @@ class RNN(nn.Module):
             self._timerStarted = False
     
     def setName(self, name):
+        '''
+        sets name of model
+
+        Parameters
+        ----------
+        name : string
+            model will be saved as a .pt file with this name in the /models/ directory.
+
+        Returns
+        -------
+        None.
+
+        '''
         self._MODEL_NAME = "models/" + name
         
     # function to store recurrent magnitudes to a list    
@@ -142,13 +162,15 @@ class RNN(nn.Module):
         dataset is equal to the variance of the trainign dataset 
         as specified by the task object.
         
+        validation dataset has shape (test_iters, numInputs, tSteps)
+        
         PARAMETERS:
         **valSize: specifies the size of the validation dataset to use
         **task: task object that is used to create the validation data 
         set
         '''
         # initialize tensors to hold validation data
-        self.validationData = torch.zeros(test_iters,self._task.N).cuda()
+        self.validationData = torch.zeros(test_iters, self._inputSize,  self._task.N).cuda()
         self.validationTargets = torch.zeros(test_iters,1).cuda()
         # means for validation data
         meanValues = np.linspace(0, 0.1875, 20)
@@ -156,7 +178,7 @@ class RNN(nn.Module):
             # to get genetic and bptt different I divided by 30
             mean_overide = meanValues[trial %20]
             inpt_tmp, condition_tmp = self._task.GetInput(mean_overide=mean_overide)
-            self.validationData[trial,:] = inpt_tmp[:,0]
+            self.validationData[trial,:, :] = inpt_tmp.t()
             self.validationTargets[trial] = condition_tmp
         print('Validation dataset created!\n')
 
@@ -168,7 +190,7 @@ class RNN(nn.Module):
         accuracy = 0.0
         tol = 1
 
-        inpt_data = self.validationData.t()
+        inpt_data = self.validationData#.t()
         condition = self.validationTargets
         condition = torch.squeeze(condition)
         output = self.feed(inpt_data)
@@ -187,12 +209,18 @@ class RNN(nn.Module):
 
     def _UpdateHidden(self, inpt, use_relu=False):
         '''
-        INPUTS
-        inpt: an 1xN array corresponding to N samples of data
-        to be feed to the network at the current timestep
-        OUTPUTS
-        hidden_next: the new activations of the hidden units as a torch tensor
-        with shape (hidden_size, N)
+        Parameters
+        ----------
+        inpt : PyTorch cuda tensor
+            inputs to the network at current time step. Has shape (inputSize, batchSize)
+        use_relu : BOOL, optional
+            when true, the network will use ReLU activations. The default is False.
+
+        Returns
+        -------
+        hidden_next : PyTorch cuda Tensor
+            Tensor of the updated neuron activations. Has shape (hiddenSize, batchSize)
+
         '''
         dt = self._dt
         if use_relu:
@@ -211,29 +239,27 @@ class RNN(nn.Module):
 
     def _forward(self, inpt):
         '''
-        computes the forward pass activations
+        Computes the RNNs forward pass activations for a single timestep
 
-        Args:
-            inpt (torch tensor): this is a torch tensor that contains inputs to
-            the network at a given timestep. This should have shape (1, batch_size). 
-            inpt will be reshaped to (1,-1)
-            hidden (torch tensor): activity of the hidden units. Should have shape
-            (hidden_size, batch_size)
-            
-            dt (TYPE): DESCRIPTION.
+        Parameters
+        ----------
+        inpt : PyTorch cuda Tensor 
+            inputs to the network for the current timestep. Shape (inputSize, batchSize)
 
-        Returns:
-            output (torch tensor): output activity of the network for current timestep.
-            output has shape (1, batch_size).
-            hidden_next (torch tensor): activities of all artificial neurons. Has
-            shape (hidden_size, batch_size)
+        Returns
+        -------
+        output : PyTorch cuda Tensor
+            output of the network after this timestep. Has shape (outputSize, batchSize)
+        PyTorch cuda Tensor
+            copy of the hidden state activations after the forward pass. Has shape
+            (hiddenSize, batchSize)
 
         '''
 
         #ensure the input is a torch tensor
         if torch.is_tensor(inpt) == False:
             inpt = torch.from_numpy(inpt).float()                              # inpt must have shape (1,1)
-        inpt = inpt.reshape(1, -1)
+        inpt = inpt.reshape(self._inputSize, -1)
         
         # compute the forward pass
         self._UpdateHidden(inpt)
@@ -246,21 +272,35 @@ class RNN(nn.Module):
 
     def feed(self, inpt_data, return_hidden=False):
         '''
-        feed is a method that can be used for feeding input data 
-        into an RNN. Feed initializes the hidden state and passes inputs into the 
-        RNN updating the hidden layer and outputs.
-        
-        INPUTS
-        inpt_data: NxM torch tensor where N is the number of time steps and M is
-        the number of 
-        OUTPUTS
-        output_trace: output of the network over all timesteps. Will have shape 
-        (time_steps, num_samples) i.e. 40x1 for single sample inputs
+        Feeds an input data sequence into an RNN
+
+        Parameters
+        ----------
+        inpt_data : PyTorch CUDA Tensor
+            Inputs sequence to be fed into RNN. Has shape (batchSize, inputSize, Time)
+        return_hidden : BOOL, optional
+            When True, the hidden states of the RNN are returned as list of length
+            Time where each element is a NumPy array of shape (hiddenSize, batchSize)
+            containing the hidden state activations through the course of the input
+            sequence. The default is False.
+
+        Returns
+        -------
+        output_trace : PyTorch CUDA Tensor
+            output_trace: output of the network over all timesteps. Will have shape 
+            (batchSize, inputSize) i.e. 40x1 for single sample inputs
+
         '''
-        num_inputs = len(inpt_data[0])
-        output_trace = torch.zeros(inpt_data.shape[0], inpt_data.shape[1]).cuda()
+
+        #num_inputs = len(inpt_data[0])
+        batch_size = inpt_data.shape[0]
+        assert(inpt_data.shape[1] == self._inputSize)
+        num_t_steps = inpt_data.shape[2]
+        
+        output_trace = torch.zeros(num_t_steps, batch_size).cuda()
         hidden_trace = []
-        self._init_hidden(numInputs=num_inputs)                                # initializes hidden state
+        self._init_hidden(numInputs=batch_size)  # initializes hidden state
+        inpt_data = inpt_data.permute(2,1,0)     # now has shape TxMxB
         for t_step in range(len(inpt_data)):
             output, hidden = self._forward(inpt_data[t_step])
             if return_hidden:
@@ -517,12 +557,25 @@ def loadHeb():
 if __name__ == '__main__':
 
     #hyper-parameters for RNN
-    input_size=1
-    hidden_size=50
-    output_size=1
+    hyperParams = {       # dictionary of all hyper-parameters
+    "inputSize" : 4,
+    "hiddenSize" : 50,
+    "outputSize" : 1,
+    "g" : 1 ,
+    "inputVariance" : 0.5,
+    "outputVariance" : 0.5,
+    "biasScale" : 0,
+    "initScale" : 0.3,
+    "dt" : 0.1,
+    "batchSize" : 500,
+    "taskMean" : 0.5,
+    "taskVar" : 1
+    }
+    
+    
 
     #create an RNN instance
-    rnn_inst = RNN(input_size, hidden_size, output_size)
+    rnn_inst = RNN(hyperParams, task="context")
     rnn_inst.createValidationSet()
     print("validation accuracy", rnn_inst.GetValidationAccuracy())
     rnn_inst.VisualizeWeightMatrix()

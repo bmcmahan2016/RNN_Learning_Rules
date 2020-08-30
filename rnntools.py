@@ -203,7 +203,7 @@ def TestIdenticalInputs(model, conditions, cs=['r', 'b', 'k', 'g', 'y'], title='
         title += additional_title
     plt.title(title)
 
-def TestTaskInputs(model, task, num_test=50, ShowFig=False, return_hidden=False, inpt_scale=1):
+def TestTaskInputs(model, task, num_test=50, ShowFig=True, return_hidden=False, inpt_scale=1):
     '''
     Will test a model on the Williams 1D decision-making task
     '''
@@ -215,7 +215,7 @@ def TestTaskInputs(model, task, num_test=50, ShowFig=False, return_hidden=False,
     for _ in range(num_test):
         # get network output for current task instance
         inp, condition = task.GetInput()
-        output, hidden_activities = model.feed(inpt_scale*inp, return_hidden=return_hidden)
+        output, hidden_activities = model.feed(inpt_scale*torch.unsqueeze(inp.t(), 0), return_hidden=True)
         output = output.cpu().detach().numpy()
         #hidden_activities = hidden_activities.cpu().detach().numpy()
         # add current output to list of network outputs
@@ -290,7 +290,7 @@ def record(model, cs=['r', 'b', 'k', 'g', 'y'], title='', print_out=False, plot_
         #data = torch.from_numpy(data).float().cuda()
         #if add_in_noise:
         #    data += 0.01*add_in_noise*torch.randn(data.shape[0], data.shape[1]).cuda()
-        output, hidden = model.feed(taskData, return_hidden=True)
+        output, hidden = model.feed(torch.unsqueeze(taskData.t(), 0), return_hidden=True)
 
         #convert output to numpy array
         for lol in range(len(output)):

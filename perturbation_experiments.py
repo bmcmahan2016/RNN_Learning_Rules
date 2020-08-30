@@ -150,14 +150,19 @@ def AnalyzeLesioned(model, fig_name, PC1_min=-10, PC1_max=10, PC2_min=-10, PC2_m
     trial_data, trial_labels = r.record(model, \
         title='fixed points', print_out=True, plot_recurrent=False, cs=cs)
     # find the fixed points for the model using the PC axis found on the niave model
-    F = model.GetF()
-    print("trial_data", trial_data)
-    input_values = [[1],[.9],[.8],[.7],[.6],[.5],[.4],[.3],[.2],[.1],[0],\
-                        [-.1],[-.2],[-.3],[-.4],[-.5],[-.6],[-.7],[-.8],[-.9],[-1]]
-    input_values = test_inpt * np.array(input_values)
-    #input_values = [[.1],[0],[-.1]]
-    roots, idx, pca = FindFixedPoints(F, input_values, embedding='', embedder=model._pca, Verbose=False)
-    
+    if model._fixedPoints == []:
+        F = model.GetF()
+        print("trial_data", trial_data)
+        input_values = [[1],[.9],[.8],[.7],[.6],[.5],[.4],[.3],[.2],[.1],[0],\
+                            [-.1],[-.2],[-.3],[-.4],[-.5],[-.6],[-.7],[-.8],[-.9],[-1]]
+        input_values = test_inpt * np.array(input_values)
+        #input_values = [[.1],[0],[-.1]]
+        roots, idx, pca = FindFixedPoints(F, input_values, embedding='', embedder=model._pca, Verbose=False)
+        model._fixedPoints = roots
+        model.updateFixedPoints(roots, pca)      # fixed points now saved
+    else:
+        pca = model._pca
+        roots = model._fixedPoints
     # partition PC space using Wout
     W_out = model._J['out'].cpu().detach().numpy()
     W_out_PC = pca.transform(W_out-pca.offset_)
@@ -185,6 +190,24 @@ def AnalyzeLesioned(model, fig_name, PC1_min=-10, PC1_max=10, PC2_min=-10, PC2_m
     task=Williams()
     r.TestTaskInputs(model, task)
     #plt.show()
+    
+    ####
+    #GET JACOBIAN
+    ####
+    jacobian = np.zeros((50, 50))
+    
+    hStars = model._fixedPoints["[0.02]"]
+    plt.figure()
+    cs = ["r", "b", "g"]
+    for pointNum in range(3):
+        jacobian = np.zeros((50, 50))
+        hStar = hStars[pointNum].reshape(50,1)
+        for j in range(50):
+            mask = np.zeros((50,1))
+            mask[j, 0] = 1
+            jacobian[:,j] = model._dt*np.squeeze(np.matmul(model._J["rec"].detach().cpu().numpy(), 1-np.tanh(hStar*mask)**2)) + np.squeeze((1-model._dt)*mask)
+        w, v = np.linalg.eig(jacobian)
+        plt.bar(np.linspace(0,len(w),len(w))+0.2*pointNum, np.real(w), color=cs[pointNum])
 
 
 def AnalyzePerturbedNetwork(model, model_name, test_inpt=1):
