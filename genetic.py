@@ -25,69 +25,71 @@ class Genetic(RNN):
         self._init_hidden()
         hidden = torch.zeros(superModel._hiddenSize, batch_size)
         for member in range(num_pop):
-            hidden[member*num_pop:(member+1)*num_pop] = self._hidden.clone()
+            hidden[member*self._hiddenSize:(member+1)*self._hiddenSize] = self._hidden.clone()
         hidden = hidden.cuda()
         superModel._hidden = hidden                                             # initializes hidden layer of concatned rnn
         
-    def initializeSuperModel(self, superModel, num_pop, hiddenSize=50):
+    def initializeSuperModel(self, superModel, num_pop):
         '''
         Initializes the recurrent weights for the concatenated RNN model that 
         represents the current population
         '''
+        #print("INITIALIZING SUPER MODEL ....\n")
         g = 1
-        Win = torch.zeros((2500,self._inputSize))
-        Wrec = torch.zeros((num_pop*hiddenSize, num_pop*hiddenSize))
-        Wout = torch.zeros((num_pop, num_pop*hiddenSize))
+        hSize = self._hiddenSize
+        Win = torch.zeros((self._hiddenSize*num_pop,self._inputSize))
+        Wrec = torch.zeros((num_pop*self._hiddenSize, num_pop*self._hiddenSize))
+        Wout = torch.zeros((num_pop, num_pop*self._hiddenSize))
         for currChild in range(num_pop):
             #torch.manual_seed(currChild)
-            Win[currChild*50:(currChild+1)*50] = 0.5*(torch.randn(self._hiddenSize, self._inputSize))
-            Wrec[currChild*50:(currChild+1)*50, currChild*50:(currChild+1)*50] = ((g**2)/50) * torch.randn((50,50))
-            Wout[currChild,currChild*50:(currChild+1)*50] = 0.3*torch.randn((1,50))
+            #print("child # {}".format(currChild))
+            #print("Win:", Win[currChild*hSize:(currChild+1)*hSize].shape)
+            #print("update:", torch.randn(self._hiddenSize, self._inputSize).shape, "\n")
+            
+            Win[currChild*hSize:(currChild+1)*hSize] = 0.5*(torch.randn(self._hiddenSize, self._inputSize))
+            Wrec[currChild*hSize:(currChild+1)*hSize, currChild*hSize:(currChild+1)*hSize] = ((g**2)/hSize) * torch.randn((hSize,hSize))
+            Wout[currChild,currChild*hSize:(currChild+1)*hSize] = 0.1*torch.randn((1,hSize))
         superModel.AssignWeights(Win, Wrec, Wout)
 
     
-    def CreateDescendants(self, parentSet, superModel, num_pop, hiddenSize, mutation):
+    def CreateDescendants(self, parentSet, superModel, num_pop, mutation):
         '''
         adds noise to appropriate matrix elements to create children for next 
         generation
         '''
         # initialize new parameters for the next generation
-        Win = torch.zeros((num_pop*hiddenSize, self._inputSize))
-        Wrec = torch.zeros((num_pop*hiddenSize, num_pop*hiddenSize))
-        Wout = torch.zeros((num_pop, num_pop*hiddenSize))
+        Win = torch.zeros((num_pop*self._hiddenSize, self._inputSize))
+        Wrec = torch.zeros((num_pop*self._hiddenSize, num_pop*self._hiddenSize))
+        Wout = torch.zeros((num_pop, num_pop*self._hiddenSize))
         
         numParents = len(parentSet)
         
-        # loop over each child for the next generation
-        for newChild in range(num_pop):   
+        for newChild in range(num_pop):   # loop to create each child for the next generation
             # extract the parent
             if newChild == 0:
                 parentIX = parentSet[0]
             else:
-                #np.random.seed(newChild)
                 parentIX = parentSet[int(np.random.rand()*numParents)]
-            # if newChild < 5:
-            #     print("parent selected for next gen:", parentIX)
             
-            parentWin = superModel._J['in'][parentIX*num_pop:(parentIX+1)*num_pop]
-            parentWrec = superModel._J['rec'][parentIX*num_pop:(parentIX+1)*num_pop, parentIX*num_pop:(parentIX+1)*num_pop]
-            parentWout = superModel._J['out'][parentIX, parentIX*num_pop:(parentIX+1)*num_pop]
+            parentWin = superModel._J['in'][parentIX*self._hiddenSize:(parentIX+1)*self._hiddenSize]
+            parentWrec = superModel._J['rec'][parentIX*self._hiddenSize:(parentIX+1)*self._hiddenSize, parentIX*self._hiddenSize:(parentIX+1)*self._hiddenSize]
+            parentWout = superModel._J['out'][parentIX, parentIX*self._hiddenSize:(parentIX+1)*self._hiddenSize]
             
             # mutate the parent to produce the child
             #torch.manual_seed(newChild)
             if newChild == 0:
                 # keep the parent in the next generation
-                Win[newChild*num_pop:(newChild+1)*num_pop, :] = parentWin 
-                Wrec[newChild*num_pop:(newChild+1)*num_pop, newChild*num_pop:(newChild+1)*num_pop] = parentWrec 
-                Wout[newChild, newChild*num_pop:(newChild+1)*num_pop] = parentWout 
+                Win[newChild*self._hiddenSize:(newChild+1)*self._hiddenSize, :] = parentWin 
+                Wrec[newChild*self._hiddenSize:(newChild+1)*self._hiddenSize, newChild*self._hiddenSize:(newChild+1)*self._hiddenSize] = parentWrec 
+                Wout[newChild, newChild*self._hiddenSize:(newChild+1)*self._hiddenSize] = parentWout 
             else:
                 # mutate the parent
                 Win_noise = torch.randn(parentWin.shape[0], parentWin.shape[1]).cuda()
                 Wrec_noise = torch.randn(parentWrec.shape[0], parentWrec.shape[1]).cuda()
                 Wout_noise = torch.randn(parentWout.shape[0]).cuda()
-                Win[newChild*num_pop:(newChild+1)*num_pop, :] = parentWin + mutation * Win_noise
-                Wrec[newChild*num_pop:(newChild+1)*num_pop, newChild*num_pop:(newChild+1)*num_pop] = parentWrec + mutation * Wrec_noise
-                Wout[newChild, newChild*num_pop:(newChild+1)*num_pop] = parentWout + mutation * Wout_noise
+                Win[newChild*self._hiddenSize:(newChild+1)*self._hiddenSize, :] = parentWin + mutation * Win_noise
+                Wrec[newChild*self._hiddenSize:(newChild+1)*self._hiddenSize, newChild*self._hiddenSize:(newChild+1)*self._hiddenSize] = parentWrec + mutation * Wrec_noise
+                Wout[newChild, newChild*self._hiddenSize:(newChild+1)*self._hiddenSize] = parentWout + mutation * Wout_noise
             
         # update the model parameters for the next generation
         superModel.AssignWeights(Win, Wrec, Wout)
@@ -120,7 +122,7 @@ class Genetic(RNN):
         # create a super model that will hold the entire population
         superModel_params = self._hParams.copy()                               # copy constructs hyper-parameters for super model
         superModel_params["inputSize"] = self._inputSize
-        superModel_params['hiddenSize'] = num_pop*50
+        superModel_params['hiddenSize'] = num_pop*self._hiddenSize
         superModel_params["outputSize"] = num_pop
         superModel = RNN(superModel_params)
         self.initializeSuperModel(superModel, num_pop)
@@ -129,8 +131,8 @@ class Genetic(RNN):
         # for CUDA implementation
         self.batch_data = torch.zeros(self._batchSize, self._inputSize, self._task.N).cuda()
         self.batch_labels = torch.zeros(self._batchSize,1).cuda()
-        self.activity_tensor = np.zeros((500, 75, 50))  # MAX_GENERATIONS x TIMESTEPS x HIDDEN_UNITS
-        neuronActivities = np.zeros((75, 50*50))        # holds activity of all population members through trial
+        self.activity_tensor = np.zeros((500, 75, self._hiddenSize))  # MAX_GENERATIONS x TIMESTEPS x HIDDEN_UNITS
+        neuronActivities = np.zeros((75, self._hiddenSize*num_pop))        # holds activity of all population members through trial
         self.activity_targets = np.zeros((500))
 
         
@@ -150,11 +152,11 @@ class Genetic(RNN):
                 self.batch_labels[b] = condition_tmp.item()
             
              # try passing some data through superModel
-            inpt = self.batch_data.permute(1,0,2)
+            inpt = self.batch_data.permute(1,0,2)     # (inputsize, batchSize, T)
             
             self.initSuperHidden(superModel, num_pop, self._batchSize)
-            outList = torch.zeros((self._task.N, self._hiddenSize, self._batchSize))
-            for i in range(inpt.shape[1]):
+            outList = torch.zeros((self._task.N, num_pop, self._batchSize))
+            for i in range(inpt.shape[-1]):
                 output_temp, hidden = superModel._forward(inpt[:, :, i])  # in the other case it was input[i, :]... just be careful\
                 # output_temp is shape (superModel._outputSize, batchSize)
                 if (i %100 == 0):
@@ -163,7 +165,7 @@ class Genetic(RNN):
                 outList[i,:,:] = output_temp.cpu()     # shape (Time, sueprModel._outputSize, batchSize)    
             
             # compute losses
-            lossArray = self.computeSuperLoss(outList, 50)
+            lossArray = self.computeSuperLoss(outList, self._hParams["numPop"])
             lossArray = lossArray.detach().numpy()
             parentSet = np.argsort(lossArray)
             
@@ -177,9 +179,9 @@ class Genetic(RNN):
 
             # update RNN model weights
             bestIX = parentSet[0]
-            Win = superModel._J['in'][bestIX*num_pop:(bestIX+1)*num_pop]
-            Wrec = superModel._J['rec'][bestIX*num_pop:(bestIX+1)*num_pop, bestIX*num_pop:(bestIX+1)*num_pop]
-            Wout = superModel._J['out'][bestIX, bestIX*num_pop:(bestIX+1)*num_pop]
+            Win = superModel._J['in'][bestIX*self._hiddenSize:(bestIX+1)*self._hiddenSize]
+            Wrec = superModel._J['rec'][bestIX*self._hiddenSize:(bestIX+1)*self._hiddenSize, bestIX*self._hiddenSize:(bestIX+1)*self._hiddenSize]
+            Wout = superModel._J['out'][bestIX, bestIX*self._hiddenSize:(bestIX+1)*self._hiddenSize]
             self.AssignWeights(Win, Wrec, Wout)   
             
             # update validation accuracy 
@@ -200,13 +202,23 @@ class Genetic(RNN):
             #     superModel.AssignWeights(Win, Wrec, Wout)
             
             # now try to create the next generation 
-            self.CreateDescendants(parentSet, superModel, num_pop, 50, mutation)
+            self.CreateDescendants(parentSet, superModel, num_pop, mutation)
             #print("Generation", generationCounter, "update completed, best loss was:", lossArraySorted[0].item())
             lossHist.append(lossArraySorted[0].item())
             
-            self.activity_tensor[generationCounter, :, :] = neuronActivities[:, bestIX*50:(bestIX+1)*50]
+            self.activity_tensor[generationCounter, :, :] = neuronActivities[:, bestIX*self._hiddenSize:(bestIX+1)*self._hiddenSize]
             self.activity_targets[generationCounter] = self.batch_labels[-1]
             generationCounter += 1
+            
+            if generationCounter == 499:
+                # plot validation history
+                plt.figure()
+                plt.plot(lossHist)
+                plt.plot(self._valHist)
+                plt.legend(["Training Loss", "Validation Accuracy"])
+                plt.title("Learning Performance")
+                plt.xlabel("Training Progress")
+
             
           
         # update RNN model

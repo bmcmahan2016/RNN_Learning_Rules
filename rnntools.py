@@ -207,6 +207,7 @@ def TestTaskInputs(model, task, num_test=50, ShowFig=True, return_hidden=False, 
     '''
     Will test a model on the Williams 1D decision-making task
     '''
+    task = model._task
     network_outputs = []        # will hold network outputs
     target_outputs = []         # will hold correct outputs for each condition
     network_hidden = []
@@ -216,9 +217,12 @@ def TestTaskInputs(model, task, num_test=50, ShowFig=True, return_hidden=False, 
         # get network output for current task instance
         inp, condition = task.GetInput()
         output, hidden_activities = model.feed(inpt_scale*torch.unsqueeze(inp.t(), 0), return_hidden=True)
-        output = output.cpu().detach().numpy()
-        #hidden_activities = hidden_activities.cpu().detach().numpy()
-        # add current output to list of network outputs
+        if model._task._version == "Heb":
+            output = hidden_activities[:,0,0]
+        else:
+            output = output.cpu().detach().numpy()
+            #hidden_activities = hidden_activities.cpu().detach().numpy()
+            # add current output to list of network outputs
         network_outputs.append(output)
         network_hidden.append(hidden_activities)
         # add the current tast target to the list of all targets
@@ -291,12 +295,15 @@ def record(model, cs=['r', 'b', 'k', 'g', 'y'], title='', print_out=False, plot_
         #if add_in_noise:
         #    data += 0.01*add_in_noise*torch.randn(data.shape[0], data.shape[1]).cuda()
         output, hidden = model.feed(torch.unsqueeze(taskData.t(), 0), return_hidden=True)
-
-        #convert output to numpy array
-        for lol in range(len(output)):
-            output[lol] = output[lol].detach().item()
-        output = np.array(output.cpu().detach().numpy())
-        outputs.append(output)
+        if model._task._version=="Heb":
+            output = hidden[-1,0,0]
+            outputs.append(hidden[-1,0,0])
+        else:
+            #convert output to numpy array
+            for lol in range(len(output)):
+                output[lol] = output[lol].detach().item()
+            output = np.array(output.cpu().detach().numpy())
+            outputs.append(output)
 
         #if a plot of the network output is requested
         if print_out:

@@ -202,7 +202,7 @@ class RNN(nn.Module):
         accuracy = (test_iters - num_errors) / test_iters
 
         
-        self._valHist.append(accuracy)                                          # appends current validation accuracy to history
+        self._valHist.append(accuracy)                 # appends current validation accuracy to history
     
         
         return accuracy
@@ -229,10 +229,16 @@ class RNN(nn.Module):
             dt*torch.matmul(self._J['rec'], (torch.max(hidden_floor, self._hidden))) + \
             (1-dt)*self._hidden + dt*self._J['bias']
         else:   # add nosie term
-            noiseTerm=0
-            hidden_next = dt*torch.matmul(self._J['in'], inpt) + \
-            dt*torch.matmul(self._J['rec'], (1+torch.tanh(self._hidden))) + \
-            (1-dt)*self._hidden + dt*self._J['bias'] + 0*noiseTerm
+            if self._task._version == "Heb":
+                noiseTerm=0
+                hidden_next = dt*torch.matmul(self._J['in'], inpt) + \
+                dt*torch.matmul(self._J['rec'], (torch.tanh(self._hidden))) + \
+                (1-dt)*self._hidden + dt*self._J['bias'] + 0*noiseTerm
+            else:
+                noiseTerm=0
+                hidden_next = dt*torch.matmul(self._J['in'], inpt) + \
+                dt*torch.matmul(self._J['rec'], (1+torch.tanh(self._hidden))) + \
+                (1-dt)*self._hidden + dt*self._J['bias'] + 0*noiseTerm
 
         self._hidden = hidden_next        # updates hidden layer
         return hidden_next
@@ -294,7 +300,7 @@ class RNN(nn.Module):
 
         #num_inputs = len(inpt_data[0])
         batch_size = inpt_data.shape[0]
-        assert(inpt_data.shape[1] == self._inputSize)
+        assert inpt_data.shape[1] == self._inputSize, "Size of inputs:{} does not match network's input size:{}".format(inpt_data.shape[1], self._inputSize)
         num_t_steps = inpt_data.shape[2]
         
         output_trace = torch.zeros(num_t_steps, batch_size).cuda()
@@ -306,7 +312,10 @@ class RNN(nn.Module):
             if return_hidden:
                 hidden_trace.append(hidden.cpu().detach().numpy())
                 
-            output_trace[t_step,:] = output
+            if self._task._version == "Heb":
+                output_trace[t_step,:] = hidden.detach()[0]
+            else:
+                output_trace[t_step,:] = output
         if return_hidden:
             return output_trace, np.array(hidden_trace)
         #print('shape of output trace', len(output_trace[0]))
@@ -331,6 +340,7 @@ class RNN(nn.Module):
         print('valdiation history', self._valHist)
         if N=="":     # no timestamp
             model_name = self._MODEL_NAME+'.pt'
+            print("model name: ", model_name)
         else:         # timestamp
             model_name = self.MODEL_NAME + '_' + str(N) + '_.pt'
         if tElapsed==0:
@@ -489,9 +499,12 @@ class RNN(nn.Module):
             sizeOfInput = len(inpt)
             inpt = inpt.reshape(sizeOfInput,1)
             if relu:
-                return lambda x: np.squeeze( dt*np.matmul(W_in, inpt) + dt*np.matmul(W_rec, (np.maximum( np.zeros((50,1)), x.reshape(50,1)) )) - dt*x.reshape(50,1) + b*dt)
+                return lambda x: np.squeeze( dt*np.matmul(W_in, inpt) + dt*np.matmul(W_rec, (np.maximum( np.zeros((self._hiddenSize,1)), x.reshape(self._hiddensize,1)) )) - dt*x.reshape(self._hiddenSize,1) + b*dt)
             else:
-                return lambda x: np.squeeze( dt*np.matmul(W_in, inpt) + dt*np.matmul(W_rec, (1+np.tanh(x.reshape(50,1)))) - dt*x.reshape(50,1) + b*dt)
+                if self._task._version == "Heb":
+                    return lambda x: np.squeeze( dt*np.matmul(W_in, inpt) + dt*np.matmul(W_rec, (np.tanh(x.reshape(self._hiddenSize,1)))) - dt*x.reshape(self._hiddenSize,1) + b*dt)
+                else:
+                    return lambda x: np.squeeze( dt*np.matmul(W_in, inpt) + dt*np.matmul(W_rec, (1+np.tanh(x.reshape(self._hiddenSize,1)))) - dt*x.reshape(self._hiddenSize,1) + b*dt)
 
         return master_function
         
@@ -499,7 +512,7 @@ class RNN(nn.Module):
         plt.plot(self._losses)
         plt.ylabel('Loss')
         plt.xlabel('Trial')
-        plt.title(self.model_name)
+        plt.title(self._MODEL_NAME)
 
 ###########################################################
 # AUXILLARY FUNCTIONS
@@ -524,13 +537,32 @@ def loadRNN(fName):
         model = RNN(hyperParams)
         model.load(fName)      # loads the RNN object
         model._MODEL_NAME = fName
+        if fName[7].lower() == 'h':
+            print("loaded hebain version")
+            model._task._version = "Heb"
         return model
     else:       # file does not exist
         return False
 
-def loadHeb():
+def importHeb(name = "undeclared_heb", modelNum=""):
+    '''
+    loads data from training with the biologically plausible learning algorithm
+    (Miconi 2017) and loads it into an RNN model. Win and Jrec text files must be
+    placed into the RNN_Learning code directory prior to calling this function.
+
+    Parameters
+    ----------
+    name : string, optional
+        name used for saving RNN model. The default is "undeclared_heb".
+
+    Returns
+    -------
+    rnnModel : rnn object
+        rnn object with weights learned using the biologically plausable 
+        training algorithm (Miconi 2017).
+    '''
     hyperParams = {       # dictionary of all hyper-parameters
-    "inputSize" : 5,
+    "inputSize" : 1,
     "hiddenSize" : 50,
     "outputSize" : 1,
     "g" : 1 ,
@@ -544,10 +576,27 @@ def loadHeb():
     "taskVar" : 0.1
     }
     rnnModel = RNN(hyperParams)
-    Jin = np.loadtxt("Win.txt")
-    Jrec = np.loadtxt("Jrec.txt")
+    #rnnModel._task._version = "Heb"
+    Jin = np.loadtxt("Win"+str(modelNum)+".txt")
+    Jrec = np.loadtxt("Jrec"+str(modelNum)+".txt")
     Jout = np.zeros((1,50))
-    rnnModel.AssignWeights(Jin, Jrec, Jout)
+    print("Jin: ", Jin[:,1:2].shape)
+    rnnModel.AssignWeights(Jin[:,1:2], Jrec, Jout)   # only take the second row of Win
+    
+    # create activity tensors at test time
+    activityTensor = np.zeros((500, 75, 50))  # test_trials x TIMESTEPS x HIDDEN_UNITS
+    for trial_num in range(500): # perform 2,000 trials
+        # generate a test input to the network
+        inpts = torch.zeros((rnnModel._task.N, 2)).cuda()
+        inpts, target = rnnModel._task.GetInput()         # N, 1 inputs
+        rnnModel._targets.append(target)                                       # append target response to network targets
+        outputs, hidden_states = rnnModel.feed(torch.unsqueeze(inpts.t(), 0), return_hidden=True)      # feed the test input to the network and get hidden state
+        # take the hidden state every 10 timesteps
+        activityTensor[trial_num, :, :] = np.squeeze(hidden_states[::10, :, :])        # record every 10th timestep from hidden state
+    rnnModel._activityTensor = activityTensor
+    
+    rnnModel.setName(name)
+    rnnModel.save()
     
     return rnnModel
 

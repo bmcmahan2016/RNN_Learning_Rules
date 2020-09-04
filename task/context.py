@@ -17,6 +17,22 @@ class context_task():
         self._var = var
         
     def GetInput(self, mean_overide=1):
+        '''
+        
+
+        Parameters
+        ----------
+        mean_overide : TYPE, optional
+            DESCRIPTION. The default is 1.
+
+        Returns
+        -------
+        inpts : PyTorch CUDA Tensor
+            DESCRIPTION.
+        target : TYPE
+            DESCRIPTION.
+
+        '''
         inpts = torch.zeros((self.N, 4)).cuda()
         
         # randomly generates context 1

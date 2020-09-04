@@ -49,7 +49,7 @@ def TrainContext(name, hyperParams):
     elif name.lower()[:2] == "he":
         raise NotImplementedError()
     elif name.lower()[:2] == "ga" or name.lower()[:2] == "ge":      # use genetic learning rule
-        rnnModel = Genetic(hyperParams, task="context", mutation=0.001)
+        rnnModel = Genetic(hyperParams, task="context", mutation=0.005, numPop=20)
     else:
         print("unclear which learning rule should be used for training")
         raise NotImplementedError()
@@ -175,9 +175,11 @@ if __name__ == '__main__':
     #TrainRDM("bptt_098", hyperParams)
     #TrainRDM("bptt_099", hyperParams)
     hyperParams["inputSize"] = 4
+    hyperParams["hiddenSize"] = 50
+    
     hyperParams["mean"] = 0.5
     #TrainContext("bptt_100", hyperParams)
-    TrainContext("ga_101", hyperParams)
+    #TrainContext("ga_101", hyperParams)
     TrainContext("ga_102", hyperParams)
     TrainContext("ga_103", hyperParams)
     

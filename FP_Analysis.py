@@ -255,12 +255,47 @@ def FindZeros2(F, num_iters=100, visualize=True, num_hidden=50, inpts=False, Emb
     return roots_found
 #end find zeros2
 
-def FindFixedPoints(master_function, inpts, just_get_roots=False, just_get_fraction=False, embedding='PCA', model_name='', embedder=[], num_hidden=50, new_fig=True, alpha=1, Verbose=True):
+def FindFixedPoints(model, inpts, just_get_roots=False, just_get_fraction=False, embedding='PCA', model_name='', embedder=[], num_hidden=50, new_fig=True, alpha=1, Verbose=True):
     '''
     functions is a list of functions for which we desire to find the roots
     most likley, each function in the list corresponds to a recurrent neural
     network update function, (dx/dt) = F(x), under a different input condition
+
+    Parameters
+    ----------
+    master_function : TYPE
+        DESCRIPTION.
+    inpts : list
+        List of inputs, where each element is itself a list of length equal to 
+        the RNNs input dimension. For the RDM task this corresponds to a list of 
+        length 1 lists. For the context task this is a list of length 4 lists
+    just_get_roots : TYPE, optional
+        DESCRIPTION. The default is False.
+    just_get_fraction : TYPE, optional
+        DESCRIPTION. The default is False.
+    embedding : TYPE, optional
+        DESCRIPTION. The default is 'PCA'.
+    model_name : TYPE, optional
+        DESCRIPTION. The default is ''.
+    embedder : TYPE, optional
+        DESCRIPTION. The default is [].
+    num_hidden : TYPE, optional
+        DESCRIPTION. The default is 50.
+    new_fig : TYPE, optional
+        DESCRIPTION. The default is True.
+    alpha : TYPE, optional
+        DESCRIPTION. The default is 1.
+    Verbose : TYPE, optional
+        DESCRIPTION. The default is True.
+
+    Returns
+    -------
+    TYPE
+        DESCRIPTION.
+
     '''
+    master_function = model.GetF()
+
     #master_function = model.GetF()
     #num_roots = np.zeros((len(inpts), len(inpts[0])+1))    #holds the number of roots under each condition found
     inpts = np.array(inpts)
@@ -273,6 +308,12 @@ def FindFixedPoints(master_function, inpts, just_get_roots=False, just_get_fract
     roots_ = {}
     #loop over input condition to create a unique function from the master function
     for _ in range(len(inpts)):
+        # if model._task._version == "Heb":
+        #     heb_inpt = [0]
+        #     heb_inpt.append(inpts[_][0])
+        #     print(heb_inpt)
+        #     functions.append(master_function(np.array(heb_inpt)))
+        # else:
         print(inpts[_])
         functions.append(master_function(inpts[_]))
     #find the roots of each desired function
@@ -287,7 +328,7 @@ def FindFixedPoints(master_function, inpts, just_get_roots=False, just_get_fract
             sys.stdout.write('[%-19s] %.2f%% ' %('='*_, 5.26*_))
             #sys.stdout.write('INPUT = %f' % (inpts[_]))
             sys.stdout.flush()
-        roots.append(GetUnique(FindZeros2(functions[_], visualize=False, num_hidden=num_hidden)))
+        roots.append(GetUnique(FindZeros2(functions[_], visualize=False, num_hidden=model._hiddenSize)))
         # update our dictionary with the roots we found
         roots_[str(inpts[_])] = roots[-1]
         curr_roots = roots[-1]
@@ -345,7 +386,7 @@ def FindFixedPoints(master_function, inpts, just_get_roots=False, just_get_fract
 
     # embed all the roots found with a t-SNE (or LLE)
     # prior to embedding we want to center points around their mean
-    roots_centered = all_roots-np.mean(all_roots, axis=0).reshape(1, 50)
+    roots_centered = all_roots-np.mean(all_roots, axis=0).reshape(1, model._hiddenSize)
     assert(roots_centered.shape == all_roots.shape)
     
     print('-'*50)
@@ -363,7 +404,7 @@ def FindFixedPoints(master_function, inpts, just_get_roots=False, just_get_fract
         print('\nusing PCA to visualize roots ...')
         pca = PCA()
         roots_embedded=pca.fit_transform(roots_centered)
-        pca.offset_ = np.mean(all_roots, axis=0).reshape(1,50)
+        pca.offset_ = np.mean(all_roots, axis=0).reshape(1,model._hiddenSize)
         print(pca.explained_variance_ratio_)
 
 
@@ -405,9 +446,9 @@ def FindFixedPoints(master_function, inpts, just_get_roots=False, just_get_fract
         curr_set_of_roots_y = roots_embedded[start_idx:stop_idx,1]
         for curr_point in range(len(curr_set_of_roots)):
             if IsAttractor(curr_set_of_roots[curr_point], functions[_]):
-                plt.scatter(curr_set_of_roots_x[curr_point], curr_set_of_roots_y[curr_point], c=colors[_], alpha=alpha)
+                plt.scatter(curr_set_of_roots_x[curr_point], curr_set_of_roots_y[curr_point], c=colors[_//2], alpha=alpha)
             else:
-                plt.scatter(curr_set_of_roots_x[curr_point], curr_set_of_roots_y[curr_point], marker='x', c=colors[_], alpha=alpha)
+                plt.scatter(curr_set_of_roots_x[curr_point], curr_set_of_roots_y[curr_point], marker='x', c=colors[_//2], alpha=alpha)
         '''
 
         if IsAttractor(all_roots[start_idx], functions[_]):        #this line of code scares me

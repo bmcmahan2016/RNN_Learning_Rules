@@ -10,6 +10,22 @@ from sklearn.manifold import MDS
 import matplotlib.pyplot as plt
 
 def get_fp_structure(modelNum, learningRule="bptt"):
+    '''
+    
+
+    Parameters
+    ----------
+    modelNum : TYPE
+        DESCRIPTION.
+    learningRule : TYPE, optional
+        DESCRIPTION. The default is "bptt".
+
+    Returns
+    -------
+    TYPE
+        DESCRIPTION.
+
+    '''
     input_levels = ['[0.2]', '[0.18]', '[0.16]', '[0.14]','[0.12]','[0.1]','[0.08]','[0.06]','[0.04]',
                     '[0.02]','[0.]','[-0.02]','[-0.04]','[-0.06]','[-0.08]','[-0.1]','[-0.12]','[-0.14]','[-0.16]','[-0.18]','[-0.2]']
     modelPath = "models/" + learningRule + "_0" + str(modelNum)

@@ -142,12 +142,13 @@ def TestCoherence(rnn, task, context_choice=-1):
     # will hold the number of rightward reaches for coherence level in wrong context
     num_right_reaches_wrong = []
     task_data = torch.zeros(750, num_trials).cuda()
+    task_data = torch.unsqueeze(task_data.t(), 1)
     
     for _, coherence in enumerate(coherence_vals):
         print('\n\ncoherence:', coherence)
         # generate trials for this coherence value
         for trial_num in range(num_trials):
-            task_data[:,trial_num] = task.PsychoTest(coherence).t()
+            task_data[trial_num,:,:] = task.PsychoTest(coherence).t()
         print('shape of task data', task_data.shape)
         # will hold network decisions for each trial
         #network_decisions = []
@@ -164,6 +165,7 @@ def TestCoherence(rnn, task, context_choice=-1):
                 #task_data[:] = task.PsychoTest(coherence, context_choice)
             #task_data_out_of_context = task.PsychoTestOut(coherence, context_choice)
             # now feed this data to the network and get the output
+        
         output = rnn.feed(task_data)
         com_idxs = COM_Flag(output)
         #output_out = rnn.feed(task_data_out_of_context)
@@ -208,7 +210,7 @@ def TestCoherence(rnn, task, context_choice=-1):
 #rnn = RNN(4,50,1)
 #rnn.load('models/bptt_context_model0')
 #task = ContextTask()
-model_name = 'models/bptt_090'
+model_name = 'models/bptt_081'
 rnn = loadRNN(model_name)
 num_right_reaches = []
 num_right_reaches_com = []  
@@ -242,7 +244,17 @@ popt, pcov = curve_fit(sigmoid, xdata, ydata, p0, method='dogbox')
 
 
 ydataa = sigmoid(np.linspace(-0.2, 0.2, 100), *popt)
-plt.figure(3)
+
+fig_object = plt.figure(3)
+axis_object = fig_object.add_subplot(1,1,1)
+
+axis_object.spines["left"].set_position("center")
+axis_object.spines["bottom"].set_position("center")
+axis_object.spines["right"].set_color("none")
+axis_object.spines["top"].set_color("none")
+
+axis_object.xaxis.set_label("top")
+
 print(coherence_vals.shape)
 print(num_right_reaches[0,:].shape)
 plt.scatter(coherence_vals, num_right_reaches_mean)
@@ -250,9 +262,9 @@ plt.plot(np.linspace(-0.2, 0.2, 100), ydataa, c='k', alpha=.5)
 #plt.plot(coherence_vals, num_right_reaches_com_mean)
 #plt.fill_between(coherence_vals, num_right_reaches_mean-num_right_reaches_var, num_right_reaches_mean+num_right_reaches_var, alpha=.5)
 #plt.fill_between(coherence_vals, num_right_reaches_com_mean-num_right_reaches_com_var, num_right_reaches_com_mean+num_right_reaches_com_var, alpha=.5)
-plt.title('Psychometric')
-plt.xlabel('Coherence')
-plt.ylabel('Fraction of Reaches to the Right (+1 output)')
+plt.title('Psychometric Curve')
+#plt.xlabel('Coherence')
+#plt.ylabel('Fraction of Reaches to the Right (+1 output)')
 #plt.legend(['all trials', 'COM trials'])
 plt.ylim([-0.1, 1.1])
 '''

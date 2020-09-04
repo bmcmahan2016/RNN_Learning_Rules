@@ -9,10 +9,11 @@ import pdb
 
 
 class Williams():
-    def __init__(self, N=100, mean=1, variance=0.333):
+    def __init__(self, N=100, mean=1, variance=0.333, version=""):
         self.N = N
         self.mean = mean
         self.variance = variance
+        self._version = version
     def GetInput(self, mean_overide=-1, var_overide=False):
         '''
         GetInput will randomly generate a positive or negative 
@@ -49,7 +50,14 @@ class Williams():
             else:
                 inp = utils.GetGaussianVector(mean, self.variance, self.N)  # changed from 0.5
             condition = torch.tensor([1]).float()
-
+            
+        #######################################################################
+        #if self._version == "Heb":   # reformats input for Hebbian trained RDM networks
+        #    inpts = torch.zeros((self.N, 2))
+        #    inpts[:,1:2] = inp
+        #    inp = inpts
+        #######################################################################    
+            
         #ensures a PyTorch Tensor object is returned
         if not torch.is_tensor(inp):
             inp = torch.from_numpy(inp).float()

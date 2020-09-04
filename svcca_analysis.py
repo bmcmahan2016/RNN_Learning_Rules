@@ -26,6 +26,11 @@ def getActivations(rnn_model):
     static_inputs = np.linspace(-0.1857, 0.1857, NUM_INPUT_CONDITIONS).reshape(1, NUM_INPUT_CONDITIONS)
     static_inputs = np.matmul(np.ones((750, 1)), static_inputs)
     static_inputs = torch.tensor(static_inputs).float().cuda()
+    static_inputs = torch.unsqueeze(static_inputs.t(), 1)
+    if rnn_model._task._version == "Heb":
+        static_inputs_heb = torch.zeros((500, 2, 750)).float().cuda()
+        static_inputs_heb[:, 1:2, :] = static_inputs
+        static_inputs = static_inputs_heb
     _, activations = rnn_model.feed(static_inputs, return_hidden=True)
     #finalActivations = activations[-1,:,:]       # keeps activation at end of trial only
     activations = np.swapaxes(activations, 0, 1).reshape(50, -1)
@@ -35,13 +40,15 @@ def getActivations(rnn_model):
 modelActivations = []
 NUM_DIMENSIONS = 2
 bptt = ["models/bptt_081", "models/bptt_082", "models/bptt_083", "models/bptt_084", "models/bptt_085", "models/bptt_086", "models/bptt_087", "models/bptt_088", "models/bptt_089", "models/bptt_090"]
-ga = ["models/GA_080", "models/GA_081", "models/GA_082", "models/GA_083", "models/GA_084", "models/GA_085", "models/GA_086", "models/GA_087", "models/GA_088"]
+ga = ["models/GA_080", "models/GA_081", "models/GA_082", "models/GA_083", "models/GA_084", "models/GA_085", "models/GA_086", "models/GA_087", "models/GA_088", "models/GA_089", "models/GA_090"]
 ff = ["models/FullForce080", "models/FullForce081", "models/FullForce082", "models/FullForce083"]
-models = [bptt, ga, ff]
+h = ["models/Heb_080", "models/Heb_081", "models/Heb_082"]
+models = [bptt, ga, ff, h]
 N_BPTT_MODELS = len(bptt)
 N_GA_MODELS = len(ga)
 N_FF_MODELS = len(ff)
-N_TOTAL_MODELS = N_BPTT_MODELS + N_GA_MODELS + N_FF_MODELS
+N_H_MODELS = len(h)
+N_TOTAL_MODELS = N_BPTT_MODELS + N_GA_MODELS + N_FF_MODELS + N_H_MODELS
 distances = np.zeros((N_TOTAL_MODELS, N_TOTAL_MODELS))
 for modelType in models:
     for model in modelType:
@@ -79,7 +86,9 @@ plt.figure()
 plt.scatter(clustered_data[:N_BPTT_MODELS,0], clustered_data[:N_BPTT_MODELS,1], c='r')
 plt.scatter(clustered_data[N_BPTT_MODELS:N_BPTT_MODELS+N_GA_MODELS,0], clustered_data[N_BPTT_MODELS:N_BPTT_MODELS+N_GA_MODELS,1], c='g')
 plt.scatter(clustered_data[N_BPTT_MODELS+N_GA_MODELS:N_BPTT_MODELS+N_GA_MODELS+N_FF_MODELS,0], clustered_data[N_BPTT_MODELS+N_GA_MODELS:N_BPTT_MODELS+N_GA_MODELS+N_FF_MODELS,1], c='b')
-plt.legend(["BPTT", "GA", "FORCE"])
+plt.scatter(clustered_data[N_BPTT_MODELS+N_GA_MODELS+N_FF_MODELS:N_BPTT_MODELS+N_GA_MODELS+N_FF_MODELS+N_H_MODELS,0], clustered_data[N_BPTT_MODELS+N_GA_MODELS+N_FF_MODELS:N_BPTT_MODELS+N_GA_MODELS+N_FF_MODELS+N_H_MODELS,1], c='y')
+
+plt.legend(["BPTT", "GA", "FORCE", "Hebbian"])
 #assert False
 
 # Mean subtract activations

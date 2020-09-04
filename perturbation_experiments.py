@@ -7,7 +7,7 @@ import rnntools as r
 from FP_Analysis import FindFixedPoints, FindFixedPointsC, GetDerivatives, ComputeDistance
 import time
 from task.williams import Williams
-from task.contexttask import ContextTask
+from task.context import context_task
 from sklearn.decomposition import PCA
 import json
 import sys
@@ -150,36 +150,38 @@ def AnalyzeLesioned(model, fig_name, PC1_min=-10, PC1_max=10, PC2_min=-10, PC2_m
     trial_data, trial_labels = r.record(model, \
         title='fixed points', print_out=True, plot_recurrent=False, cs=cs)
     # find the fixed points for the model using the PC axis found on the niave model
-    if model._fixedPoints == []:
-        F = model.GetF()
+    if True: #model._fixedPoints == []:
+        #F = model.GetF()
         print("trial_data", trial_data)
-        input_values = [[1],[.9],[.8],[.7],[.6],[.5],[.4],[.3],[.2],[.1],[0],\
-                            [-.1],[-.2],[-.3],[-.4],[-.5],[-.6],[-.7],[-.8],[-.9],[-1]]
+        input_values = [[1],[.95],[.9],[.85],[.8],[.75],[.7],[.65],[.6],[.55],[.5],\
+                        [.45],[.4],[.35],[.3],[.25],[.2],[.15],[.05],[0],[-.05],[-.1],\
+                            [-.15],[-.2],[-.25],[-.3],[-.35],[-.4],[-.45],[-.5],[-.55],[-.6],[-.65],\
+                            [-.7],[-.75],[-.8],[-.85],[-.9],[-.95],[-1]]
         input_values = test_inpt * np.array(input_values)
         #input_values = [[.1],[0],[-.1]]
-        roots, idx, pca = FindFixedPoints(F, input_values, embedding='', embedder=model._pca, Verbose=False)
+        roots, idx, pca = FindFixedPoints(model, input_values, embedding='', embedder=model._pca, Verbose=False)
         model._fixedPoints = roots
         model.updateFixedPoints(roots, pca)      # fixed points now saved
     else:
         pca = model._pca
         roots = model._fixedPoints
     # partition PC space using Wout
-    W_out = model._J['out'].cpu().detach().numpy()
-    W_out_PC = pca.transform(W_out-pca.offset_)
-    PC1_axis = np.linspace(PC1_min, PC1_max, 100)
-    Wout_partition = -(W_out_PC[:, 0]/W_out_PC[:, 1])*PC1_axis
-    plt.plot(PC1_axis, Wout_partition, c='k', linestyle='dashed')
+    # W_out = model._J['out'].cpu().detach().numpy()
+    # W_out_PC = pca.transform(W_out-pca.offset_)
+    # PC1_axis = np.linspace(PC1_min, PC1_max, 100)
+    # Wout_partition = -(W_out_PC[:, 0]/W_out_PC[:, 1])*PC1_axis
+    # plt.plot(PC1_axis, Wout_partition, c='k', linestyle='dashed')
     
     # partition PC space using Win
-    W_in = model._J['in'].cpu().detach().numpy()
-    W_in_PC_pos = pca.transform(0.1857*W_in.T-pca.offset_)
-    W_in_PC_neg = pca.transform(-0.1857*W_in.T-pca.offset_)
-    W_in_PC = np.zeros((2,2))
-    W_in_PC[0,:] = W_in_PC_pos[0,:2]
-    W_in_PC[1,:] = W_in_PC_neg[0,:2]
+    # W_in = model._J['in'].cpu().detach().numpy()
+    # W_in_PC_pos = pca.transform(0.1857*W_in.T-pca.offset_)
+    # W_in_PC_neg = pca.transform(-0.1857*W_in.T-pca.offset_)
+    # W_in_PC = np.zeros((2,2))
+    # W_in_PC[0,:] = W_in_PC_pos[0,:2]
+    # W_in_PC[1,:] = W_in_PC_neg[0,:2]
 
-    plt.plot(np.linspace(0, W_in_PC[0,0], 100), np.linspace(0, W_in_PC[0,1], 100), 'r--', linewidth=3)
-    plt.plot(np.linspace(0, W_in_PC[1,0], 100), np.linspace(0, W_in_PC[1,1], 100), 'b--', linewidth=3)
+    #plt.plot(np.linspace(0, W_in_PC[0,0], 100), np.linspace(0, W_in_PC[0,1], 100), 'r--', linewidth=3)
+    #plt.plot(np.linspace(0, W_in_PC[1,0], 100), np.linspace(0, W_in_PC[1,1], 100), 'b--', linewidth=3)
     
     # this will plot trajectories of artificial neurons on top of fixed points
     plotPCTrajectories(trial_data, trial_labels, pca, average=False)
@@ -191,6 +193,7 @@ def AnalyzeLesioned(model, fig_name, PC1_min=-10, PC1_max=10, PC2_min=-10, PC2_m
     r.TestTaskInputs(model, task)
     #plt.show()
     
+    '''    This is not implemented yet
     ####
     #GET JACOBIAN
     ####
@@ -208,6 +211,7 @@ def AnalyzeLesioned(model, fig_name, PC1_min=-10, PC1_max=10, PC2_min=-10, PC2_m
             jacobian[:,j] = model._dt*np.squeeze(np.matmul(model._J["rec"].detach().cpu().numpy(), 1-np.tanh(hStar*mask)**2)) + np.squeeze((1-model._dt)*mask)
         w, v = np.linalg.eig(jacobian)
         plt.bar(np.linspace(0,len(w),len(w))+0.2*pointNum, np.real(w), color=cs[pointNum])
+    '''
 
 
 def AnalyzePerturbedNetwork(model, model_name, test_inpt=1):
@@ -441,6 +445,9 @@ def niave_network(modelPath, xmin=-10, xmax=10, ymin=-10, ymax=10, test_inpt=.1)
     if modelPath[7] == 'F':
         model._useForce = True
         print("Using force forward pass")
+    #if modelPath[7].lower() == 'h':
+    #    print("using hebbian RDM version")
+    #    model._task._version = "Heb"
     modelPath+='_control'
     #AnalyzePerturbedNetwork(model, model_choice, test_inpt=test_inpt)
     AnalyzeLesioned(model, model_choice, xmin, xmax, ymin, ymax)
@@ -586,9 +593,9 @@ def PlotRoots(all_roots, roots_embedded, idxs, colors, marker='o'):
         start_idx += idxs[_]
 
 def ContextFixedPoints(model_choice):
-    model = RNN(4, 50, 1)
-    model.load(model_choice)
-    task = ContextTask()
+    model = loadRNN(model_choice)
+    #model.load(model_choice)
+    task = context_task()
 
     model.plotLosses()
 
@@ -613,49 +620,16 @@ def ContextFixedPoints(model_choice):
     F = model.GetF()#func_master
     #roots, pca = FindFixedPoints(F, [0.1,-0.1], embedding='custom', embedder=model.pca
 
-    context1_inpts = np.array([
-        [-1,  0, 1, 0],
-        [-.9, 0, 1, 0],
-        [-.8, 0, 1, 0],
-        [-.7, 0, 1, 0],
-        [-.6, 0, 1, 0],
-        [-.5, 0, 1, 0],
-        [-.4, 0, 1, 0],
-        [-.3, 0, 1, 0],
-        [-.2, 0, 1, 0],
-        [-.1, 0, 1, 0],
-        [.1,  0, 1, 0],
-        [.2,  0, 1, 0],
-        [.3,  0, 1, 0],
-        [.4,  0, 1, 0],
-        [.5,  0, 1, 0],
-        [.6,  0, 1, 0],
-        [.7,  0, 1, 0],
-        [.8,  0, 1, 0],
-        [.9,  0, 1, 0]
-        ])
-
-    context2_inpts = np.array([
-        [0, -1,   0, 1],
-        [0, -0.9, 0, 1],
-        [0, -0.8, 0, 1],
-        [0, -0.7, 0, 1],
-        [0, -0.6, 0, 1],
-        [0, -0.5, 0, 1],
-        [0, -0.4, 0, 1],
-        [0, -0.3, 0, 1],
-        [0, -0.2, 0, 1],
-        [0, -0.1, 0, 1],
-        [0,  0.1, 0, 1],
-        [0,  0.2, 0, 1],
-        [0,  0.3, 0, 1],
-        [0,  0.4, 0, 1],
-        [0,  0.5, 0, 1],
-        [0,  0.6, 0, 1],
-        [0,  0.7, 0, 1],
-        [0,  0.8, 0, 1],
-        [0,  0.9, 0, 1]
-        ])    
+    context1_inpts = np.zeros((20, 4))
+    context1_inpts[:,0] = np.linspace(-0.1857, 0.1857, 20)
+    context1_inpts[:,2] = 1
+    context1_inpts[:,1] = 0.1*np.random.randn(20)
+    
+    context2_inpts = np.zeros((20, 4))
+    context2_inpts[:,1] = np.linspace(-0.1857, 0.1857, 20)
+    context2_inpts[:,3] = 1
+    context2_inpts[:,0] = 0.1*np.random.randn(20)
+     
 
     # switch input to be the ignored context
     #inpts[:, 2] = 1
@@ -664,7 +638,7 @@ def ContextFixedPoints(model_choice):
     # add gaussian noise to ignored context
     #inpts[:, 0] = np.random.randn(19)-1
 
-    context2_roots, context2_idxs, pca = FindFixedPoints(F, context2_inpts, embedding='pca', embedder=model.pca, Verbose=False)
+    context2_roots, context2_idxs, pca = FindFixedPoints(model, context2_inpts, embedding='pca', embedder=model._pca, Verbose=False)
 
     # create inputs for context 1 by transposing the first and second columns of inputs for 
     # context 2
@@ -674,11 +648,11 @@ def ContextFixedPoints(model_choice):
 
     print('Inputs for context 1 \n\n', context1_inpts)    # print to verify correct
 
-    context1_roots, context1_idxs, pca = FindFixedPoints(F, context1_inpts, embedding='pca', embedder=model.pca, Verbose=False)
+    context1_roots, context1_idxs, pca = FindFixedPoints(model, context1_inpts, embedding='pca', embedder=model._pca, Verbose=False)
 
     print('\n'*5)
-    print('shape of roots found for context 1: ', context1_roots.shape)
-    print('shape of roots found for context 2: ', context2_roots.shape)
+    print('shape of roots found for context 1: ', len(context1_roots))
+    print('shape of roots found for context 2: ', len(context2_roots))
 
     # compute the number of roots in each context
     num_roots_context1 = len(context1_roots)
