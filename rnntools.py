@@ -288,7 +288,8 @@ def record(model, cs=['r', 'b', 'k', 'g', 'y'], title='', print_out=False, plot_
     for _ in range(10):
         length_of_data=750    #200   #100
         #create identical valued input data and feed it to network
-        taskData, target = model._task.GetInput(mean_overide=model._task.mean, var_overide=False)
+        taskData, target = model._task.GetInput(mean_overide=3*model._task.mean, var_overide=False)
+        taskData = taskData[:100]
         trial_labels.append(target)
         #data = np.linspace(conditions[_], conditions[_], length_of_data).reshape(length_of_data,1)
         #data = torch.from_numpy(data).float().cuda()

@@ -210,7 +210,7 @@ def TestCoherence(rnn, task, context_choice=-1):
 #rnn = RNN(4,50,1)
 #rnn.load('models/bptt_context_model0')
 #task = ContextTask()
-model_name = 'models/bptt_081'
+model_name = 'models/Heb_103'
 rnn = loadRNN(model_name)
 num_right_reaches = []
 num_right_reaches_com = []  

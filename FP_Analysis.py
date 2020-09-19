@@ -78,7 +78,7 @@ def ComputeDistance(point1, point2):
     return distance
 
 
-def IsAttractor(fixed_point, F, NumSimulations=2500):
+def IsAttractor(fixed_point, F, NumSimulations=25):   #NumSimulations=2500
     '''
     IsAttractor will determine if a fixed point is stable or unstable
 
@@ -195,9 +195,9 @@ def FindZeros2(F, num_iters=100, visualize=True, num_hidden=50, inpts=False, Emb
         tag = []
     for _ in range(num_iters):
         #random activations on U[-1,1]
-        x0 = 1_000*(np.random.rand(num_hidden,1)-0.5)
+        x0 = 10_000*(np.random.rand(num_hidden,1)-0.5)
         # tolerance changed from 1e-8
-        sol = root(F, x0, tol=1e-8)
+        sol = root(F, x0, tol=1e-8)#1)#e-8)
         if sol.success == True:
             if norm:
                 #if not a zero vector
@@ -257,21 +257,23 @@ def FindZeros2(F, num_iters=100, visualize=True, num_hidden=50, inpts=False, Emb
 
 def FindFixedPoints(model, inpts, just_get_roots=False, just_get_fraction=False, embedding='PCA', model_name='', embedder=[], num_hidden=50, new_fig=True, alpha=1, Verbose=True):
     '''
+    
+    finds the fixed points for model
+    
     functions is a list of functions for which we desire to find the roots
     most likley, each function in the list corresponds to a recurrent neural
     network update function, (dx/dt) = F(x), under a different input condition
 
     Parameters
     ----------
-    master_function : TYPE
-        DESCRIPTION.
+    model : RNN object
+        trained model for which we want to find the fixed points.
     inpts : list
-        List of inputs, where each element is itself a list of length equal to 
-        the RNNs input dimension. For the RDM task this corresponds to a list of 
-        length 1 lists. For the context task this is a list of length 4 lists
-    just_get_roots : TYPE, optional
+        List of static inputs that will be used for finding fixed points, where
+        each element is itself a list of length equal to the RNNs input dimension. 
+    just_get_roots : bool, optional
         DESCRIPTION. The default is False.
-    just_get_fraction : TYPE, optional
+    just_get_fraction : bool, optional
         DESCRIPTION. The default is False.
     embedding : TYPE, optional
         DESCRIPTION. The default is 'PCA'.
@@ -366,8 +368,12 @@ def FindFixedPoints(model, inpts, just_get_roots=False, just_get_fraction=False,
         num_three_pts = len(np.where(num_of_pts==3)[0])
         frac_three = num_three_pts / total_num_roots
         return frac_three
-    all_roots = np.concatenate((roots[0], roots[1]))
-    idxs = [len(roots[0]), len(roots[1])]
+    if len(roots) > 1:
+        all_roots = np.concatenate((roots[0], roots[1]))
+        idxs = [len(roots[0]), len(roots[1])]
+    else:
+        all_roots = np.array(roots[0])
+        idxs = [len(roots[0])]
     for _ in range(2, len(roots)):
         #concatenation causes runtime error if roots[_] is of length zero
         #b/c no roots were found. I need to program an exception in to 
@@ -428,6 +434,7 @@ def FindFixedPoints(model, inpts, just_get_roots=False, just_get_fraction=False,
                 [[0.5, 0, 0.1]], [[0.5, 0, 0.2]], [[0.5, 0, 0.3]], [[0.5, 0, 0.4]], [[0.5, 0, 0.5]], [[0.4, 0, 0.5]], [[0.3, 0, 0.5]],\
                 [[0.2, 0, 0.5]], [[0.1, 0, 0.5]], [[0, 0, 0.5]], [[0, 0, 0.6]], [[0, 0, 0.7]], [[0, 0, 0.8]],\
                 [[0, 0, 0.9]], [[0, 0, 1]]]
+    #colors = ['r', 'g', 'b']
     '''
     colors = ['r','m','b']
     '''

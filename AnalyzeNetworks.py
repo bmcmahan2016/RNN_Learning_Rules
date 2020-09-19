@@ -26,9 +26,9 @@ TCAFlag = False
 
 # these flags will determine what RNNs to perform above analysis on
 ForceFlag = False          # will analyze FORCE trained RNN
-BpttFlag = True            # will analyze BPTT trained RNN
+BpttFlag = False            # will analyze BPTT trained RNN
 GeneticFlag = False        # will analyze Genetic trained RNN
-HebbianFlag = False        # will analyze Hebbian trained RNN
+HebbianFlag = True       # will analyze Hebbian trained RNN
 ComplexityFlag = False     # will run analysis to determine model complexity
 NoiseFlag = False          # will run analysis to determine how robust model is to noise
 
@@ -40,7 +40,8 @@ NoiseFlag = False          # will run analysis to determine how robust model is 
 if StandardFlag:
     print('performing standard analysis ... \n\n')
     if GeneticFlag:
-        niave_network('models/GA_080', xmin=-30, xmax=30, ymin=-6, ymax=6)
+        niave_network('models/GA_085', xmin=-30, xmax=30, ymin=-6, ymax=6)
+        assert False
         plt.close('all')
         niave_network('models/GA_081', xmin=-30, xmax=30, ymin=-6, ymax=6)
         plt.close('all')
@@ -59,18 +60,46 @@ if StandardFlag:
         niave_network('models/GA_088', xmin=-30, xmax=30, ymin=-6, ymax=6)
         plt.close('all')
     if HebbianFlag:
-        niave_network('models/Heb_006')
+        niave_network('models/Heb091')
     if ForceFlag:
         niave_network('models/FullForce080', xmin=-150, xmax=150, ymin=-6, ymax=6)
+        plt.close('all')
+        niave_network('models/FullForce081', xmin=-150, xmax=150, ymin=-6, ymax=6)
+        plt.close('all')
+        niave_network('models/FullForce082', xmin=-150, xmax=150, ymin=-6, ymax=6)
+        plt.close('all')
+        niave_network('models/FullForce083', xmin=-150, xmax=150, ymin=-6, ymax=6)
+        plt.close('all')
+        niave_network('models/FullForce084', xmin=-150, xmax=150, ymin=-6, ymax=6)
+        plt.close('all')
+        niave_network('models/FullForce085', xmin=-150, xmax=150, ymin=-6, ymax=6)
+        plt.close('all')
+        niave_network('models/FullForce086', xmin=-150, xmax=150, ymin=-6, ymax=6)
+        plt.close('all')
+        niave_network('models/FullForce087', xmin=-150, xmax=150, ymin=-6, ymax=6)
+        plt.close('all')
+        niave_network('models/FullForce088', xmin=-150, xmax=150, ymin=-6, ymax=6)
+        plt.close('all')
+        niave_network('models/FullForce089', xmin=-150, xmax=150, ymin=-6, ymax=6)
+        plt.close('all')
+        niave_network('models/FullForce090', xmin=-150, xmax=150, ymin=-6, ymax=6)
+        plt.close('all')
+        niave_network('models/FullForce091', xmin=-150, xmax=150, ymin=-6, ymax=6)
+        plt.close('all')
+        niave_network('models/FullForce092', xmin=-150, xmax=150, ymin=-6, ymax=6)
+        plt.close('all')
+        niave_network('models/FullForce093', xmin=-150, xmax=150, ymin=-6, ymax=6)
+        plt.close('all')
     if BpttFlag:
-        niave_network('models/bptt_067', xmin=-10, xmax=10, ymin=-10, ymax=10)
-        plt.close('all')
-        niave_network('models/bptt_068', xmin=-10, xmax=10, ymin=-10, ymax=10)
-        plt.close('all')
-        niave_network('models/bptt_069', xmin=-10, xmax=10, ymin=-10, ymax=10)
-        plt.close('all')
-        assert False
+        #niave_network('models/bptt_069', xmin=-10, xmax=10, ymin=-10, ymax=10)
+        # plt.close('all')
+        #niave_network('models/bptt_068', xmin=-10, xmax=10, ymin=-10, ymax=10)
+        # plt.close('all')
+        #niave_network('models/bptt_069', xmin=-10, xmax=10, ymin=-10, ymax=10)
+        # plt.close('all')
+        #assert False
         niave_network('models/bptt_087', xmin=-10, xmax=10, ymin=-10, ymax=10)
+        assert False
         plt.close('all')
         niave_network('models/bptt_088', xmin=-10, xmax=10, ymin=-10, ymax=10)
         plt.close('all')

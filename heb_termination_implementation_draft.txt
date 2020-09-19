@@ -1,0 +1,166 @@
+    for (int numtrial=0; numtrial < NBTRIALS; numtrial++)
+    {
+
+        trialtype = numtrial % NBTRIALTYPES;
+        
+        for (int n1=0; n1 < NBNEUR; n1++)
+            for (int n2=0; n2 < NBNEUR; n2++)
+                hebbmat[n1][n2] = 0;
+
+        hebb.setZero();
+        dJ.setZero();
+        //input = patterns.col(trialtype);
+        input.setZero();
+        
+        // Initialize network activations with small random noise 
+        //x.fill(0.0); 
+        x.setRandom(); x *= .1; 
+        x(1)=1.0; x(10)=1.0; x(11)=-1.0; // Biases 
+        //x += dtdivtau * win * input;
+        for (int nn=0; nn < NBNEUR; nn++)
+            r(nn) = tanh(x(nn));
+
+        
+
+
+        double biasmodality1, biasmodality2, tgtresp;
+        
+        biasmodality1=0; biasmodality2 = 0;
+
+        if (trialtype == 0){  // modality 1 positive bias, modality 2 random, look at modality 1
+            input(3) = 1.0; input(4) = 0.0;
+            biasmodality1 = 1.0;
+            tgtresp = 1.0;
+            biasmodality2 = Uniform(myrng) < .5 ? 1.0 : -1.0;
+        } 
+        else if (trialtype == 1){  // modality 1 random, modality 2 positive bias, look at modality 2
+            input(3) = 0.0; input(4) = 1.0;
+            biasmodality2 = 1.0;
+            tgtresp = 1.0;
+            biasmodality1 = Uniform(myrng) < .5 ? 1.0 : -1.0;
+        } 
+        else if (trialtype == 2){  // modality 1 negative bias, modality 2 random, look at modality 1
+            input(3) = 1.0; input(4) = 0.0;
+            biasmodality1 = -1.0;
+            tgtresp = -1.0;
+            biasmodality2 = Uniform(myrng) < .5 ? 1.0 : -1.0;
+        } 
+        else if (trialtype == 3){  // modality 1 random, modality 2 negative bias, look at modality 2
+            input(3) = 0.0; input(4) = 1.0;
+            biasmodality2 = -1.0;
+            tgtresp = -1.0;
+            biasmodality1 = Uniform(myrng) < .5 ? 1.0 : -1.0;
+        } 
+        else { cout << "Which trial type?" << endl; return -1;}
+        
+        /*
+         // This doesn't work ! You really need to maintain one reward predictor for each possible stimulus combination
+        if (trialtype == 0){  //Look at modality 1
+            input(3) = 1.0; input(4) = 0.0;
+            biasmodality2 = Uniform(myrng) < .5 ? 1.0 : -1.0;
+            if (Uniform(myrng) < .5){
+                biasmodality1 = 1.0;
+                tgtresp = .99;
+            }
+            else{
+                biasmodality1 = -1.0;
+                tgtresp = -.99;
+            }
+        } 
+        else if (trialtype == 1){ // Look at modality 2 
+            input(3) = 0.0; input(4) = 1.0;
+            biasmodality1 = Uniform(myrng) < .5 ? 1.0 : -1.0;
+            if (Uniform(myrng) < .5){
+                biasmodality2 = 1.0;
+                tgtresp = .99;
+            }
+            else{
+                biasmodality2 = -1.0;
+                tgtresp = -.99;
+            }
+        } 
+        else { cout << "Which trial type?" << endl; return -1;}
+        */
+
+
+        double biasmodulator1;
+        double biasmodulator2;
+
+
+        biasmodulator1 = ALPHABIAS;
+        biasmodulator2 = ALPHABIAS;
+        
+        biasmodality1 *= biasmodulator1 ;
+        biasmodality2 *= biasmodulator2 ;
+        
+        if (PHASE == TESTING)
+        {
+            biasmodality1 = BIAS1;
+            biasmodality2 = BIAS2;
+        }
+        double previnput1=0, previnput2=0;
+
+
+
+
+        for (int numiter=0; numiter < TRIALTIME;  numiter++)
+        {
+
+            input(0) = 0.0; input(1) = 0.0; input(2) = 0.0;
+            if (numiter >= STARTSTIM1  & numiter <  STARTSTIM1 + TIMESTIM1)
+            {
+                // If ALPHATRACEINPUT is non-zero, this implements temporal smoothing of sensory inputs. However, for all experiments we do set it to 0 (see DENOM above).
+                //input(1) =  ALPHATRACEINPUT * previnput1 + (1.0-ALPHATRACEINPUT) * .5 * ( Gauss(myrng) + biasmodality1 );
+                //input(2) =  ALPHATRACEINPUT * previnput2 + (1.0-ALPHATRACEINPUT) * .5 * ( Gauss(myrng) + biasmodality2 );
+                input(1) = (1.0 - dt / TAUINPUT) * previnput1 + (dt / TAUINPUT) * INPUTMULT * ( Gauss(myrng) + biasmodality1 );
+                input(2) = (1.0 - dt / TAUINPUT) * previnput2 + (dt / TAUINPUT) * INPUTMULT * ( Gauss(myrng) + biasmodality2 );
+                previnput1 = input(1); previnput2 = input(2);
+            }
+
+            rprev = r;
+            lateral_input =  J * r;
+           
+
+
+ 
+            total_exc =  lateral_input   + win * input;
+
+            
+            modul.setZero();
+
+            if (MODULTYPE == "DECOUPLED")
+            {
+                for (int nn=0; nn < NBNEUR; nn++)
+                    if ( (Uniform(myrng) < PROBAMODUL)
+                            && (numiter> 3)
+                       )
+                    {
+                        total_exc(nn) += ALPHAMODUL * (-1.0 + 2.0 * Uniform(myrng));
+                    }
+            }
+            else { throw std::runtime_error("Which modulation type?"); }
+
+            delta_total_exc =  total_exc - total_exc_prev;
+            delta_total_exc_sq = delta_total_exc.array() * delta_total_exc.array().abs();
+            total_exc_prev = ALPHATRACEEXC * total_exc_prev + (1.0 - ALPHATRACEEXC) * total_exc; 
+            
+            x += dtdivtau * (-x + total_exc);
+           
+            x(1)=1.0; x(10)=1.0;x(11)=-1.0; //x(12) = 1.0; 
+
+
+
+            for (int nn=0; nn < NBNEUR; nn++)
+            {
+                r(nn) = tanh(x(nn));
+            }
+            
+            rs.col(numiter) = r;
+         
+
+
+
+            delta_x =  x  - x_trace ;
+            //delta_x_sq = delta_x.array() * delta_x.array().abs();
+            //delta_x_cu = delta_x.array() * delta_x.array() * delta_x.array();
+            x_trace = ALPHATRACEEXC * x_trace + (1.0 - ALPHATRACEEXC) * x;

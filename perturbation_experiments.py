@@ -149,6 +149,9 @@ def AnalyzeLesioned(model, fig_name, PC1_min=-10, PC1_max=10, PC2_min=-10, PC2_m
     cs = ['r', 'r', 'r', 'r', 'r', 'b', 'b', 'b', 'b', 'b']
     trial_data, trial_labels = r.record(model, \
         title='fixed points', print_out=True, plot_recurrent=False, cs=cs)
+    model._pca = PCA()
+    model_trajectories = model._pca.fit_transform(trial_data.reshape(-1, 50)).reshape(10,-1,50)
+
     # find the fixed points for the model using the PC axis found on the niave model
     if True: #model._fixedPoints == []:
         #F = model.GetF()
@@ -157,9 +160,10 @@ def AnalyzeLesioned(model, fig_name, PC1_min=-10, PC1_max=10, PC2_min=-10, PC2_m
                         [.45],[.4],[.35],[.3],[.25],[.2],[.15],[.05],[0],[-.05],[-.1],\
                             [-.15],[-.2],[-.25],[-.3],[-.35],[-.4],[-.45],[-.5],[-.55],[-.6],[-.65],\
                             [-.7],[-.75],[-.8],[-.85],[-.9],[-.95],[-1]]
-        input_values = test_inpt * np.array(input_values)
+        #input_values = [[0]]
+        input_values = 3 * test_inpt * np.array(input_values)
         #input_values = [[.1],[0],[-.1]]
-        roots, idx, pca = FindFixedPoints(model, input_values, embedding='', embedder=model._pca, Verbose=False)
+        roots, idx, pca = FindFixedPoints(model, input_values, embedding='custom', embedder=model._pca, Verbose=False)
         model._fixedPoints = roots
         model.updateFixedPoints(roots, pca)      # fixed points now saved
     else:
@@ -184,7 +188,10 @@ def AnalyzeLesioned(model, fig_name, PC1_min=-10, PC1_max=10, PC2_min=-10, PC2_m
     #plt.plot(np.linspace(0, W_in_PC[1,0], 100), np.linspace(0, W_in_PC[1,1], 100), 'b--', linewidth=3)
     
     # this will plot trajectories of artificial neurons on top of fixed points
-    plotPCTrajectories(trial_data, trial_labels, pca, average=False)
+    #plotPCTrajectories(trial_data, trial_labels, pca, average=False)
+
+    for i in range(10):
+        plt.plot(model_trajectories[i,:,0], model_trajectories[i,:,1], c = cs[i], alpha=0.25)
     
     # plot the output of this lesioned network when feed a noisy input with mean +/-1
     plt.figure()

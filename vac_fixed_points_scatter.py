@@ -11,6 +11,7 @@ import com
 import FP_Analysis as fp
 from rnn import loadRNN
 from scipy import stats
+import torch
 
 input_values = [[1],[.9],[.8],[.7],[.6],[.5],[.4],[.3],[.2],[.1],[0],\
                     [-.1],[-.2],[-.3],[-.4],[-.5],[-.6],[-.7],[-.8],[-.9],[-1]]
@@ -26,7 +27,10 @@ input_values = 0.1 * np.array(input_values)
 #            ["models/bptt_081", "models/bptt_082", "models/bptt_083", "models/bptt_084", "models/bptt_085", "models/bptt_086", "models/bptt_087", "models/bptt_088", "models/bptt_089", "models/bptt_089"]]    
 
 
-MODEL_ARRAY=[["models/FullForce080", "models/FullForce081", "models/FullForce082", "models/FullForce083", "models/FullForce084", "models/FullForce085", "models/FullForce086"]]
+#MODEL_ARRAY=[["models/FullForce0"+str(model_num) for model_num in range(80,94)]]
+MODEL_ARRAY=[["models/Heb_0"+str(model_num) for model_num in range(80, 83)]]
+
+    
 
 #MODEL_ARRAY = [["models/ga_040", "models/ga_041", "models/ga_042", "models/ga_043", "models/ga_44"],["models/ga_080", "models/ga_081", "models/ga_082", "models/ga_083", "models/ga_84"]]
 coherenceVals = np.array([0, 0.02, 0.03, 0.04, 0.05])
@@ -40,10 +44,11 @@ for MODELS in MODEL_ARRAY:
     for MODEL_NAME in MODELS:
         model = loadRNN(MODEL_NAME)
         if (model==False):  # model does not exist
-            continue
             print("model not loaded:", MODEL_NAME)
+            assert False
+            
         F = model.GetF()
-        x.append(fp.FindFixedPoints(F, input_values, embedding='', embedder=model._pca, Verbose=False, just_get_fraction=True))
+        x.append(fp.FindFixedPoints(model, input_values, embedding='', embedder=model._pca, Verbose=False, just_get_fraction=True))
 
         
         # get the fraction of trials wtih vacillations
@@ -51,7 +56,7 @@ for MODELS in MODEL_ARRAY:
         for _, coherence in enumerate(coherenceVals):
             taskData = com.generateTaskData(model._task, coherence)
             # get the decisions for COM trials
-            rnnOutput = model.feed(taskData)
+            rnnOutput = model.feed(torch.unsqueeze(taskData.t(), 1))
             rnnOutput = rnnOutput.detach().cpu().numpy()
             rnnOutput = rnnOutput.T
                 

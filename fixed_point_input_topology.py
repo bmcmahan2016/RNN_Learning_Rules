@@ -51,11 +51,11 @@ def getMDS(modelNum, learningRule="bptt"):
     '''
     
 
-    input_levels = ['[0.1]','[0.95]','[0.09]','[0.085]','[0.08]','[0.075]','[0.07]','[0.065]','[0.06]','[0.055]','[0.05]',\
-                        '[0.045]','[0.04]','[0.035]','[0.03]','[0.025]','[0.02]','[0.015]','[0.005]','[0]','[-0.005]','[-0.01]',\
-                            '[-0.015]','[-0.02]','[-0.025]','[-0.03]','[-0.035]','[-0.04]','[-0.045]','[-0.05]','[-0.055]','[-0.06]','[-0.065]',\
-                            '[-0.07]','[-0.075]','[-0.08]','[-0.085]','[-0.09]','[-0.095]','[-0.1]']
-    modelPath = "models/" + learningRule + "_0" + str(modelNum)
+
+    if learningRule[0].lower() == 'f':
+        modelPath = "models/" + learningRule + "0" + str(modelNum)
+    else:
+        modelPath = "models/" + learningRule + "_0" + str(modelNum)
     model = loadRNN(modelPath)
     print(modelPath)
     fixed_points = []
@@ -75,86 +75,58 @@ def getMDS(modelNum, learningRule="bptt"):
     nbrs = NearestNeighbors(n_neighbors=3, algorithm='ball_tree').fit(fixed_points)
     distances, indices = nbrs.kneighbors(fixed_points)
     MDS_embedding = inpt_values[indices]
-    num_fixed_points_found = MDS_embedding.shape[0]
-    start_idx = -20 + (num_fixed_points_found // 2)
-    end_idx = 20 + (num_fixed_points_found // 2)
+    num_fixed_points_found = 40
+    start_idx = -(num_fixed_points_found//2) + (num_fixed_points_found // 2)
+    end_idx = (num_fixed_points_found//2) + (num_fixed_points_found // 2)
     
     
-    return MDS_embedding[start_idx:end_idx].reshape(40,3)
+    return MDS_embedding[start_idx:end_idx].reshape(num_fixed_points_found,3)
 
 
 
 embeddings = []
 max_fixed_points = 0
+counter = 0
 
-embeddings.append(getMDS(89).reshape(1,-1))
-min_fixed_points = embeddings[-1].shape
-max_fixed_points = max(max_fixed_points, embeddings[-1].shape[1])
+bptt_start = 0
+for num in [81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93]:
+    embeddings.append(getMDS(num).reshape(1,-1))
+    counter += 1
+bptt_end = counter
+ga_start = counter
+for num in [80, 81, 82, 83, 84, 85, 86, 87, 88]:
+    embeddings.append(getMDS(num, "ga").reshape(1,-1))
+    counter += 1
+ga_end = counter
 
-embeddings.append(getMDS(90).reshape(1,-1))
-min_fixed_points = min(min_fixed_points, embeddings[-1].shape)
-max_fixed_points = max(max_fixed_points, embeddings[-1].shape[1])
+ff_start = counter
+for num in [80, 81, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93]:
+    embeddings.append(getMDS(num, "FullForce").reshape(1,-1))
+    counter +=1 
+ff_end = counter
 
-embeddings.append(getMDS(91).reshape(1,-1))
-min_fixed_points = embeddings[-1].shape
-max_fixed_points = max(max_fixed_points, embeddings[-1].shape[1])
 
-embeddings.append(getMDS(88).reshape(1,-1))
-min_fixed_points = embeddings[-1].shape
-max_fixed_points = max(max_fixed_points, embeddings[-1].shape[1])
-
-embeddings.append(getMDS(87).reshape(1,-1))
-min_fixed_points = embeddings[-1].shape
-max_fixed_points = max(max_fixed_points, embeddings[-1].shape[1])
-
-embeddings.append(getMDS(86).reshape(1,-1))
-min_fixed_points = embeddings[-1].shape
-max_fixed_points = max(max_fixed_points, embeddings[-1].shape[1])
 
 embeddings.append(getMDS(67).reshape(1,-1))
-min_fixed_points = embeddings[-1].shape
-max_fixed_points = max(max_fixed_points, embeddings[-1].shape[1])
-
 embeddings.append(getMDS(68).reshape(1,-1))
-min_fixed_points = embeddings[-1].shape
-max_fixed_points = max(max_fixed_points, embeddings[-1].shape[1])
-
 embeddings.append(getMDS(69).reshape(1,-1))
-min_fixed_points = embeddings[-1].shape
-max_fixed_points = max(max_fixed_points, embeddings[-1].shape[1])
 
 
-embeddings.append(getMDS(80, "ga").reshape(1,-1))
-max_fixed_points = max(max_fixed_points, embeddings[-1].shape[1])
-embeddings.append(getMDS(81, "ga").reshape(1,-1))
-max_fixed_points = max(max_fixed_points, embeddings[-1].shape[1])
-embeddings.append(getMDS(82, "ga").reshape(1,-1))
-max_fixed_points = max(max_fixed_points, embeddings[-1].shape[1])
-embeddings.append(getMDS(83, "ga").reshape(1,-1))
-max_fixed_points = max(max_fixed_points, embeddings[-1].shape[1])
-embeddings.append(getMDS(84, "ga").reshape(1,-1))
-max_fixed_points = max(max_fixed_points, embeddings[-1].shape[1])
-embeddings.append(getMDS(85, "ga").reshape(1,-1))
-max_fixed_points = max(max_fixed_points, embeddings[-1].shape[1])
-embeddings.append(getMDS(86, "ga").reshape(1,-1))
-max_fixed_points = max(max_fixed_points, embeddings[-1].shape[1])
-embeddings.append(getMDS(87, "ga").reshape(1,-1))
-max_fixed_points = max(max_fixed_points, embeddings[-1].shape[1])
-embeddings.append(getMDS(88, "ga").reshape(1,-1))
-max_fixed_points = max(max_fixed_points, embeddings[-1].shape[1])
+embeddings = np.squeeze(np.array(embeddings))
 
 # pad embeddings to account for differences in number of fixed points between RNNs
-padded_embeddings = -np.ones((len(embeddings), max_fixed_points))
-for rnn_num, embedding in enumerate(embeddings):
-    padded_embeddings[rnn_num:rnn_num+1, :embedding.shape[1]] = embedding
+# padded_embeddings = -np.ones((len(embeddings), max_fixed_points))
+# for rnn_num, embedding in enumerate(embeddings):
+#     padded_embeddings[rnn_num:rnn_num+1, :embedding.shape[1]] = embedding
 
 
 # plot MDS clusters
 clustering_algorithm = MDS()
-clustered_data = clustering_algorithm.fit_transform(padded_embeddings)
+clustered_data = clustering_algorithm.fit_transform(embeddings)
 plt.figure()
-plt.scatter(clustered_data[:6,0], clustered_data[:6,1], c='r')
-plt.scatter(clustered_data[6:9,0], clustered_data[6:9,1], c='b')
-plt.scatter(clustered_data[9:,0], clustered_data[9:,1], c='g')
-plt.legend(["BPTT (var=1.0)", "BPTT (var=0.5)", "GA (var=1.0)"])
+plt.scatter(clustered_data[:bptt_end,0], clustered_data[:bptt_end,1], c='r')         # BPTT
+plt.scatter(clustered_data[-3:,0], clustered_data[-3:,1], c='b')       # BPTT
+plt.scatter(clustered_data[ga_start:ga_end,0], clustered_data[ga_start:ga_end,1], c='g')         # GA
+plt.scatter(clustered_data[ff_start:ff_end,0], clustered_data[ff_start:ff_end,1], c='y')
+plt.legend(["BPTT (var=1.0)", "BPTT (var=0.5)", "GA (var=1.0)", "FF (var=1.0)"])       # FF
 plt.show()

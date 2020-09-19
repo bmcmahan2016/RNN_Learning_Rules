@@ -32,6 +32,7 @@ class Williams():
         used to be mean +/-1 and variance 1
         testing mean and mean+1 with variance = 0.2
         '''
+        inp = torch.zeros((750, 1))
         # create a random mean in [0, 1)
         mean = torch.rand(1)*self.mean #self.mean#
         if mean_overide != -1:
@@ -39,16 +40,16 @@ class Williams():
         if torch.rand(1) < 0.5:
             # create a negative input
             if var_overide:
-                inp = -mean*torch.ones((750,1))
+                inp[:-700] = -mean*torch.ones((50,1))
             else:
-                inp = utils.GetGaussianVector(-mean, self.variance, self.N)  # changed from 0.5
+                inp[:-700] = utils.GetGaussianVector(-mean, self.variance, self.N-700)  # changed from 0.5
             condition = torch.tensor([-1]).float()
         else:
             # create a positive input
             if var_overide:
-                inp = mean*torch.ones((750, 1))
+                inp[:-700] = mean*torch.ones((50, 1))
             else:
-                inp = utils.GetGaussianVector(mean, self.variance, self.N)  # changed from 0.5
+                inp[:-700] = utils.GetGaussianVector(mean, self.variance, self.N-700)  # changed from 0.5
             condition = torch.tensor([1]).float()
             
         #######################################################################
@@ -61,6 +62,7 @@ class Williams():
         #ensures a PyTorch Tensor object is returned
         if not torch.is_tensor(inp):
             inp = torch.from_numpy(inp).float()
+        print("Hello World")
         return inp.to(torch.device('cuda')), condition
 
     def GetDesired(self):
