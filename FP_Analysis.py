@@ -6,7 +6,7 @@ Date: May 30, 2019
 '''
 
 import numpy as np
-import tensorflow as tf
+#import tensorflow as tf
 from scipy.optimize import fsolve
 from scipy.optimize import root
 from sklearn.manifold import TSNE
@@ -22,7 +22,8 @@ import torch
 import numpy as np 
 
 def GetUnique(points, tol=1e-3, verbose=False):
-    '''find all unique points in a set of noisy points'''
+    '''find all unique points in a set of noisy points
+    returns a list of unique fixed points'''
     #there must be at least one unique point
     unique_pts = [ [] ]        #list of lists (each list is a list of points corresponding to a unique root)
     clf_pts = []    #will hold indices of points that have already been grouped
@@ -111,79 +112,6 @@ def IsAttractor(fixed_point, F, NumSimulations=25):   #NumSimulations=2500
     else:
         return True
 
-def GetDerivatives(F):
-    '''
-    returns first order and second order derivatives for 
-    F w.r.t. x as callable functions
-    '''
-    def YPrime(x, verbose=False):
-        '''returns first and second order derivatives for F w.r.t. x'''
-        x = tf.convert_to_tensor(x.reshape(-1,1), dtype=tf.float64)
-        with tf.GradientTape() as t:
-            t.watch(x)
-            #y = F(x)
-            y = tf.norm(F(x))
-            y = tf.pow(y, 2)
-            y *= 0.5
-            dy_dx = t.gradient(y, x)
-        with tf.Session():
-            if verbose:
-                print('\nFirst derivative:\n', dy_dx.eval(), '\n\n')
-            return dy_dx.eval()
-
-    def Y2Prime(x, verbose=False):
-        '''returns first and second order derivatives for F w.r.t. x'''
-        x = tf.convert_to_tensor(x.reshape(-1,1), dtype=tf.float64)
-        with tf.GradientTape() as t2:
-            t2.watch(x)
-            with tf.GradientTape() as t1:
-                t1.watch(x)
-                y = tf.norm(F(x))
-                y = tf.pow(y, 2)
-                y *= 0.5
-                dy_dx = t1.gradient(y, x)
-            d2y_dx2 = t2.gradient(dy_dx, x)
-        with tf.Session():
-            if verbose:
-                print('\nSecond derivative:\n', d2y_dx2.eval(), '\n\n')
-            return d2y_dx2.eval()
-
-    return YPrime, Y2Prime
-#end GetDerivatives
-
-def FindZeros(F, num_iters=10_000, visualize=True, num_hidden=50):
-    '''
-    FindZeros takes a function F and will search for zeros
-    using randomly generated initial conditions
-    '''
-    roots_found = np.empty((num_iters, num_hidden))
-    #roots_found[:, :] = np.nan
-    print('\n\nSearching for zeros...\n')
-    for _ in range(num_iters):
-        #random activations on U[-1,1]
-        
-        x0 = 2*(np.random.rand(num_hidden)-0.5)
-        sol = root(F, x0)
-        print(sol.success)
-        #if ier == 1:
-        #    print(curr_root)
-        #time.sleep(1)
-        #if LA.norm(curr_root) != 0:
-        #    curr_root /= LA.norm(curr_root)
-        #roots_found[_, :] = curr_root
-
-    #if visualize:
-    #    print('\n\nPerforming 2-D t-SNE for data visualization...\n')
-    #    zeros_embedded = TSNE().fit_transform(roots_found)
-    #    plt.figure()
-    #    plt.scatter(zeros_embedded[:, 0], zeros_embedded[:, 1])
-        
-
-    return roots_found
-#end FindZeros
-
-
-
 def FindZeros2(F, num_iters=100, visualize=True, num_hidden=50, inpts=False, Embedding='t-SNE', norm=False, debug=False):
     '''
     FindZeros takes a function F and will search for zeros
@@ -255,7 +183,117 @@ def FindZeros2(F, num_iters=100, visualize=True, num_hidden=50, inpts=False, Emb
     return roots_found
 #end find zeros2
 
-def FindFixedPoints(model, inpts, just_get_roots=False, just_get_fraction=False, embedding='PCA', model_name='', embedder=[], num_hidden=50, new_fig=True, alpha=1, Verbose=True):
+
+def updateStatusBar(progress_fraction):
+    '''
+    updates the status of a task and prints it to console
+
+    Parameters
+    ----------
+    progress_fraction : TYPE
+        DESCRIPTION.
+
+    Returns
+    -------
+    None.
+
+    '''
+    sys.stdout.write('\r')
+    sys.stdout.write('[%-19s] %.2f%% ' %('='*progress_fraction, 5.26*progress_fraction))
+    sys.stdout.flush()
+    
+def concatenate_roots(roots, static_inpts, stability_flag):
+    '''
+
+    Parameters
+    ----------
+    roots : Nested list
+        roots is a list of length num_static_inputs where each element is itself 
+        a list that contains the models fixed points (as a NumPy array) for the 
+        given input level.
+
+    Returns
+    -------
+    concatenated_roots : NumPy array
+        array with shape (total_num_roots, hidden_size+2) containing all the models 
+        roots in state space. First column is a stability flag, second column is 
+        the static_input value associated with each root.
+    '''
+    if len(roots) > 1:
+        all_roots = np.concatenate((roots[0], roots[1]))
+        idxs = [len(roots[0]), len(roots[1])]
+    else:
+        all_roots = np.array(roots[0])
+        idxs = [len(roots[0])]
+    for _ in range(2, len(roots)):
+        try:
+            all_roots = np.concatenate((all_roots, roots[_]))
+        except ValueError:
+            continue
+        #keep a list detailing how many roots for each function was found
+        #in order to delinate input conditions for plotting
+        idxs.append(len(roots[_]))
+        
+    static_inpts = np.array(static_inpts).reshape(-1, 1)
+    stability_flag = np.array(stability_flag).reshape(-1, 1)
+    concatenated_roots = np.hstack((stability_flag, static_inpts, all_roots))
+    return concatenated_roots
+
+def cmap(static_inpt, max_inpt=0.1857):
+    '''
+    generates a color for plotting fixed point found under static_input. Colors 
+    go from red (positive inputs) to blue (negative inputs)
+
+    Parameters
+    ----------
+    static_inpt : float
+        input value to network for which current fixed point was found.
+
+    Returns
+    -------
+    list
+        r,g,b color that should be used to plot current fixed points.
+
+    '''
+    m_r = 0.5 / max_inpt
+    m_b = - 0.5 / max_inpt
+    
+    r = m_r * static_inpt/5 + 0.5
+    b = m_b * static_inpt/5 + 0.5
+    g = 0
+    
+    return [[r, g, b]]
+
+def plotFixedPoints(roots_embedded):
+    '''
+    plots the embedded fixed points in two dimensions
+
+    Parameters
+    ----------
+    roots_embedded : NumPy array
+        contains the embedded roots along with stability flag (first column) and 
+        static_input (second column) has shape (2+num_roots, hidden_size).
+
+    Returns
+    -------
+    None.
+
+    '''
+    for _ in range(roots_embedded.shape[0]):
+        if roots_embedded[_, 0] == 1:      # checks stability flag of current root
+            plt.scatter(roots_embedded[_, 2], roots_embedded[_, 3], c=cmap(roots_embedded[_,1]), alpha=1)
+        else:
+            plt.scatter(roots_embedded[_, 2], roots_embedded[_, 3], marker='x', c=cmap(roots_embedded[_,1]), alpha=1)
+
+
+def embed_fixed_points(all_roots, pca):
+    roots_centered = all_roots[:, 2:]-np.mean(all_roots[:, 2:], axis=0).reshape(1, -1)
+    roots_embedded = pca.transform(roots_centered)
+    roots_embedded = np.hstack((all_roots[:,:2], roots_embedded))
+    return roots_embedded
+
+
+def FindFixedPoints(model, inpts, embedding='PCA', embedder=[], Verbose=True):
     '''
     
     finds the fixed points for model
@@ -297,181 +335,49 @@ def FindFixedPoints(model, inpts, just_get_roots=False, just_get_fraction=False,
 
     '''
     master_function = model.GetF()
-
-    #master_function = model.GetF()
-    #num_roots = np.zeros((len(inpts), len(inpts[0])+1))    #holds the number of roots under each condition found
-    inpts = np.array(inpts)
-    num_roots = np.zeros((len(inpts), 1+len(inpts[0])))                    #use this line for non-context tasks
-    functions = []
-    #each element of roots will be a numpy array of roots for the corresponding function
-    #in functions
-    roots = []
-    # roots_ is a dictionary that will hold the coordinates of fixed points in R^50
-    roots_ = {}
-    #loop over input condition to create a unique function from the master function
-    for _ in range(len(inpts)):
-        # if model._task._version == "Heb":
-        #     heb_inpt = [0]
-        #     heb_inpt.append(inpts[_][0])
-        #     print(heb_inpt)
-        #     functions.append(master_function(np.array(heb_inpt)))
-        # else:
-        print(inpts[_])
-        functions.append(master_function(inpts[_]))
+    num_static_inpts = len(inpts)
+    inpts = np.array(inpts)                                          # inpts is array with shape (num_static_inputs, input_dim)
+    num_roots = np.zeros((len(inpts), 1+len(inpts[0])))              # use this line for non-context tasks
+    
+    functions = []         # holds RNN update functions under different static inputs
+    for static_input in inpts:
+        print(static_input)
+        functions.append(master_function(static_input))
+    
+    roots = []       # each element of roots will be a numpy array of roots corresponding to a static input
+    inpt_levels = []
+    
     #find the roots of each desired function
-    num_deleted = 0        #will keep track of number of inputs that failed to converge 
     print('\nSEARCHING FOR ZEROS ... ')
     labels = []
-    for _ in range(len(inpts)):
-        num_roots[_,:len(inpts[0])] = inpts[_]    #update summary table
-        #update the console with progress bar
-        if True:
-            sys.stdout.write('\r')
-            sys.stdout.write('[%-19s] %.2f%% ' %('='*_, 5.26*_))
-            #sys.stdout.write('INPUT = %f' % (inpts[_]))
-            sys.stdout.flush()
-        roots.append(GetUnique(FindZeros2(functions[_], visualize=False, num_hidden=model._hiddenSize)))
-        # update our dictionary with the roots we found
-        roots_[str(inpts[_])] = roots[-1]
-        curr_roots = roots[-1]
-        #print('input to network:', inpts[_])
-        # I am not sure I am usin gthis and it looks computationally expensive
-        if False:
-            if np.all(inpts[_][:] >= 0):
-                if (np.all(inpts[_] == 0.08)) or (np.all(inpts[_] == 0.06)) or (np.all(inpts[_] == 0.04)):
-                    potentials, success = PlotPotential(curr_roots, functions[_])
-                    if success:
-                        labels.append(inpts[_])
-                        print('potentials calculated:', success)
+    stability_flag = []                 # denotes stability of fixed point
+    for IX, static_input in enumerate(inpts):                     # loop over static inputs
+        num_roots[IX,:len(inpts[0])] = static_input               # update summary table
         
-        #time.sleep(5)
-        #if no roots where found delete this element from list
-        #print('empty roots:', roots[_])
-        if isinstance(roots[_-num_deleted], int):
-            del roots[_-num_deleted]
-            num_deleted += 1
-            num_roots[_,-1] = 0
-        else:
-            num_roots[_,-1] = len(roots[_-num_deleted])
-        #print('last root found for input:', inpts[_], '\n', roots[-1][0])
-    plt.legend(labels)
-    #concatenate all the roots into one numpy array
-    print('\nSummary\n')
-    print('Input condition         |            Roots Found\n')
+        updateStatusBar(IX)    # reports progress to console
+        roots.append(GetUnique(FindZeros2(functions[IX], visualize=False, num_hidden=model._hiddenSize)))
+        # update our dictionary with the roots we found
+        curr_roots = roots[-1]
+        num_roots[IX,-1] = len(roots[IX])
+        for _ in range(len(roots[IX])):
+            inpt_levels.append(static_input[0])
+            if (IsAttractor(roots[-1][_], functions[IX])):
+                stability_flag.append(1)
+            else:
+                stability_flag.append(0)
+    # end loop over static inputs
+    
+    print('\nFixed Point Search Summary\n')
+    print('Static Input   |    Roots Found\n')
     for _ in range(len(num_roots)):
-        print(num_roots[_,:])
-    if just_get_fraction:
-        # get a column vector containing the number of times each root appears
-        num_of_pts = num_roots[:,-1]
-        total_num_roots = len(num_of_pts)
-        print(np.where(num_of_pts==3))
-        num_three_pts = len(np.where(num_of_pts==3)[0])
-        frac_three = num_three_pts / total_num_roots
-        return frac_three
-    if len(roots) > 1:
-        all_roots = np.concatenate((roots[0], roots[1]))
-        idxs = [len(roots[0]), len(roots[1])]
-    else:
-        all_roots = np.array(roots[0])
-        idxs = [len(roots[0])]
-    for _ in range(2, len(roots)):
-        #concatenation causes runtime error if roots[_] is of length zero
-        #b/c no roots were found. I need to program an exception in to 
-        #handle this situation
-        try:
-            all_roots = np.concatenate((all_roots, roots[_]))
-        except ValueError:
-            continue
-        #keep a list detailing how many roots for each function was found
-        #in order to delinate input conditions for plotting
-        idxs.append(len(roots[_]))
-
-    # return the roots if we don't want any further analysis done
-    if just_get_roots:
-        return all_roots, num_roots
+        print("{0:.2f}      |      {1:.1f}".format(num_roots[_,0], num_roots[_,1]))
+    
+    all_roots = concatenate_roots(roots, inpt_levels, stability_flag)
+    assert(all_roots.shape[0] == len(stability_flag))
 
     # embed all the roots found with a t-SNE (or LLE)
     # prior to embedding we want to center points around their mean
-    roots_centered = all_roots-np.mean(all_roots, axis=0).reshape(1, model._hiddenSize)
-    assert(roots_centered.shape == all_roots.shape)
-    
-    print('-'*50)
-    if embedding == 't-SNE':
-        print('\nusing t-SNE to visualize roots ...')
-        roots_embedded = TSNE().fit_transform(roots_centered)
-    elif embedding == 'LLE':
-        print('\nusingsing Local Linear Embedding to visualize roots ...')
-        roots_embedded = LLE().fit_transform(roots_centered)
-    elif embedding == 'custom':
-        print('\nusing custom embedding to visualize roots ...')
-        pca = embedder
-        roots_embedded = pca.transform(roots_centered)
-    else: 
-        print('\nusing PCA to visualize roots ...')
-        pca = PCA()
-        roots_embedded=pca.fit_transform(roots_centered)
-        pca.offset_ = np.mean(all_roots, axis=0).reshape(1,model._hiddenSize)
-        print(pca.explained_variance_ratio_)
-
-
-    if new_fig:
-        plt.figure()
-    start_idx = 0
-    stop_idx = 0
-    '''
-    colors = ['black', 'grey', 'rosybrown', 'maroon', 'mistyrose', 'sienna',\
-              'sandybrown', 'darkseagreen', 'lawngreen', 'darkolivegreen', \
-              'yellow', 'gold', 'orange', 'lightseagreen', 'aqua', 'deepskyblue',\
-              'midnightblue', 'darkslateblue', 'indigo', 'deeppink']
-    '''
-    '''
-    colors = [(1, 0, 0), (0.9, 0, 0), (0.8, 0, 0), (0.7, 0, 0), (0.6, 0, 0), (0.5, 0, 0),\
-                (0.5, 0, 0.1), (0.5, 0, 0.2), (0.5, 0, 0.3), (0.5, 0, 0.4), (0.5, 0, 0.5), (0.4, 0, 0.5), (0.3, 0, 0.5),\
-                (0.2, 0, 0.5), (0.1, 0, 0.5), (0, 0, 0.5), (0, 0, 0.6), (0, 0, 0.7), (0, 0, 0.8),\
-                (0, 0, 0.9), (0, 0, 1)]'''
-    # use these colors when plotting -1 to +1 with 20 fixed points
-    colors = [[[1, 0, 0]], [[0.9, 0, 0]], [[0.8, 0, 0]], [[0.7, 0, 0]], [[0.6, 0, 0]], [[0.5, 0, 0]],\
-                [[0.5, 0, 0.1]], [[0.5, 0, 0.2]], [[0.5, 0, 0.3]], [[0.5, 0, 0.4]], [[0.5, 0, 0.5]], [[0.4, 0, 0.5]], [[0.3, 0, 0.5]],\
-                [[0.2, 0, 0.5]], [[0.1, 0, 0.5]], [[0, 0, 0.5]], [[0, 0, 0.6]], [[0, 0, 0.7]], [[0, 0, 0.8]],\
-                [[0, 0, 0.9]], [[0, 0, 1]]]
-    #colors = ['r', 'g', 'b']
-    '''
-    colors = ['r','m','b']
-    '''
-    model_name += ' model'
-    #xmin=2*np.min(roots_embedded[:,0])
-    #xmax=10*np.max(roots_embedded[:,0])
-    #ymin=5*np.min(roots_embedded[:,1])
-    #ymax=5*np.max(roots_embedded[:,1])
-    #plt.xlim([xmin, xmax])
-    #plt.ylim([ymin, ymax])
-    for _ in range(len(roots)):
-        stop_idx += idxs[_]
-        #this code terifies me for how hacky it is
-        curr_set_of_roots = all_roots[start_idx:stop_idx]
-        curr_set_of_roots_x = roots_embedded[start_idx:stop_idx,0]
-        curr_set_of_roots_y = roots_embedded[start_idx:stop_idx,1]
-        for curr_point in range(len(curr_set_of_roots)):
-            if IsAttractor(curr_set_of_roots[curr_point], functions[_]):
-                plt.scatter(curr_set_of_roots_x[curr_point], curr_set_of_roots_y[curr_point], c=colors[_//2], alpha=alpha)
-            else:
-                plt.scatter(curr_set_of_roots_x[curr_point], curr_set_of_roots_y[curr_point], marker='x', c=colors[_//2], alpha=alpha)
-        '''
-
-        if IsAttractor(all_roots[start_idx], functions[_]):        #this line of code scares me
-            plt.scatter(roots_embedded[start_idx:stop_idx,0], roots_embedded[start_idx:stop_idx,1], c=colors[_])
-        else:
-            plt.scatter(roots_embedded[start_idx:stop_idx,0], roots_embedded[start_idx:stop_idx,1], facecolors='none', edgecolors=colors[_])
-        '''
-        start_idx += idxs[_]
-        #plot labels
-        plt.title('All Roots for '+model_name+' Using '+embedding)
-        #plt.legend(['Fixed Points (input='+str(inpts[_])+')' for _ in range(len(inpts))])
-        #plt.savefig('fixed_points.eps')
-    if not Verbose:
-        return roots_, idxs, pca #replaced all_roots with roots_
-    else:
-        return roots_embedded, pca
+    return all_roots 
 
 def numInputsWithThreeFixedPoints(roots):
     '''
@@ -494,142 +400,6 @@ def numInputsWithThreeFixedPoints(roots):
             inputsWithThree += 1
     
     return inputsWithThree / numInputs
-
-
-def FindFixedPointsC(master_function, inpts, embedding='PCA', model_name='', embedder=[], num_hidden=50, new_fig=True, alpha=1):
-    '''
-    functions is a list of functions for which we desire to find the roots
-    most likley, each function in the list corresponds to a recurrent neural
-    network update function, (dx/dt) = F(x), under a different input condition
-    '''
-    num_roots = np.zeros((len(inpts), len(inpts[0])+1))    #holds the number of roots under each condition found
-    functions = []
-    #each element of roots will be a numpy array of roots for the corresponding function
-    #in functions
-    roots = []
-    #loop over input condition to create a unique function from the master function
-    for _ in range(len(inpts)):
-        functions.append(master_function(inpts[_]))
-    #find the roots of each desired function
-    num_deleted = 0        #will keep track of number of inputs that failed to converge 
-    print('\nSEARCHING FOR ZEROS ... ')
-    labels = []
-    for _ in range(len(inpts)):
-        num_roots[_,:len(inpts[0])] = inpts[_]    #update summary table
-        #update the console with progress bar
-        if True:
-            sys.stdout.write('\r')
-            sys.stdout.write('[%-19s] %.2f%%' %('='*_, 5.26*_))
-            #sys.stdout.write('INPUT = %f' % (inpts[_]))
-            sys.stdout.flush()
-        roots.append(GetUnique(FindZeros2(functions[_], visualize=False, num_hidden=num_hidden)))
-        curr_roots = roots[-1]
-        print('input to network:', inpts[_])
-        if np.all(inpts[_] >= 0):
-            if (np.all(inpts[_] == 0.1)) or (np.all(inpts[_] == 0.3)) or (np.all(inpts[_] == 0.6)):
-                potentials, success = PlotPotential(curr_roots, functions[_])
-                if success:
-                    labels.append(inpts[_])
-                    print('potentials calculated:', success)
-        
-        #time.sleep(5)
-        #if no roots where found delete this element from list
-        #print('empty roots:', roots[_])
-        if isinstance(roots[_-num_deleted], int):
-            del roots[_-num_deleted]
-            num_deleted += 1
-            num_roots[_,-1] = 0
-        else:
-            num_roots[_,-1] = len(roots[_-num_deleted])
-        #print('last root found for input:', inpts[_], '\n', roots[-1][0])
-    plt.legend(labels)
-    #concatenate all the roots into one numpy array
-    print('\nSummary\n')
-    print('Input condition         |            Roots Found\n')
-    for _ in range(len(num_roots)):
-        print(num_roots[_,0], '       |            ', num_roots[_,1])
-    all_roots = np.concatenate((roots[0], roots[1]))
-    idxs = [len(roots[0]), len(roots[1])]
-    for _ in range(2, len(roots)):
-        #concatenation causes runtime error if roots[_] is of length zero
-        #b/c no roots were found. I need to program an exception in to 
-        #handle this situation
-        try:
-            all_roots = np.concatenate((all_roots, roots[_]))
-        except ValueError:
-            continue
-        #keep a list detailing how many roots for each function was found
-        #in order to delinate input conditions for plotting
-        idxs.append(len(roots[_]))
-
-    #embed all the roots found with a t-SNE (or LLE)
-    if embedding == 't-SNE':
-        print('\nusing t-SNE to visualize roots ...')
-        roots_embedded = TSNE().fit_transform(all_roots)
-    elif embedding == 'LLE':
-        print('\nusingsing Local Linear Embedding to visualize roots ...')
-        roots_embedded = LLE().fit_transform(all_roots)
-    elif embedding == 'custom':
-        print('\nusing custom embedding to visualize roots ...')
-        pca = embedder
-        roots_embedded = pca.transform(all_roots)
-    else: 
-        print('\nusing PCA to visualize roots ...')
-        pca = PCA()
-        roots_embedded=pca.fit_transform(all_roots)
-        print(pca.explained_variance_ratio_)
-
-    if new_fig:
-        plt.figure()
-    start_idx = 0
-    stop_idx = 0
-    '''
-    colors = ['black', 'grey', 'rosybrown', 'maroon', 'mistyrose', 'sienna',\
-              'sandybrown', 'darkseagreen', 'lawngreen', 'darkolivegreen', \
-              'yellow', 'gold', 'orange', 'lightseagreen', 'aqua', 'deepskyblue',\
-              'midnightblue', 'darkslateblue', 'indigo', 'deeppink']
-    '''
-    '''
-    colors = [(1, 0, 0), (0.9, 0, 0), (0.8, 0, 0), (0.7, 0, 0), (0.6, 0, 0), (0.5, 0, 0),\
-                (0.5, 0, 0.1), (0.5, 0, 0.2), (0.5, 0, 0.3), (0.5, 0, 0.4), (0.5, 0, 0.5), (0.4, 0, 0.5), (0.3, 0, 0.5),\
-                (0.2, 0, 0.5), (0.1, 0, 0.5), (0, 0, 0.5), (0, 0, 0.6), (0, 0, 0.7), (0, 0, 0.8),\
-                (0, 0, 0.9), (0, 0, 1)]'''
-    colors = [[[1, 0, 0]], [[0.9, 0, 0]], [[0.8, 0, 0]], [[0.7, 0, 0]], [[0.6, 0, 0]], [[0.5, 0, 0]],\
-                [[0.5, 0, 0.1]], [[0.5, 0, 0.2]], [[0.5, 0, 0.3]], [[0.5, 0, 0.4]], [[0.5, 0, 0.5]], [[0.4, 0, 0.5]], [[0.3, 0, 0.5]],\
-                [[0.2, 0, 0.5]], [[0.1, 0, 0.5]], [[0, 0, 0.5]], [[0, 0, 0.6]], [[0, 0, 0.7]], [[0, 0, 0.8]],\
-                [[0, 0, 0.9]], [[0, 0, 1]]]
-    model_name += ' model'
-    #xmin=2*np.min(roots_embedded[:,0])
-    #xmax=10*np.max(roots_embedded[:,0])
-    #ymin=5*np.min(roots_embedded[:,1])
-    #ymax=5*np.max(roots_embedded[:,1])
-    #plt.xlim([xmin, xmax])
-    #plt.ylim([ymin, ymax])
-    for _ in range(len(roots)):
-        stop_idx += idxs[_]
-        #this code terifies me for how hacky it is
-        curr_set_of_roots = all_roots[start_idx:stop_idx]
-        curr_set_of_roots_x = roots_embedded[start_idx:stop_idx,0]
-        curr_set_of_roots_y = roots_embedded[start_idx:stop_idx,1]
-        for curr_point in range(len(curr_set_of_roots)):
-            if IsAttractor(curr_set_of_roots[curr_point], functions[_]):
-                plt.scatter(roots_embedded[_,0], roots_embedded[_,1], c=colors[_], alpha=alpha)
-            else:
-                plt.scatter(roots_embedded[_,0], roots_embedded[_,1], facecolors='none', edgecolors=colors[_], alpha=alpha)
-        '''
-
-        if IsAttractor(all_roots[start_idx], functions[_]):        #this line of code scares me
-            plt.scatter(roots_embedded[start_idx:stop_idx,0], roots_embedded[start_idx:stop_idx,1], c=colors[_])
-        else:
-            plt.scatter(roots_embedded[start_idx:stop_idx,0], roots_embedded[start_idx:stop_idx,1], facecolors='none', edgecolors=colors[_])
-        '''
-        start_idx += idxs[_]
-        #plot labels
-        plt.title('All Roots for '+model_name+' Using '+embedding)
-        #plt.legend(['Fixed Points (input='+str(inpts[_])+')' for _ in range(len(inpts))])
-        #plt.savefig('fixed_points.eps')
-
-    return roots_embedded, pca
 
 
 if __name__ == '__main__':

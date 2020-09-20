@@ -1,4 +1,3 @@
-
 from perturbation_experiments import *
 from task.williams import Williams
 import numpy.linalg as LA
@@ -26,9 +25,9 @@ TCAFlag = False
 
 # these flags will determine what RNNs to perform above analysis on
 ForceFlag = False          # will analyze FORCE trained RNN
-BpttFlag = False            # will analyze BPTT trained RNN
+BpttFlag = True            # will analyze BPTT trained RNN
 GeneticFlag = False        # will analyze Genetic trained RNN
-HebbianFlag = True       # will analyze Hebbian trained RNN
+HebbianFlag = False       # will analyze Hebbian trained RNN
 ComplexityFlag = False     # will run analysis to determine model complexity
 NoiseFlag = False          # will run analysis to determine how robust model is to noise
 

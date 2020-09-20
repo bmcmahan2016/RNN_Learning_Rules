@@ -4,7 +4,7 @@ import torch
 from rnn import RNN, loadRNN 
  
 import rnntools as r
-from FP_Analysis import FindFixedPoints, FindFixedPointsC, GetDerivatives, ComputeDistance
+import FP_Analysis as fp
 import time
 from task.williams import Williams
 from task.context import context_task
@@ -163,9 +163,13 @@ def AnalyzeLesioned(model, fig_name, PC1_min=-10, PC1_max=10, PC2_min=-10, PC2_m
         #input_values = [[0]]
         input_values = 3 * test_inpt * np.array(input_values)
         #input_values = [[.1],[0],[-.1]]
-        roots, idx, pca = FindFixedPoints(model, input_values, embedding='custom', embedder=model._pca, Verbose=False)
-        model._fixedPoints = roots
-        model.updateFixedPoints(roots, pca)      # fixed points now saved
+        roots = fp.FindFixedPoints(model, input_values)
+        model.updateFixedPoints(roots, model._pca)      # fixed points now saved
+        roots_embedded = fp.embed_fixed_points(roots, model._pca)
+        plt.figure()
+        fp.plotFixedPoints(roots_embedded)
+        
+
     else:
         pca = model._pca
         roots = model._fixedPoints
