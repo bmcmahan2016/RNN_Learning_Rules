@@ -62,7 +62,6 @@ class Williams():
         #ensures a PyTorch Tensor object is returned
         if not torch.is_tensor(inp):
             inp = torch.from_numpy(inp).float()
-        print("Hello World")
         return inp.to(torch.device('cuda')), condition
 
     def GetDesired(self):

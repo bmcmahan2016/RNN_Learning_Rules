@@ -27,7 +27,6 @@ hyperParams = {                  # dictionary of all RNN hyper-parameters
 def TrainRDM(name, hyperParams):
     print(name.lower()[:2])
     if name.lower()[:2] == "bp":
-        print("here")
         rnnModel = Bptt(hyperParams)
     elif name.lower()[:2] == "he":
         raise NotImplementedError()
@@ -174,10 +173,23 @@ if __name__ == '__main__':
     #TrainRDM("bptt_097", hyperParams)
     #TrainRDM("bptt_098", hyperParams)
     #TrainRDM("bptt_099", hyperParams)
-    hyperParams["inputSize"] = 4
-    hyperParams["hiddenSize"] = 50
+    TrainRDM("bptt_100", hyperParams)
+    TrainRDM("bptt_101", hyperParams)
+    TrainRDM("bptt_102", hyperParams)
+    TrainRDM("bptt_103", hyperParams)
+    TrainRDM("bptt_104", hyperParams)
+    TrainRDM("bptt_105", hyperParams)
+    TrainRDM("bptt_106", hyperParams)
+    TrainRDM("bptt_107", hyperParams)
+    TrainRDM("bptt_108", hyperParams)
+    TrainRDM("bptt_109", hyperParams)
+    TrainRDM("bptt_110", hyperParams)
     
-    hyperParams["mean"] = 0.5
+    
+    # hyperParams["inputSize"] = 4
+    # hyperParams["hiddenSize"] = 50
+    
+    # hyperParams["mean"] = 0.5
     #TrainContext("bptt_100", hyperParams)
     #TrainContext("ga_101", hyperParams)
     TrainContext("ga_102", hyperParams)
