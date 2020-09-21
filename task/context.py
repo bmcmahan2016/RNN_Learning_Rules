@@ -15,6 +15,7 @@ class context_task():
         self.N = N
         self._mean = mean
         self._var = var
+        self._version = ""
         
     def GetInput(self, mean_overide=1):
         '''

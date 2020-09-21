@@ -14,10 +14,63 @@ class Williams():
         self.mean = mean
         self.variance = variance
         self._version = version
+        
     def GetInput(self, mean_overide=-1, var_overide=False):
         '''
         GetInput will randomly generate a positive or negative 
         data sequence of length N
+
+        mean: the data sequence will be centered around plus or
+        minus this value
+
+        variance: variance of data sequence
+        DEFAULTS
+        N=40
+        mean=1
+        variance=1
+
+
+        used to be mean +/-1 and variance 1
+        testing mean and mean+1 with variance = 0.2
+        '''
+        inp = torch.zeros((750, 1))
+        # create a random mean in [0, 1)
+        mean = torch.rand(1)*self.mean #self.mean#
+        if mean_overide != -1:
+            mean = mean_overide
+        if torch.rand(1) < 0.5:
+            # create a negative input
+            if var_overide:
+                inp = -mean*torch.ones((self.N,1))
+            else:
+                inp = utils.GetGaussianVector(-mean, self.variance, self.N)  # changed from 0.5
+            condition = torch.tensor([-1]).float()
+        else:
+            # create a positive input
+            if var_overide:
+                inp = mean*torch.ones((self.N, 1))
+            else:
+                inp = utils.GetGaussianVector(mean, self.variance, self.N)  # changed from 0.5
+            condition = torch.tensor([1]).float()
+            
+        #######################################################################
+        #if self._version == "Heb":   # reformats input for Hebbian trained RDM networks
+        #    inpts = torch.zeros((self.N, 2))
+        #    inpts[:,1:2] = inp
+        #    inp = inpts
+        #######################################################################    
+            
+        #ensures a PyTorch Tensor object is returned
+        if not torch.is_tensor(inp):
+            inp = torch.from_numpy(inp).float()
+        return inp.to(torch.device('cuda')), condition
+
+
+    def GetInputPulse(self, mean_overide=-1, var_overide=False):
+        '''
+        GetInputPulse will randomly generate a positive or negative 
+        pulsed data sequence of length N. Data is zero except for the
+        initial pulse
 
         mean: the data sequence will be centered around plus or
         minus this value
@@ -64,6 +117,7 @@ class Williams():
             inp = torch.from_numpy(inp).float()
         return inp.to(torch.device('cuda')), condition
 
+    # TODO: delete GetDesired function
     def GetDesired(self):
         '''
         some classess attempt to make a call to GetDesired instead of GetInput. GetDesired 

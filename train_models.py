@@ -128,7 +128,7 @@ if __name__ == '__main__':
     # TrainRDM("bptt_080", hyperParams)
     
     
-    # hyperParams["taskVar"] = 1.0         # train an ensemble of GA models w/ var = 1.0
+    #hyperParams["taskVar"] = 1.0         # train an ensemble of GA models w/ var = 1.0
     # TrainRDM("GA_081", hyperParams)
     # TrainRDM("GA_082", hyperParams)
     # TrainRDM("GA_083", hyperParams)
@@ -148,12 +148,13 @@ if __name__ == '__main__':
     # TrainRDM("GA_097", hyperParams)
     # TrainRDM("GA_098", hyperParams)
     # TrainRDM("GA_099", hyperParams)
-    # TrainRDM("GA_100", hyperParams)
+    TrainRDM("GA_100", hyperParams)
+    #assert False
     
     
     
     
-    hyperParams["taskVar"] = 1.0         # train an ensemble of bptt models w/ var = 1.0
+    #hyperParams["taskVar"] = 0.75         # train an ensemble of bptt models w/ var = 1.0
     #TrainRDM("bptt_081", hyperParams)
     #TrainRDM("bptt_082", hyperParams)
     #TrainRDM("bptt_083", hyperParams)
@@ -173,26 +174,26 @@ if __name__ == '__main__':
     #TrainRDM("bptt_097", hyperParams)
     #TrainRDM("bptt_098", hyperParams)
     #TrainRDM("bptt_099", hyperParams)
-    TrainRDM("bptt_100", hyperParams)
-    TrainRDM("bptt_101", hyperParams)
-    TrainRDM("bptt_102", hyperParams)
-    TrainRDM("bptt_103", hyperParams)
-    TrainRDM("bptt_104", hyperParams)
-    TrainRDM("bptt_105", hyperParams)
-    TrainRDM("bptt_106", hyperParams)
-    TrainRDM("bptt_107", hyperParams)
-    TrainRDM("bptt_108", hyperParams)
-    TrainRDM("bptt_109", hyperParams)
-    TrainRDM("bptt_110", hyperParams)
+    #TrainRDM("bptt_100", hyperParams)
+    #TrainRDM("bptt_101", hyperParams)
+    # TrainRDM("bptt_102", hyperParams)
+    # TrainRDM("bptt_103", hyperParams)
+    # TrainRDM("bptt_104", hyperParams)
+    # TrainRDM("bptt_105", hyperParams)
+    # TrainRDM("bptt_106", hyperParams)
+    # TrainRDM("bptt_107", hyperParams)
+    # TrainRDM("bptt_108", hyperParams)
+    # TrainRDM("bptt_109", hyperParams)
+    # TrainRDM("bptt_110", hyperParams)
     
     
     # hyperParams["inputSize"] = 4
     # hyperParams["hiddenSize"] = 50
     
     # hyperParams["mean"] = 0.5
-    #TrainContext("bptt_100", hyperParams)
+    # TrainContext("bptt_100", hyperParams)
     #TrainContext("ga_101", hyperParams)
-    TrainContext("ga_102", hyperParams)
-    TrainContext("ga_103", hyperParams)
+    #TrainContext("ga_102", hyperParams)
+    #TrainContext("ga_103", hyperParams)
     
   

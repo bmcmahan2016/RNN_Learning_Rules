@@ -19,8 +19,8 @@ from FP_Analysis import FindFixedPoints
 from task.williams import Williams
 from task.context import context_task
 import os
-from bptt import Bptt
-from genetic import Genetic
+#from bptt import Bptt
+#from genetic import Genetic
 
 
 hyperParams = {       # dictionary of all hyper-parameters
@@ -538,6 +538,8 @@ def loadRNN(fName, optimizer=""):
         f.close()
         if optimizer == "BPTT":
             model = Bptt(hyperParams)
+        elif optimizer == "GA":
+            model = Genetic(hyperParams)
         else:
             model = RNN(hyperParams)
             
