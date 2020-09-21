@@ -58,6 +58,7 @@ def getMDS(modelNum, learningRule="bptt"):
         modelPath = "models/" + learningRule + "_0" + str(modelNum)
     model = loadRNN(modelPath)
     print(modelPath)
+    '''
     fixed_points = []
     counter = 0
     for key in model._fixedPoints:
@@ -69,8 +70,10 @@ def getMDS(modelNum, learningRule="bptt"):
             # fixed_point is now a single fixed point
             fixed_points.append( np.hstack((key2array(inpt), fixed_point)) )
     fixed_points = np.array(fixed_points)
-    inpt_values = fixed_points[:,0]
-    fixed_points = fixed_points[:,1:]
+    '''
+    #fixed_points = model._fixedPoints
+    inpt_values = model._fixedPoints[:,1]
+    fixed_points = model._fixedPoints[:,2:]
     
     nbrs = NearestNeighbors(n_neighbors=3, algorithm='ball_tree').fit(fixed_points)
     distances, indices = nbrs.kneighbors(fixed_points)
@@ -89,27 +92,27 @@ max_fixed_points = 0
 counter = 0
 
 bptt_start = 0
-for num in [81, 82, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93]:
+for num in [69, 68, 87, 88, 89, 90, 91, 92]:
     embeddings.append(getMDS(num).reshape(1,-1))
     counter += 1
 bptt_end = counter
 ga_start = counter
-for num in [80, 81, 82, 83, 84, 85, 86, 87, 88]:
+for num in [ 81, 82, 83, 84, 85, 86, 87, 88]:
     embeddings.append(getMDS(num, "ga").reshape(1,-1))
     counter += 1
 ga_end = counter
 
-ff_start = counter
-for num in [80, 81, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93]:
-    embeddings.append(getMDS(num, "FullForce").reshape(1,-1))
-    counter +=1 
-ff_end = counter
+# ff_start = counter
+# for num in [80, 81, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93]:
+#     embeddings.append(getMDS(num, "FullForce").reshape(1,-1))
+#     counter +=1 
+# ff_end = counter
 
 
 
-embeddings.append(getMDS(67).reshape(1,-1))
-embeddings.append(getMDS(68).reshape(1,-1))
-embeddings.append(getMDS(69).reshape(1,-1))
+# embeddings.append(getMDS(67).reshape(1,-1))
+# embeddings.append(getMDS(68).reshape(1,-1))
+# embeddings.append(getMDS(69).reshape(1,-1))
 
 
 embeddings = np.squeeze(np.array(embeddings))
