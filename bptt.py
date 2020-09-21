@@ -25,7 +25,7 @@ class Bptt(RNN):
         '''
 
         self._num_epochs = 20000
-        self._learning_rate = 1e-4
+        self._learning_rate = 1e-3
         self._hParams["learning_rate"] = self._learning_rate
         
         # cast as PyTorch variables
@@ -38,8 +38,7 @@ class Bptt(RNN):
         self._optimizer = torch.optim.Adam(self._params, lr=self._learning_rate)
 
 
-        #create an activities tensor for the rnn_model
-        self._activityTensor = np.zeros((self._num_epochs, int(self._task.N/10), self._hiddenSize))
+        
         self.all_losses = []
         
         self._hidden = Variable(self._hidden, requires_grad=True)
@@ -54,6 +53,8 @@ class Bptt(RNN):
         return np_loss  # torch.log(1 + torch.exp(-mu * yt))
 
     def trainBPTT(self, input, trial, condition):
+        #create an activities tensor for the rnn_model
+        self._activityTensor = np.zeros((self._num_epochs, int(self._task.N/10), self._hiddenSize))
         self._optimizer.zero_grad()
         self.StoreRecMag()
 
@@ -88,7 +89,7 @@ class Bptt(RNN):
             y_batch[dataPtIX] = condition
         return x_batch, y_batch
 
-    def train(self):
+    def train(self, termination_accuracy=0.9):
         self._startTimer()
         # create a validation dataset for the model
         self.createValidationSet()
@@ -104,13 +105,13 @@ class Bptt(RNN):
         loss_hist = []
         
         # for CUDA implementation
-        inpt = Variable(torch.zeros(self._batchSize, self._task.N, self._inputSize).cuda())
+        inpt = Variable(torch.zeros(int(self._batchSize), self._task.N, self._inputSize).cuda())
         
         #trial = 0
         loss = np.inf
         
         # start main training loop
-        while(validation_accuracy < 0.9):
+        while(validation_accuracy < termination_accuracy):
             self.SaveWeights()
             if self.trial_count%10 == 0:
                 print('trial #:', self.trial_count)

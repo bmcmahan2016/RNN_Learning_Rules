@@ -6,10 +6,17 @@ This will train a BPTT model and halt training at intermediate
 points to assess how topology of fixed points evolve with training
 progress
 
-@author: bmcma
+bptt_model_200 is the initial model before any training
+bptt_model_201 is after a validation accuracy of 50% is reached
+bptt_model_202 is after a validation accuracy of 65% is reached
+bptt_model_203 is after a validation accuracy of 80% is reached
+bptt_model_204 is after a validation accuracy of 90% is reached
+
+@author: Brandon McMahan
 """
 import rnn as r
 from bptt import Bptt
+from genetic import Genetic
 
 hyperParams = {                  # dictionary of all RNN hyper-parameters
    "inputSize" : 1,
@@ -26,17 +33,27 @@ hyperParams = {                  # dictionary of all RNN hyper-parameters
    "taskVar" : 1
    }
 
-# initialize a BPTT model
-initial_rnn_model = Bptt(hyperParams)
+# initialize a BPTT model and save it
+initial_rnn_model = Genetic(hyperParams)
+initial_rnn_model._MODEL_NAME = "models/ga_model_200"
 initial_rnn_model.save()
+fName = "models/ga_model_200"
 
 # loop over stopping conditions
 stopping_conditions = [0.5, 0.65, 0.8, 0.9]
-for termination_accuracy in stopping_conditions:
+for model_num, termination_accuracy in enumerate(stopping_conditions):
     # train a BPTT model to current stopping condition
-    rnn_model = r.loadRNN(fName, optimizer="BPTT")
+    print("training model to validation accuracy of", termination_accuracy)
+    rnn_model = r.loadRNN(fName, optimizer="GA")
+    if (rnn_model == False):
+        print("load failed!")
+        assert False
+    fName = "models/ga_model_20" + str(1+model_num)   # name for next model
+    rnn_model.train(termination_accuracy=termination_accuracy)
     
+    # TODO: run the FP analysis
     
-    # run the FP analysis
-    # save this intermediate model
+    # saves the intermediate model
+    rnn_model._MODEL_NAME = fName
+    rnn_model.save()
     

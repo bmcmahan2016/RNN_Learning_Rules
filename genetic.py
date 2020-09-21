@@ -109,7 +109,7 @@ class Genetic(RNN):
         return lossArray
         
 
-    def train(self):
+    def train(self, termination_accuracy=0.9):
         '''
         trainGenetic will train the RNN using a high efficiency genetic algorithm
         '''
@@ -142,7 +142,7 @@ class Genetic(RNN):
         validation_accuracy = 0
         validation_acc_hist = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         #while(generationCounter < self.num_generations):
-        while(validation_accuracy < 0.9):
+        while(validation_accuracy < termination_accuracy):
             print("Current Generation:", generationCounter)
         # create a training batch
             #torch.manual_seed(41)

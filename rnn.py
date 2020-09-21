@@ -49,7 +49,7 @@ class RNN(nn.Module):
         self._g = hyperParams["g"]
         self._hiddenInitScale = hyperParams["initScale"]                       # sets tolerance for determining validation accuracy# initializes hidden layer                                                   # sets noise for hidden initialization
         self._dt= hyperParams["dt"]
-        self._batchSize = hyperParams["batchSize"]
+        self._batchSize = int(hyperParams["batchSize"])
         self._hParams = hyperParams                                             # used for saving training conditions
         self._init_hidden()   
         self._totalTrainTime = 0                                               # accumulates training time
@@ -344,7 +344,7 @@ class RNN(nn.Module):
             model_name = self._MODEL_NAME+'.pt'
             print("model name: ", model_name)
         else:         # timestamp
-            model_name = self.MODEL_NAME + '_' + str(N) + '_.pt'
+            model_name = self._MODEL_NAME + '_' + str(N) + '.pt'
         if tElapsed==0:
             torch.save({'weights': self._J, \
                         'weight_hist':self._w_hist, \
@@ -519,6 +519,8 @@ class RNN(nn.Module):
 ###########################################################
 # AUXILLARY FUNCTIONS
 ###########################################################
+from bptt import Bptt
+from genetic import Genetic
 
 def loadRNN(fName, optimizer=""):
     '''
