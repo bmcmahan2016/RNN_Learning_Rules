@@ -1,4 +1,4 @@
-import rnn
+from rnn import RNN
 import numpy as np
 import matplotlib.pyplot as plt
 import torch

@@ -519,8 +519,7 @@ class RNN(nn.Module):
 ###########################################################
 # AUXILLARY FUNCTIONS
 ###########################################################
-from bptt import Bptt
-from genetic import Genetic
+
 
 def loadRNN(fName, optimizer=""):
     '''
@@ -539,9 +538,13 @@ def loadRNN(fName, optimizer=""):
             hyperParams[key.strip()] = float(value.strip())
         f.close()
         if optimizer == "BPTT":
+            from bptt import Bptt
             model = Bptt(hyperParams)
+            
         elif optimizer == "GA":
+            from genetic import Genetic
             model = Genetic(hyperParams)
+            
         else:
             model = RNN(hyperParams)
             

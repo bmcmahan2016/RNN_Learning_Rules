@@ -24,7 +24,7 @@ class Bptt(RNN):
 
         '''
 
-        self._num_epochs = 20000
+        self._num_epochs = 2_000
         self._learning_rate = 1e-3
         self._hParams["learning_rate"] = self._learning_rate
         
@@ -112,6 +112,9 @@ class Bptt(RNN):
         
         # start main training loop
         while(validation_accuracy < termination_accuracy):
+            if self.trial_count >= self._num_epochs:
+                break
+            
             self.SaveWeights()
             if self.trial_count%10 == 0:
                 print('trial #:', self.trial_count)
@@ -164,6 +167,81 @@ class Bptt(RNN):
         self.save()
         print('model back-ed up')
 
+
+    def load(self, model_name, *kwargs):
+        '''overides loading function'''
+        '''
+        Loads in parameters and attributers from a previously instantiated model.
+        User may define additional model attributes to load through kwargs
+        '''
+        # add file suffix to model_name
+        fname = model_name+'.pt'
+        model_dict = torch.load(fname)
+        # load attributes in model dictionary
+        if 'weights' in model_dict:
+            self._J = model_dict['weights']
+        else:
+            print('WARNING!! NO WEIGHTS FOUND\n\n')
+        if 'activities' in model_dict:
+            self._activityTensor = model_dict['activities']
+        else:
+            print('WARNING!! NO ACTIVITIES FOUND\n\n')
+        if 'targets' in model_dict:
+            self._targets = model_dict['targets']
+        else:
+            print('WARNING!! NO TARGETS FOUND\n\n')
+        if 'pca' in model_dict:
+            self._pca = model_dict['pca']
+        else:
+            print('WARNING!! NO PCA DATA FOUND\n\n')
+        if 'losses' in model_dict:
+            self._losses = model_dict['losses']
+        else:
+            print('WARNING!! NO LOSS HISTORY FOUND\n\n')
+        if 'validation_history' in model_dict:
+            self._valHist = model_dict['validation_history']
+        else:
+            print('WARNING!! NO VALIDATION HISTORY FOUND\n\n')
+            
+        if 'fixed_points' in model_dict:
+            self._fixedPoints = model_dict['fixed_points']
+            
+        # try to load additional attributes specified for kwargs
+        for key in kwargs:
+            print('loading of', key, 'has not yet been implemented!')
+
+        
+        
+        
+        
+        if 'rec_magnitude' in model_dict:
+            self.rec_magnitude = model_dict['rec_magnitude']
+        else:
+            print('WARNING!! NO WEIGHT HISTORY FOUND\n\n')
+        if 'neuron_idx' in model_dict:
+            self.neuron_idx = model_dict['neuron_idx']
+        else:
+            print('WARNING!! NO NEURON INDEX FOUND\n\n')
+            
+        # cast as PyTorch variables -- without this loaded models won't learn
+        #self._J['in'] = Variable(self._J['in'], requires_grad=True)
+        self._J['rec'] = Variable(self._J['rec'], requires_grad=True)
+        #self._J['out'] = Variable(self._J['out'], requires_grad=True)
+        
+        #self._params = [self._J['in'], self._J['rec'], self._J['out']]
+        self._params = [self._J['rec']]
+        self._optimizer = torch.optim.Adam(self._params, lr=self._learning_rate)
+
+
+        
+        self.all_losses = []
+        
+        self._hidden = Variable(self._hidden, requires_grad=True)
+
+        print('\n\n')
+        print('-'*50)
+        print('-'*50)
+        print('RNN model succesfully loaded ...\n\n')
 
 
 if __name__ == '__main__':

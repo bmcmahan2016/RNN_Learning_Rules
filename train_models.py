@@ -148,7 +148,7 @@ if __name__ == '__main__':
     # TrainRDM("GA_097", hyperParams)
     # TrainRDM("GA_098", hyperParams)
     # TrainRDM("GA_099", hyperParams)
-    TrainRDM("GA_100", hyperParams)
+    # TrainRDM("GA_100", hyperParams)
     #assert False
     
     
@@ -184,7 +184,8 @@ if __name__ == '__main__':
     # TrainRDM("bptt_107", hyperParams)
     # TrainRDM("bptt_108", hyperParams)
     # TrainRDM("bptt_109", hyperParams)
-    # TrainRDM("bptt_110", hyperParams)
+    hyperParams["taskVar"] = 1
+    TrainRDM("bptt_110", hyperParams)
     
     
     # hyperParams["inputSize"] = 4
