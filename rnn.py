@@ -56,6 +56,7 @@ class RNN(nn.Module):
         self._timerStarted = False
         self._useForce = False            # if set to true this slightly changes the forward pass 
         self._fixedPoints = []
+        self._use_ReLU = False             # determines the activation function to use
         
         if task == "context":
             self._task = context_task(N=750, mean=hyperParams["taskMean"], \
@@ -209,7 +210,7 @@ class RNN(nn.Module):
         
         return accuracy
 
-    def _UpdateHidden(self, inpt, use_relu=False):
+    def _UpdateHidden(self, inpt):
         '''
         Parameters
         ----------
@@ -225,7 +226,7 @@ class RNN(nn.Module):
 
         '''
         dt = self._dt
-        if use_relu:
+        if self._use_ReLU:
             hidden_floor = torch.zeros(self._hidden.shape).cuda()
             hidden_next = dt*torch.matmul(self._J['in'], inpt) + \
             dt*torch.matmul(self._J['rec'], (torch.max(hidden_floor, self._hidden))) + \

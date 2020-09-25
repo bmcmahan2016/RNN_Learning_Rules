@@ -61,6 +61,24 @@ class context_task():
         
         return inpts, target
     
+    def PsychoTest(self, coherence, context="in"):
+        inpts = torch.zeros((self.N, 4)).cuda()
+        inpts[:,0] = coherence*torch.ones(self.N)
+        if context=="in":
+             # TODO: implement an in context signal with specified coherence
+             # out of context signal should be random
+             inpts[:, 2] = 1
+             
+        else:
+             # TODO: implement an out of context signal with specified coherence
+             # in context signal should be random
+             inpts[:, 3] = 1
+         
+        inpts[:,:2] += self._var*torch.randn(750, 2).cuda()    # adds noise to inputs
+        
+        assert(inpts.shape[1] == 4)
+        return inpts
+    
     def Loss(self, y, target, errorTrigger=-1):
         if (errorTrigger != -1):
             yt = y[errorTrigger:]

@@ -35,7 +35,7 @@ hyperParams = {                  # dictionary of all RNN hyper-parameters
    "dt" : 0.1,
    "batchSize" : 500,
    "taskMean" : 0.1857,
-   "taskVar" : 1.0
+   "taskVar" : 0.2
    }
 
 input_values = [[1],[.95],[.9],[.85],[.8],[.75],[.7],[.65],[.6],[.55],[.5],\
@@ -52,7 +52,7 @@ initial_rnn_model.save()
 fName = "models/ga_model_200"
 
 # loop over stopping conditions
-stopping_conditions = [0.5, 0.65, 0.8, 0.9]
+stopping_conditions = [2]
 for model_num, termination_accuracy in enumerate(stopping_conditions):
     # train a BPTT model to current stopping condition
     print("training model to validation accuracy of", termination_accuracy)

@@ -143,6 +143,8 @@ class Genetic(RNN):
         validation_acc_hist = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         #while(generationCounter < self.num_generations):
         while(validation_accuracy < termination_accuracy):
+            if (generationCounter == 500):
+                break      # max training reached
             print("Current Generation:", generationCounter)
         # create a training batch
             #torch.manual_seed(41)

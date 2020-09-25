@@ -24,7 +24,7 @@ hyperParams = {                  # dictionary of all RNN hyper-parameters
    "taskVar" : 0.75
    }
 
-def TrainRDM(name, hyperParams):
+def TrainRDM(name, hyperParams, use_ReLU=False):
     print(name.lower()[:2])
     if name.lower()[:2] == "bp":
         rnnModel = Bptt(hyperParams)
@@ -35,6 +35,8 @@ def TrainRDM(name, hyperParams):
     else:
         print("unclear which learning rule should be used for training")
         raise NotImplementedError()
+    if use_ReLU:
+        rnnModel._use_ReLU = True
         
     # trains the  network according to learning rule specified by name    
     rnnModel.setName(name)
@@ -185,10 +187,10 @@ if __name__ == '__main__':
     # TrainRDM("bptt_108", hyperParams)
     # TrainRDM("bptt_109", hyperParams)
     hyperParams["taskVar"] = 1
-    TrainRDM("bptt_110", hyperParams)
+    TrainRDM("bptt_300", hyperParams)
+    assert False
     
-    
-    # hyperParams["inputSize"] = 4
+    hyperParams["inputSize"] = 4
     # hyperParams["hiddenSize"] = 50
     
     # hyperParams["mean"] = 0.5
@@ -196,5 +198,6 @@ if __name__ == '__main__':
     #TrainContext("ga_101", hyperParams)
     #TrainContext("ga_102", hyperParams)
     #TrainContext("ga_103", hyperParams)
+    TrainContext("ga_104", hyperParams)
     
   

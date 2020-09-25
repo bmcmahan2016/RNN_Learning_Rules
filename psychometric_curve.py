@@ -7,11 +7,10 @@ trained on the context task. Want
 import numpy as np 
 import torch 
 from rnn import RNN, loadRNN
-from task.contexttask import ContextTask
 from task.williams import Williams
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
-
+from task.context import context_task
 def CountReaches(network_decisions, tol=1):
     
     '''
@@ -132,39 +131,24 @@ def COM_Flag(rnn_output):
     return False'''
 
 
-def TestCoherence(rnn, task, context_choice=-1):
+def TestCoherence(rnn, task, context_choice="in"):
     global coherence_vals
     num_trials = 2_000
-    coherence_vals = np.array([-0.009, -0.09, -0.036, -0.15, 0.009, 0.036, 0.09, 0.15])#np.linspace(-.2,.2,6)
+    coherence_vals = 2*np.array([-0.009, -0.09, -0.036, -0.15, 0.009, 0.036, 0.09, 0.15])#np.linspace(-.2,.2,6)
     # will hold thenumber of rightward reaches for each coherence level
     num_right_reaches = []
     num_right_reaches_com = []
     # will hold the number of rightward reaches for coherence level in wrong context
     num_right_reaches_wrong = []
-    task_data = torch.zeros(750, num_trials).cuda()
-    task_data = torch.unsqueeze(task_data.t(), 1)
+    task_data = torch.zeros(num_trials, rnn._inputSize, 750).cuda()
+    #task_data = torch.unsqueeze(task_data.t(), 1)
     
     for _, coherence in enumerate(coherence_vals):
         print('\n\ncoherence:', coherence)
         # generate trials for this coherence value
         for trial_num in range(num_trials):
-            task_data[trial_num,:,:] = task.PsychoTest(coherence).t()
+            task_data[trial_num,:,:] = task.PsychoTest(coherence, context=context_choice).t()
         print('shape of task data', task_data.shape)
-        # will hold network decisions for each trial
-        #network_decisions = []
-        network_decisions = torch.zeros(num_trials,1).cuda()
-        #network_com_decisions = torch....
-        # want to run the network 100 times under this level of coherence
-        #for trial_num in range(200):
-            # generate some input data
-            #if context_choice == -1:
-                # this is 1D task
-                #task_data[:] = task.PsychoTest(coherence)
-            #else:
-                # this is context task
-                #task_data[:] = task.PsychoTest(coherence, context_choice)
-            #task_data_out_of_context = task.PsychoTestOut(coherence, context_choice)
-            # now feed this data to the network and get the output
         
         output = rnn.feed(task_data)
         com_idxs = COM_Flag(output)
@@ -210,7 +194,7 @@ def TestCoherence(rnn, task, context_choice=-1):
 #rnn = RNN(4,50,1)
 #rnn.load('models/bptt_context_model0')
 #task = ContextTask()
-model_name = 'models/Heb_103'
+model_name = 'models/ga_103'
 rnn = loadRNN(model_name)
 num_right_reaches = []
 num_right_reaches_com = []  
@@ -218,8 +202,64 @@ num_models = 1
 #for model_num in range(9,10):
 print('evaluating model #', model_name)
 rnn.load(model_name)
-task = Williams(N=750, variance=0.75)
-num_right_reaches_tmp, num_right_reaches_com_tmp = TestCoherence(rnn, task)
+task = context_task()
+
+#### do in context first
+num_right_reaches_tmp, num_right_reaches_com_tmp = TestCoherence(rnn, task, context_choice="in")
+num_right_reaches.append(num_right_reaches_tmp)
+num_right_reaches_com.append(num_right_reaches_com_tmp)
+
+# generate a figure to plot 
+num_right_reaches = np.array(num_right_reaches)
+num_right_reaches_com = np.array(num_right_reaches_com)
+num_right_reaches_mean = np.mean(num_right_reaches, 0)
+num_right_reaches_var = np.sqrt(np.var(num_right_reaches, 0))/np.sqrt(num_models-1)
+num_right_reaches_com_mean = np.mean(num_right_reaches_com, 0)
+num_right_reaches_com_var = np.sqrt(np.var(num_right_reaches_com, 0))/np.sqrt(num_models-1)
+
+
+# fit a sigmoid curve to the data
+def sigmoid(x, L ,x0, k, b):
+    y = L / (1 + np.exp(-k*(x-x0)))+b
+    return (y)
+
+xdata = coherence_vals
+ydata = num_right_reaches_mean
+p0 = [max(ydata), np.median(xdata),1,min(ydata)] 
+popt, pcov = curve_fit(sigmoid, xdata, ydata, p0, method='dogbox')
+
+
+ydataa = sigmoid(np.linspace(-0.2, 0.2, 100), *popt)
+
+fig_object = plt.figure(4)
+axis_object = fig_object.add_subplot(1,1,1)
+
+axis_object.spines["left"].set_position("center")
+axis_object.spines["bottom"].set_position("center")
+axis_object.spines["right"].set_color("none")
+axis_object.spines["top"].set_color("none")
+
+axis_object.xaxis.set_label("top")
+
+print(coherence_vals.shape)
+print(num_right_reaches[0,:].shape)
+plt.scatter(coherence_vals, num_right_reaches_mean)
+plt.plot(np.linspace(-0.2, 0.2, 100), ydataa, c='k', alpha=.5)
+#plt.plot(coherence_vals, num_right_reaches_com_mean)
+#plt.fill_between(coherence_vals, num_right_reaches_mean-num_right_reaches_var, num_right_reaches_mean+num_right_reaches_var, alpha=.5)
+#plt.fill_between(coherence_vals, num_right_reaches_com_mean-num_right_reaches_com_var, num_right_reaches_com_mean+num_right_reaches_com_var, alpha=.5)
+plt.title('in context')
+#plt.xlabel('Coherence')
+#plt.ylabel('Fraction of Reaches to the Right (+1 output)')
+#plt.legend(['all trials', 'COM trials'])
+plt.ylim([-0.1, 1.1])
+
+
+
+# repeat analysis for out of context
+num_right_reaches = []
+num_right_reaches_com = []  
+num_right_reaches_tmp, num_right_reaches_com_tmp = TestCoherence(rnn, task, context_choice="out")
 num_right_reaches.append(num_right_reaches_tmp)
 num_right_reaches_com.append(num_right_reaches_com_tmp)
 
@@ -262,11 +302,13 @@ plt.plot(np.linspace(-0.2, 0.2, 100), ydataa, c='k', alpha=.5)
 #plt.plot(coherence_vals, num_right_reaches_com_mean)
 #plt.fill_between(coherence_vals, num_right_reaches_mean-num_right_reaches_var, num_right_reaches_mean+num_right_reaches_var, alpha=.5)
 #plt.fill_between(coherence_vals, num_right_reaches_com_mean-num_right_reaches_com_var, num_right_reaches_com_mean+num_right_reaches_com_var, alpha=.5)
-plt.title('Psychometric Curve')
+plt.title('out of context')
 #plt.xlabel('Coherence')
 #plt.ylabel('Fraction of Reaches to the Right (+1 output)')
 #plt.legend(['all trials', 'COM trials'])
 plt.ylim([-0.1, 1.1])
+
+
 '''
 # choice of context to test
 for context_choice in range(2):
