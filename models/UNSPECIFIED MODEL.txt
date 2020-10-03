@@ -9,7 +9,7 @@ initScale : 0.3
 dt : 0.1
 batchSize : 500.0
 taskMean : 0.1857
-taskVar : 1.0
-learning_rate : 0.0001
-total training time : 1212.008359670639
+taskVar : 0.75
+learning_rate : 0.001
+total training time : 0.0
 total training time: 0

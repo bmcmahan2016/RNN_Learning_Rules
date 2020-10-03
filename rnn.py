@@ -502,7 +502,7 @@ class RNN(nn.Module):
             sizeOfInput = len(inpt)
             inpt = inpt.reshape(sizeOfInput,1)
             if relu:
-                return lambda x: np.squeeze( dt*np.matmul(W_in, inpt) + dt*np.matmul(W_rec, (np.maximum( np.zeros((self._hiddenSize,1)), x.reshape(self._hiddensize,1)) )) - dt*x.reshape(self._hiddenSize,1) + b*dt)
+                return lambda x: np.squeeze( dt*np.matmul(W_in, inpt) + dt*np.matmul(W_rec, (np.maximum( np.zeros((self._hiddenSize,1)), x.reshape(self._hiddenSize,1)) )) - dt*x.reshape(self._hiddenSize,1) + b*dt)
             else:
                 if self._task._version == "Heb":
                     return lambda x: np.squeeze( dt*np.matmul(W_in, inpt) + dt*np.matmul(W_rec, (np.tanh(x.reshape(self._hiddenSize,1)))) - dt*x.reshape(self._hiddenSize,1) + b*dt)
@@ -558,6 +558,22 @@ def loadRNN(fName, optimizer=""):
     else:       # file does not exist
         return False
 
+def create_test_time_ativity_tensor(rnnModel):
+    ''' create activity tensors at test time '''
+    activityTensor = np.zeros((500, 75, 50))  # test_trials x TIMESTEPS x HIDDEN_UNITS
+    rnnModel._targets = []
+    for trial_num in range(500): # perform 2,000 trials
+        if trial_num %100 == 0:
+            print("{} trials completed of 500".format(trial_num))
+        # generate a test input to the network
+        inpts = torch.zeros((rnnModel._task.N, 2)).cuda()
+        inpts, target = rnnModel._task.GetInput()         # N, 1 inputs
+        rnnModel._targets.append(target)                                       # append target response to network targets
+        outputs, hidden_states = rnnModel.feed(torch.unsqueeze(inpts.t(), 0), return_hidden=True)      # feed the test input to the network and get hidden state
+        # take the hidden state every 10 timesteps
+        activityTensor[trial_num, :, :] = np.squeeze(hidden_states[::10, :, :])        # record every 10th timestep from hidden state
+    rnnModel._activityTensor = activityTensor
+
 def importHeb(name = "undeclared_heb", modelNum=""):
     '''
     loads data from training with the biologically plausible learning algorithm
@@ -597,17 +613,9 @@ def importHeb(name = "undeclared_heb", modelNum=""):
     print("Jin: ", Jin[:,1:2].shape)
     rnnModel.AssignWeights(Jin[:,1:2], Jrec, Jout)   # only take the second row of Win
     
-    # create activity tensors at test time
-    activityTensor = np.zeros((500, 75, 50))  # test_trials x TIMESTEPS x HIDDEN_UNITS
-    for trial_num in range(500): # perform 2,000 trials
-        # generate a test input to the network
-        inpts = torch.zeros((rnnModel._task.N, 2)).cuda()
-        inpts, target = rnnModel._task.GetInput()         # N, 1 inputs
-        rnnModel._targets.append(target)                                       # append target response to network targets
-        outputs, hidden_states = rnnModel.feed(torch.unsqueeze(inpts.t(), 0), return_hidden=True)      # feed the test input to the network and get hidden state
-        # take the hidden state every 10 timesteps
-        activityTensor[trial_num, :, :] = np.squeeze(hidden_states[::10, :, :])        # record every 10th timestep from hidden state
-    rnnModel._activityTensor = activityTensor
+    create_test_time_ativity_tensor(rnnModel)        # populates activity tensors
+    
+    
     
     rnnModel.setName(name)
     rnnModel.save()

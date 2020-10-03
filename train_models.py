@@ -55,7 +55,7 @@ def TrainContext(name, hyperParams):
         print("unclear which learning rule should be used for training")
         raise NotImplementedError()
     rnnModel.setName(name)
-    rnnModel.train()
+    rnnModel.train(termination_accuracy=2)
     rnnModel.save()
 
 if __name__ == '__main__':
@@ -156,7 +156,7 @@ if __name__ == '__main__':
     
     
     
-    #hyperParams["taskVar"] = 0.75         # train an ensemble of bptt models w/ var = 1.0
+    hyperParams["taskVar"] = 1         # train an ensemble of bptt models w/ var = 1.0
     #TrainRDM("bptt_081", hyperParams)
     #TrainRDM("bptt_082", hyperParams)
     #TrainRDM("bptt_083", hyperParams)
@@ -176,28 +176,34 @@ if __name__ == '__main__':
     #TrainRDM("bptt_097", hyperParams)
     #TrainRDM("bptt_098", hyperParams)
     #TrainRDM("bptt_099", hyperParams)
-    #TrainRDM("bptt_100", hyperParams)
-    #TrainRDM("bptt_101", hyperParams)
-    # TrainRDM("bptt_102", hyperParams)
-    # TrainRDM("bptt_103", hyperParams)
-    # TrainRDM("bptt_104", hyperParams)
-    # TrainRDM("bptt_105", hyperParams)
-    # TrainRDM("bptt_106", hyperParams)
-    # TrainRDM("bptt_107", hyperParams)
-    # TrainRDM("bptt_108", hyperParams)
-    # TrainRDM("bptt_109", hyperParams)
-    hyperParams["taskVar"] = 1
-    TrainRDM("bptt_300", hyperParams)
-    assert False
+    # print("training bptt models")
+    # TrainRDM("bptt_111", hyperParams)
+    # TrainRDM("bptt_112", hyperParams)
+    # TrainRDM("bptt_113", hyperParams)
+    # TrainRDM("bptt_114", hyperParams)
+    # TrainRDM("bptt_115", hyperParams)
+    # TrainRDM("bptt_116", hyperParams)
+    # TrainRDM("bptt_117", hyperParams)
+    # TrainRDM("bptt_118", hyperParams)
+    # TrainRDM("bptt_119", hyperParams)
+    # TrainRDM("bptt_120", hyperParams)
+    # TrainRDM("bptt_121", hyperParams)
+    # print("Done training BPTT models")
+    # assert False
+    # hyperParams["taskVar"] = 1
+    # TrainRDM("ga_402", hyperParams, use_ReLU=True)
+    # assert False
     
     hyperParams["inputSize"] = 4
     # hyperParams["hiddenSize"] = 50
     
-    # hyperParams["mean"] = 0.5
-    # TrainContext("bptt_100", hyperParams)
+    hyperParams["mean"] = 0.1857
+    hyperParams["taskVar"] = 1
+    print("Training on context task")
+    TrainContext("ga_1005", hyperParams)
     #TrainContext("ga_101", hyperParams)
     #TrainContext("ga_102", hyperParams)
     #TrainContext("ga_103", hyperParams)
-    TrainContext("ga_104", hyperParams)
+    # TrainContext("ga_104", hyperParams)
     
   

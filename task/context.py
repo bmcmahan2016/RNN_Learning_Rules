@@ -87,7 +87,7 @@ class context_task():
             yt = y[-1]
         ys = y[0]
         if type(y) is np.ndarray:
-            return (yt-np.sign(mu))**2
+            assert False, "input to loss must be a PyTorch Tensor"
         else:
             # use loss from Mante 2013
             squareLoss = (yt-torch.sign(target.T))**2 + (ys - 0)**2
@@ -102,7 +102,7 @@ if __name__ == '__main__':
     sys.path.insert(0,parentdir) 
     from rnn import loadRNN, RNN
     
-    model = loadRNN("bptt_100")
+    model = loadRNN("bptt_1000")
     
     
     task = context_task()

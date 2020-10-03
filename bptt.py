@@ -24,8 +24,8 @@ class Bptt(RNN):
 
         '''
 
-        self._num_epochs = 2_000
-        self._learning_rate = 1e-3
+        self._num_epochs = 500
+        self._learning_rate = 5e-4
         self._hParams["learning_rate"] = self._learning_rate
         
         # cast as PyTorch variables

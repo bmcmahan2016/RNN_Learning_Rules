@@ -49,24 +49,6 @@ def CountReaches(network_decisions, tol=1):
     return fraction_right
 d=0
 
-
-# def COM_Flag(rnn_output):
-#  	'''updated to use new algorithm'''
-#  	# first compute velocity of rnn outputs
-#  	output_velocity = rnn_output[1:,:] - rnn_output[:-1,:]
-#  	#threshold velocities so small velocities are zero
-#  	thresh = .15
-#  	output_velocity[torch.abs(output_velocity)<thresh] = 0
-#  	output_velocity[output_velocity>thresh] = 1
-#  	output_velocity[output_velocity<-thresh] = -1
-#  	trial_maxs, _ = torch.max(output_velocity, axis=0)
-#  	trial_mins, _ = torch.min(output_velocity, axis=0)
-#  	trial_ranges = trial_maxs - trial_mins
-#  	vacillation_trials = torch.where(trial_ranges>1)[0]
-#  	print('number of vacillations', len(vacillation_trials))
-#  	return vacillation_trials
-
-
 def COM_Flag(rnn_output):
     '''
     COM_Flag returns a flag indicating if a change of mind occured in the 
@@ -109,27 +91,6 @@ def COM_Flag(rnn_output):
     print('number of vacillations', len(vacillation_trials))
     return vacillation_trials
 
-'''
-
-    # get the first non-zero output sign
-    t=0
-    initial_sign = 0
-    while (initial_sign == 0 and t<40):
-        initial_sign = signed_output[t]
-        t += 1
-        
-    #print('initial sign', initial_sign)
-    for t_step in range(len(signed_output)):
-        if initial_sign == 1 and signed_output[t_step] == -1:
-            # a vacillation occured !
-            return True
-        elif initial_sign == -1 and signed_output[t_step] == 1:
-            # a vacillation occured !
-            return True
-    # if we finish the loop then there must not have been any vacillations so 
-    # return false
-    return False'''
-
 
 def TestCoherence(rnn, task, context_choice="in"):
     global coherence_vals
@@ -147,7 +108,10 @@ def TestCoherence(rnn, task, context_choice="in"):
         print('\n\ncoherence:', coherence)
         # generate trials for this coherence value
         for trial_num in range(num_trials):
-            task_data[trial_num,:,:] = task.PsychoTest(coherence, context=context_choice).t()
+            if context_choice != "":
+                task_data[trial_num,:,:] = task.PsychoTest(coherence, context=context_choice).t()#, context=context_choice).t()
+            else:
+                task_data[trial_num,:,:] = task.PsychoTest(coherence).t()
         print('shape of task data', task_data.shape)
         
         output = rnn.feed(task_data)
@@ -189,23 +153,30 @@ def TestCoherence(rnn, task, context_choice="in"):
         num_right_reaches_com.append(ReachFractionCOM)
     return num_right_reaches, num_right_reaches_com
 
-
-#load in model
-#rnn = RNN(4,50,1)
-#rnn.load('models/bptt_context_model0')
-#task = ContextTask()
-model_name = 'models/ga_103'
+###############################################################################
+# Specify Analysis Here
+###############################################################################
+# sets the model to be analyzed
+model_name = 'models/bptt_100'    
 rnn = loadRNN(model_name)
-num_right_reaches = []
-num_right_reaches_com = []  
-num_models = 1
-#for model_num in range(9,10):
 print('evaluating model #', model_name)
 rnn.load(model_name)
-task = context_task()
+# set the task (either context or Williams)
+task = Williams()
+###############################################################################
+# End Analysis Specification
+###############################################################################
 
+num_right_reaches = []
+num_right_reaches_com = [] 
+
+if str(type(task)) == "<class 'task.context.context_task'>":
+    print("This line should print")
+    context_choice = "in"
+else:
+    context_choice = ""
 #### do in context first
-num_right_reaches_tmp, num_right_reaches_com_tmp = TestCoherence(rnn, task, context_choice="in")
+num_right_reaches_tmp, num_right_reaches_com_tmp = TestCoherence(rnn, task, context_choice=context_choice)
 num_right_reaches.append(num_right_reaches_tmp)
 num_right_reaches_com.append(num_right_reaches_com_tmp)
 
@@ -213,9 +184,9 @@ num_right_reaches_com.append(num_right_reaches_com_tmp)
 num_right_reaches = np.array(num_right_reaches)
 num_right_reaches_com = np.array(num_right_reaches_com)
 num_right_reaches_mean = np.mean(num_right_reaches, 0)
-num_right_reaches_var = np.sqrt(np.var(num_right_reaches, 0))/np.sqrt(num_models-1)
+num_right_reaches_var = np.sqrt(np.var(num_right_reaches, 0))
 num_right_reaches_com_mean = np.mean(num_right_reaches_com, 0)
-num_right_reaches_com_var = np.sqrt(np.var(num_right_reaches_com, 0))/np.sqrt(num_models-1)
+num_right_reaches_com_var = np.sqrt(np.var(num_right_reaches_com, 0))
 
 
 # fit a sigmoid curve to the data
@@ -245,68 +216,56 @@ print(coherence_vals.shape)
 print(num_right_reaches[0,:].shape)
 plt.scatter(coherence_vals, num_right_reaches_mean)
 plt.plot(np.linspace(-0.2, 0.2, 100), ydataa, c='k', alpha=.5)
-#plt.plot(coherence_vals, num_right_reaches_com_mean)
-#plt.fill_between(coherence_vals, num_right_reaches_mean-num_right_reaches_var, num_right_reaches_mean+num_right_reaches_var, alpha=.5)
-#plt.fill_between(coherence_vals, num_right_reaches_com_mean-num_right_reaches_com_var, num_right_reaches_com_mean+num_right_reaches_com_var, alpha=.5)
-plt.title('in context')
-#plt.xlabel('Coherence')
-#plt.ylabel('Fraction of Reaches to the Right (+1 output)')
-#plt.legend(['all trials', 'COM trials'])
+if context_choice != "":
+    plt.title('in context')
+else:
+    plt.title("Psychometric Curve")
 plt.ylim([-0.1, 1.1])
 
 
-
-# repeat analysis for out of context
-num_right_reaches = []
-num_right_reaches_com = []  
-num_right_reaches_tmp, num_right_reaches_com_tmp = TestCoherence(rnn, task, context_choice="out")
-num_right_reaches.append(num_right_reaches_tmp)
-num_right_reaches_com.append(num_right_reaches_com_tmp)
-
-# generate a figure to plot 
-num_right_reaches = np.array(num_right_reaches)
-num_right_reaches_com = np.array(num_right_reaches_com)
-num_right_reaches_mean = np.mean(num_right_reaches, 0)
-num_right_reaches_var = np.sqrt(np.var(num_right_reaches, 0))/np.sqrt(num_models-1)
-num_right_reaches_com_mean = np.mean(num_right_reaches_com, 0)
-num_right_reaches_com_var = np.sqrt(np.var(num_right_reaches_com, 0))/np.sqrt(num_models-1)
-
-
-# fit a sigmoid curve to the data
-def sigmoid(x, L ,x0, k, b):
-    y = L / (1 + np.exp(-k*(x-x0)))+b
-    return (y)
-
-xdata = coherence_vals
-ydata = num_right_reaches_mean
-p0 = [max(ydata), np.median(xdata),1,min(ydata)] 
-popt, pcov = curve_fit(sigmoid, xdata, ydata, p0, method='dogbox')
-
-
-ydataa = sigmoid(np.linspace(-0.2, 0.2, 100), *popt)
-
-fig_object = plt.figure(3)
-axis_object = fig_object.add_subplot(1,1,1)
-
-axis_object.spines["left"].set_position("center")
-axis_object.spines["bottom"].set_position("center")
-axis_object.spines["right"].set_color("none")
-axis_object.spines["top"].set_color("none")
-
-axis_object.xaxis.set_label("top")
-
-print(coherence_vals.shape)
-print(num_right_reaches[0,:].shape)
-plt.scatter(coherence_vals, num_right_reaches_mean)
-plt.plot(np.linspace(-0.2, 0.2, 100), ydataa, c='k', alpha=.5)
-#plt.plot(coherence_vals, num_right_reaches_com_mean)
-#plt.fill_between(coherence_vals, num_right_reaches_mean-num_right_reaches_var, num_right_reaches_mean+num_right_reaches_var, alpha=.5)
-#plt.fill_between(coherence_vals, num_right_reaches_com_mean-num_right_reaches_com_var, num_right_reaches_com_mean+num_right_reaches_com_var, alpha=.5)
-plt.title('out of context')
-#plt.xlabel('Coherence')
-#plt.ylabel('Fraction of Reaches to the Right (+1 output)')
-#plt.legend(['all trials', 'COM trials'])
-plt.ylim([-0.1, 1.1])
+if str(type(task)) == "<class 'task.context.context_task'>":  # repeat analysis for out of context
+    num_right_reaches = []
+    num_right_reaches_com = []  
+    num_right_reaches_tmp, num_right_reaches_com_tmp = TestCoherence(rnn, task, context_choice="out")
+    num_right_reaches.append(num_right_reaches_tmp)
+    num_right_reaches_com.append(num_right_reaches_com_tmp)
+    
+    # generate a figure to plot 
+    num_right_reaches = np.array(num_right_reaches)
+    num_right_reaches_com = np.array(num_right_reaches_com)
+    num_right_reaches_mean = np.mean(num_right_reaches, 0)
+    num_right_reaches_var = np.sqrt(np.var(num_right_reaches, 0))
+    num_right_reaches_com_mean = np.mean(num_right_reaches_com, 0)
+    num_right_reaches_com_var = np.sqrt(np.var(num_right_reaches_com, 0))
+    
+    def linear(x, m, b):
+        y = m*x + b
+        return (y)
+    
+    xdata = coherence_vals
+    ydata = num_right_reaches_mean
+    p0 = [max(ydata), np.median(xdata),1,min(ydata)] 
+    popt, pcov = curve_fit(linear, xdata, ydata, method='dogbox')
+    
+    
+    ydataa = linear(np.linspace(-0.2, 0.2, 100), *popt)
+    
+    fig_object = plt.figure(3)
+    axis_object = fig_object.add_subplot(1,1,1)
+    
+    axis_object.spines["left"].set_position("center")
+    axis_object.spines["bottom"].set_position("center")
+    axis_object.spines["right"].set_color("none")
+    axis_object.spines["top"].set_color("none")
+    
+    axis_object.xaxis.set_label("top")
+    
+    print(coherence_vals.shape)
+    print(num_right_reaches[0,:].shape)
+    plt.scatter(coherence_vals, num_right_reaches_mean)
+    plt.plot(np.linspace(-0.2, 0.2, 100), ydataa, c='k', alpha=.5)
+    plt.title('out of context')
+    plt.ylim([-0.1, 1.1])
 
 
 '''
