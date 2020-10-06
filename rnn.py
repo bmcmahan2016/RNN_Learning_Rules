@@ -592,7 +592,7 @@ def importHeb(name = "undeclared_heb", modelNum=""):
         training algorithm (Miconi 2017).
     '''
     hyperParams = {       # dictionary of all hyper-parameters
-    "inputSize" : 1,
+    "inputSize" : 4,
     "hiddenSize" : 50,
     "outputSize" : 1,
     "g" : 1 ,
@@ -610,9 +610,9 @@ def importHeb(name = "undeclared_heb", modelNum=""):
     Jin = np.loadtxt("Win"+str(modelNum)+".txt")
     Jrec = np.loadtxt("Jrec"+str(modelNum)+".txt")
     Jout = np.zeros((1,50))
-    print("Jin: ", Jin[:,1:2].shape)
-    rnnModel.AssignWeights(Jin[:,1:2], Jrec, Jout)   # only take the second row of Win
-    
+    print("Jin: ", Jin[:,1:].shape)
+    rnnModel.AssignWeights(Jin[:,1:], Jrec, Jout)   # only take the second row of Win
+    rnnModel._task = context_task()
     create_test_time_ativity_tensor(rnnModel)        # populates activity tensors
     
     

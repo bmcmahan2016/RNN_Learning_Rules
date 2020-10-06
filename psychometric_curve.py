@@ -157,7 +157,7 @@ def TestCoherence(rnn, task, context_choice="in"):
 # Specify Analysis Here
 ###############################################################################
 # sets the model to be analyzed
-model_name = 'models/FullForce_c_1000'    
+model_name = 'models/Heb_1000'    
 rnn = loadRNN(model_name)
 print('evaluating model #', model_name)
 rnn.load(model_name)
