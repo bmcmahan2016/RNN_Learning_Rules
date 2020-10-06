@@ -9,7 +9,7 @@ import pdb
 
 
 class Williams():
-    def __init__(self, N=100, mean=1, variance=0.333, version=""):
+    def __init__(self, N=750, mean=1, variance=0.333, version=""):
         self.N = N
         self.mean = mean
         self.variance = variance
@@ -33,7 +33,7 @@ class Williams():
         used to be mean +/-1 and variance 1
         testing mean and mean+1 with variance = 0.2
         '''
-        inp = torch.zeros((750, 1))
+        inp = torch.zeros((self.N, 1))
         # create a random mean in [0, 1)
         mean = torch.rand(1)*self.mean #self.mean#
         if mean_overide != -1:
@@ -85,7 +85,7 @@ class Williams():
         used to be mean +/-1 and variance 1
         testing mean and mean+1 with variance = 0.2
         '''
-        inp = torch.zeros((750, 1))
+        inp = torch.zeros((self.N, 1))
         # create a random mean in [0, 1)
         mean = torch.rand(1)*self.mean #self.mean#
         if mean_overide != -1:
@@ -128,7 +128,7 @@ class Williams():
     
     def PsychoTest(self, coherence):
         var = self.variance#1-np.abs(coherence)
-        inp = utils.GetGaussianVector(coherence, var, 750)  # changed from 0.5
+        inp = utils.GetGaussianVector(coherence, var, self.N)  # changed from 0.5
         #inp = inp.to(torch.device('cuda'))
         return inp
 

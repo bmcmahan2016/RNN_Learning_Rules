@@ -157,12 +157,12 @@ def TestCoherence(rnn, task, context_choice="in"):
 # Specify Analysis Here
 ###############################################################################
 # sets the model to be analyzed
-model_name = 'models/bptt_100'    
+model_name = 'models/FullForce_c_1000'    
 rnn = loadRNN(model_name)
 print('evaluating model #', model_name)
 rnn.load(model_name)
 # set the task (either context or Williams)
-task = Williams()
+task = context_task()
 ###############################################################################
 # End Analysis Specification
 ###############################################################################

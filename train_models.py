@@ -55,7 +55,7 @@ def TrainContext(name, hyperParams):
         print("unclear which learning rule should be used for training")
         raise NotImplementedError()
     rnnModel.setName(name)
-    rnnModel.train(termination_accuracy=2)
+    rnnModel.train()
     rnnModel.save()
 
 if __name__ == '__main__':
@@ -130,7 +130,7 @@ if __name__ == '__main__':
     # TrainRDM("bptt_080", hyperParams)
     
     
-    #hyperParams["taskVar"] = 1.0         # train an ensemble of GA models w/ var = 1.0
+    hyperParams["taskVar"] = 1.0         # train an ensemble of GA models w/ var = 1.0
     # TrainRDM("GA_081", hyperParams)
     # TrainRDM("GA_082", hyperParams)
     # TrainRDM("GA_083", hyperParams)
@@ -141,22 +141,22 @@ if __name__ == '__main__':
     # TrainRDM("GA_088", hyperParams)
     # TrainRDM("GA_089", hyperParams)
     # TrainRDM("GA_090", hyperParams)
-    # TrainRDM("GA_091", hyperParams)
-    # TrainRDM("GA_092", hyperParams)
-    # TrainRDM("GA_093", hyperParams)
-    # TrainRDM("GA_094", hyperParams)
-    # TrainRDM("GA_095", hyperParams)
-    # TrainRDM("GA_096", hyperParams)
-    # TrainRDM("GA_097", hyperParams)
-    # TrainRDM("GA_098", hyperParams)
-    # TrainRDM("GA_099", hyperParams)
+    TrainRDM("GA_091", hyperParams)
+    TrainRDM("GA_092", hyperParams)
+    TrainRDM("GA_093", hyperParams)
+    TrainRDM("GA_094", hyperParams)
+    TrainRDM("GA_095", hyperParams)
+    TrainRDM("GA_096", hyperParams)
+    TrainRDM("GA_097", hyperParams)
+    TrainRDM("GA_098", hyperParams)
+    TrainRDM("GA_099", hyperParams)
     # TrainRDM("GA_100", hyperParams)
-    #assert False
+    assert False
     
     
     
     
-    hyperParams["taskVar"] = 1         # train an ensemble of bptt models w/ var = 1.0
+    #hyperParams["taskVar"] = 1         # train an ensemble of bptt models w/ var = 1.0
     #TrainRDM("bptt_081", hyperParams)
     #TrainRDM("bptt_082", hyperParams)
     #TrainRDM("bptt_083", hyperParams)
@@ -194,13 +194,13 @@ if __name__ == '__main__':
     # TrainRDM("ga_402", hyperParams, use_ReLU=True)
     # assert False
     
-    hyperParams["inputSize"] = 4
+    #hyperParams["inputSize"] = 4
     # hyperParams["hiddenSize"] = 50
     
-    hyperParams["mean"] = 0.1857
-    hyperParams["taskVar"] = 1
-    print("Training on context task")
-    TrainContext("ga_1005", hyperParams)
+    # hyperParams["mean"] = 0.1857
+    # hyperParams["taskVar"] = 1
+    # print("Training on context task")
+    # TrainContext("ga_1005", hyperParams)
     #TrainContext("ga_101", hyperParams)
     #TrainContext("ga_102", hyperParams)
     #TrainContext("ga_103", hyperParams)
