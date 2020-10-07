@@ -160,7 +160,7 @@ def AnalyzeLesioned(model, fig_name, PC1_min=-10, PC1_max=10, PC2_min=-10, PC2_m
                         [.45],[.4],[.35],[.3],[.25],[.2],[.15],[.05],[0],[-.05],[-.1],\
                             [-.15],[-.2],[-.25],[-.3],[-.35],[-.4],[-.45],[-.5],[-.55],[-.6],[-.65],\
                             [-.7],[-.75],[-.8],[-.85],[-.9],[-.95],[-1]]
-        #input_values = [[0]]
+        input_values = [[0]]
         input_values = 3 * test_inpt * np.array(input_values)
         #input_values = [[.1],[0],[-.1]]
         roots = fp.FindFixedPoints(model, input_values)
@@ -460,6 +460,7 @@ def niave_network(modelPath, xmin=-10, xmax=10, ymin=-10, ymax=10, test_inpt=.1)
     #    print("using hebbian RDM version")
     #    model._task._version = "Heb"
     modelPath+='_control'
+    model._use_ReLU = True
     #AnalyzePerturbedNetwork(model, model_choice, test_inpt=test_inpt)
     AnalyzeLesioned(model, model_choice, xmin, xmax, ymin, ymax)
 

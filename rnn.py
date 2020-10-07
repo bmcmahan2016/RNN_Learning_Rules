@@ -551,7 +551,7 @@ def loadRNN(fName, optimizer=""):
             
         model.load(fName)      # loads the RNN object
         model._MODEL_NAME = fName
-        if fName[7].lower() == 'h':
+        if fName[7].lower() == 'h' or fName[0].lower() == 'h':
             print("loaded hebain version")
             model._task._version = "Heb"
         return model
@@ -574,7 +574,7 @@ def create_test_time_ativity_tensor(rnnModel):
         activityTensor[trial_num, :, :] = np.squeeze(hidden_states[::10, :, :])        # record every 10th timestep from hidden state
     rnnModel._activityTensor = activityTensor
 
-def importHeb(name = "undeclared_heb", modelNum=""):
+def importHeb(name = "undeclared_heb", modelNum="", context_flag=False):
     '''
     loads data from training with the biologically plausible learning algorithm
     (Miconi 2017) and loads it into an RNN model. Win and Jrec text files must be
@@ -591,8 +591,12 @@ def importHeb(name = "undeclared_heb", modelNum=""):
         rnn object with weights learned using the biologically plausable 
         training algorithm (Miconi 2017).
     '''
+    if context_flag:
+        input_dim = 4
+    else:
+        input_dim = 1
     hyperParams = {       # dictionary of all hyper-parameters
-    "inputSize" : 4,
+    "inputSize" : input_dim,
     "hiddenSize" : 50,
     "outputSize" : 1,
     "g" : 1 ,

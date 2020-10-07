@@ -27,10 +27,10 @@ def getActivations(rnn_model):
     static_inputs = np.matmul(np.ones((750, 1)), static_inputs)
     static_inputs = torch.tensor(static_inputs).float().cuda()
     static_inputs = torch.unsqueeze(static_inputs.t(), 1)
-    if rnn_model._task._version == "Heb":
-        static_inputs_heb = torch.zeros((500, 2, 750)).float().cuda()
-        static_inputs_heb[:, 1:2, :] = static_inputs
-        static_inputs = static_inputs_heb
+    # if rnn_model._task._version == "Heb":
+    #     static_inputs_heb = torch.zeros((500, 2, 750)).float().cuda()
+    #     static_inputs_heb[:, 1:2, :] = static_inputs
+    #     static_inputs = static_inputs_heb
     _, activations = rnn_model.feed(static_inputs, return_hidden=True)
     #finalActivations = activations[-1,:,:]       # keeps activation at end of trial only
     activations = np.swapaxes(activations, 0, 1).reshape(50, -1)
@@ -39,10 +39,10 @@ def getActivations(rnn_model):
 
 modelActivations = []
 NUM_DIMENSIONS = 2
-bptt = ["models/bptt_081", "models/bptt_082", "models/bptt_083", "models/bptt_084", "models/bptt_085", "models/bptt_086", "models/bptt_087", "models/bptt_088", "models/bptt_089", "models/bptt_090"]
-ga = ["models/GA_080", "models/GA_081", "models/GA_082", "models/GA_083", "models/GA_084", "models/GA_085", "models/GA_086", "models/GA_087", "models/GA_088", "models/GA_089", "models/GA_090"]
+bptt = ["models/bptt_081", "models/bptt_082", "models/bptt_083", "models/bptt_084", "models/bptt_085", "models/bptt_086", "models/bptt_087", "models/bptt_088", "models/bptt_089", "models/bptt_090", "models/bptt_091", "models/bptt_092", "models/bptt_093", "models/bptt_100", "models/bptt_101", "models/bptt_102", "models/bptt_103", "models/bptt_104"]
+ga = ["models/GA_080", "models/GA_081", "models/GA_082", "models/GA_083", "models/GA_084", "models/GA_085", "models/GA_086", "models/GA_087", "models/GA_088", "models/GA_089", "models/GA_090", "models/GA_091", "models/GA_092", "models/GA_093", "models/GA_094", "models/GA_094", "models/GA_095", "models/GA_096", "models/GA_097", "models/GA_098", "models/GA_099", "models/GA_100"]
 ff = ["models/FullForce080", "models/FullForce081", "models/FullForce082", "models/FullForce083"]
-h = ["models/Heb_080", "models/Heb_081", "models/Heb_082"]
+h = ["models/Hebb_020"]
 models = [bptt, ga, ff, h]
 N_BPTT_MODELS = len(bptt)
 N_GA_MODELS = len(ga)
@@ -52,6 +52,7 @@ N_TOTAL_MODELS = N_BPTT_MODELS + N_GA_MODELS + N_FF_MODELS + N_H_MODELS
 distances = np.zeros((N_TOTAL_MODELS, N_TOTAL_MODELS))
 for modelType in models:
     for model in modelType:
+        print("model name:", model)
         rnn_inst = rnn.loadRNN(model)
         activations = getActivations(rnn_inst)
         modelActivations.append(activations)

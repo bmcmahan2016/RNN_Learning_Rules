@@ -125,7 +125,7 @@ def FindZeros2(F, num_iters=100, visualize=True, num_hidden=50, inpts=False, Emb
         #random activations on U[-1,1]
         x0 = 10_000*(np.random.rand(num_hidden,1)-0.5)
         # tolerance changed from 1e-8
-        sol = root(F, x0, tol=1e-8)#1)#e-8)
+        sol = root(F, x0, tol=1)#e-8)
         if sol.success == True:
             if norm:
                 #if not a zero vector
