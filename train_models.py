@@ -8,6 +8,7 @@ This script trains RNN models using a specified learning rule
 """
 from genetic import Genetic
 from bptt import Bptt
+import argparse
 
 hyperParams = {                  # dictionary of all RNN hyper-parameters
    "inputSize" : 1,
@@ -21,7 +22,7 @@ hyperParams = {                  # dictionary of all RNN hyper-parameters
    "dt" : 0.1,
    "batchSize" : 500,
    "taskMean" : 0.1857,
-   "taskVar" : 0.75
+   "taskVar" : 1
    }
 
 def TrainRDM(name, hyperParams, use_ReLU=False):
@@ -58,7 +59,22 @@ def TrainContext(name, hyperParams):
     rnnModel.train()
     rnnModel.save()
 
-if __name__ == '__main__':
+
+parser = argparse.ArgumentParser(description="Trains RNN models")
+parser.add_argument("model_name", help="name of model")
+parser.add_argument("-m", "--mean", type=float, help="input mean")
+parser.add_argument("-v", "--variance", type=float, help="input variance")
+task_choice = parser.add_mutually_exclusive_group()
+task_choice.add_argument("--rdm", action="store_true", default=False)
+task_choice.add_argument("--context", action="store_true", default=False)
+
+args = parser.parse_args()
+if args.rdm:
+    TrainRDM(args.model_name, hyperParams)
+elif args.context:
+    pass
+else:
+    raise NotImplementedError()
     
     
     # hyperParams["taskVar"] = 0.5        # train an ensemble of GA models w/ var = 0.75
@@ -130,28 +146,28 @@ if __name__ == '__main__':
     # TrainRDM("bptt_080", hyperParams)
     
     
-    hyperParams["taskVar"] = 1.0         # train an ensemble of GA models w/ var = 1.0
-    # TrainRDM("GA_081", hyperParams)
-    # TrainRDM("GA_082", hyperParams)
-    # TrainRDM("GA_083", hyperParams)
-    # TrainRDM("GA_084", hyperParams)
-    # TrainRDM("GA_085", hyperParams)
-    # TrainRDM("GA_086", hyperParams)
-    # TrainRDM("GA_087", hyperParams)
-    # TrainRDM("GA_088", hyperParams)
-    # TrainRDM("GA_089", hyperParams)
-    # TrainRDM("GA_090", hyperParams)
-    TrainRDM("GA_091", hyperParams)
-    TrainRDM("GA_092", hyperParams)
-    TrainRDM("GA_093", hyperParams)
-    TrainRDM("GA_094", hyperParams)
-    TrainRDM("GA_095", hyperParams)
-    TrainRDM("GA_096", hyperParams)
-    TrainRDM("GA_097", hyperParams)
-    TrainRDM("GA_098", hyperParams)
-    TrainRDM("GA_099", hyperParams)
-    # TrainRDM("GA_100", hyperParams)
-    assert False
+    # hyperParams["taskVar"] = 1.0         # train an ensemble of GA models w/ var = 1.0
+    # # TrainRDM("GA_081", hyperParams)
+    # # TrainRDM("GA_082", hyperParams)
+    # # TrainRDM("GA_083", hyperParams)
+    # # TrainRDM("GA_084", hyperParams)
+    # # TrainRDM("GA_085", hyperParams)
+    # # TrainRDM("GA_086", hyperParams)
+    # # TrainRDM("GA_087", hyperParams)
+    # # TrainRDM("GA_088", hyperParams)
+    # # TrainRDM("GA_089", hyperParams)
+    # # TrainRDM("GA_090", hyperParams)
+    # TrainRDM("GA_091", hyperParams)
+    # TrainRDM("GA_092", hyperParams)
+    # TrainRDM("GA_093", hyperParams)
+    # TrainRDM("GA_094", hyperParams)
+    # TrainRDM("GA_095", hyperParams)
+    # TrainRDM("GA_096", hyperParams)
+    # TrainRDM("GA_097", hyperParams)
+    # TrainRDM("GA_098", hyperParams)
+    # TrainRDM("GA_099", hyperParams)
+    # # TrainRDM("GA_100", hyperParams)
+    # assert False
     
     
     
