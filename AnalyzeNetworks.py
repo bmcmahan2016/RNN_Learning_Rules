@@ -6,6 +6,7 @@ import numpy.linalg as LA
 import numpy as np
 import matplotlib.pyplot as plt
 import argparse
+import FP_Analysis as fp
 
 
 # determines what analysis to run

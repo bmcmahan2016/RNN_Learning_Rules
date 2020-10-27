@@ -125,7 +125,7 @@ def FindZeros2(F, num_iters=100, visualize=True, num_hidden=50, inpts=False, Emb
         #random activations on U[-1,1]
         x0 = 10_000*(np.random.rand(num_hidden,1)-0.5)
         # tolerance changed from 1e-8
-        sol = root(F, x0, tol=1)#e-8)
+        sol = root(F, x0, tol=1e-8)
         if sol.success == True:
             if norm:
                 #if not a zero vector
@@ -261,7 +261,7 @@ def cmap(static_inpt, max_inpt=0.1857):
     r = m_r * static_inpt/5 + 0.5
     b = m_b * static_inpt/5 + 0.5
     g = 0
-    
+
     return [[r, g, b]]
 
 def plotFixedPoints(roots_embedded):
@@ -287,7 +287,7 @@ def plotFixedPoints(roots_embedded):
 
 
 def embed_fixed_points(all_roots, pca):
-    roots_centered = all_roots[:, 2:]-np.mean(all_roots[:, 2:], axis=0).reshape(1, -1)
+    roots_centered = all_roots[:, 2:]-0*np.mean(all_roots[:, 2:], axis=0).reshape(1, -1)
     roots_embedded = pca.transform(roots_centered)
     roots_embedded = np.hstack((all_roots[:,:2], roots_embedded))
     return roots_embedded

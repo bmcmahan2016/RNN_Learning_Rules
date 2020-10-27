@@ -19,6 +19,7 @@ from FP_Analysis import FindFixedPoints
 from task.williams import Williams
 from task.context import context_task
 import os
+import pdb
 #from bptt import Bptt
 #from genetic import Genetic
 
@@ -35,7 +36,8 @@ hyperParams = {       # dictionary of all hyper-parameters
     "dt" : 0.1,
     "batchSize" : 500,
     "taskMean" : 0.5,
-    "taskVar" : 1
+    "taskVar" : 1,
+    "ReLU" : 0
     }
 
 class RNN(nn.Module):
@@ -56,7 +58,10 @@ class RNN(nn.Module):
         self._timerStarted = False
         self._useForce = False            # if set to true this slightly changes the forward pass 
         self._fixedPoints = []
-        self._use_ReLU = False             # determines the activation function to use
+        try:
+            self._use_ReLU = int(hyperParams["ReLU"])             # determines the activation function to use
+        except:
+            self._use_ReLU = 0
         
         if task == "context":
             self._task = context_task(N=750, mean=hyperParams["taskMean"], \
@@ -496,8 +501,9 @@ class RNN(nn.Module):
         W_rec = self._J['rec'].data.cpu().detach().numpy()
         W_in = self._J['in'].data.cpu().detach().numpy()
         b = self._J['bias'].data.cpu().detach().numpy()
+        ReLU_flag = self._use_ReLU
 
-        def master_function(inpt, relu=False):
+        def master_function(inpt, relu=ReLU_flag):
             dt = 0.1
             sizeOfInput = len(inpt)
             inpt = inpt.reshape(sizeOfInput,1)
@@ -574,7 +580,7 @@ def create_test_time_ativity_tensor(rnnModel):
         activityTensor[trial_num, :, :] = np.squeeze(hidden_states[::10, :, :])        # record every 10th timestep from hidden state
     rnnModel._activityTensor = activityTensor
 
-def importHeb(name = "undeclared_heb", modelNum="", context_flag=False):
+def importHeb(name = "undeclared_heb", modelNum="", context_flag=False, var=1):
     '''
     loads data from training with the biologically plausible learning algorithm
     (Miconi 2017) and loads it into an RNN model. Win and Jrec text files must be
@@ -593,8 +599,11 @@ def importHeb(name = "undeclared_heb", modelNum="", context_flag=False):
     '''
     if context_flag:
         input_dim = 4
+        task = context_task()
     else:
         input_dim = 1
+        task = Williams(N=750, mean=0.1857, \
+                                  variance=var)       
     hyperParams = {       # dictionary of all hyper-parameters
     "inputSize" : input_dim,
     "hiddenSize" : 50,
@@ -616,7 +625,7 @@ def importHeb(name = "undeclared_heb", modelNum="", context_flag=False):
     Jout = np.zeros((1,50))
     print("Jin: ", Jin[:,1:].shape)
     rnnModel.AssignWeights(Jin[:,1:], Jrec, Jout)   # only take the second row of Win
-    rnnModel._task = context_task()
+    rnnModel._task = task
     create_test_time_ativity_tensor(rnnModel)        # populates activity tensors
     
     

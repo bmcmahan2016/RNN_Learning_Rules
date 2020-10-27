@@ -11,6 +11,8 @@ from task.williams import Williams
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 from task.context import context_task
+import argparse
+
 def CountReaches(network_decisions, tol=1):
     
     '''
@@ -33,13 +35,14 @@ def CountReaches(network_decisions, tol=1):
     for _ in range(num_reaches):
         if 1-network_decisions[_] <= tol:
             total_right += 1
-            print(network_decisions[_])
+            #print(network_decisions[_])
         elif torch.abs(network_decisions[_]) < 1-tol:
             # omit trials where a clear reach was not made
-            print('reach omitted...\n')
+            #print('reach omitted...\n')
             num_reaches -= 1
         else:
-            print(" "*10, network_decisions[_])
+            pass
+            #print(" "*10, network_decisions[_])
     #print('num reaches', num_reaches)
     if num_reaches == 0:
         fraction_right = 0.5
@@ -156,13 +159,29 @@ def TestCoherence(rnn, task, context_choice="in"):
 ###############################################################################
 # Specify Analysis Here
 ###############################################################################
+# determines what analysis to run
+parser = argparse.ArgumentParser(description="Generates psychometric curve for RNN")
+task_type = parser.add_mutually_exclusive_group()
+task_type.add_argument("--rdm", action="store_true")
+task_type.add_argument("--context", action="store_true")
+task_type.add_argument("--dnms", action="store_true")
+
+parser.add_argument("model_name", help="filename of model to analyze")
+
+args = parser.parse_args()
+
 # sets the model to be analyzed
-model_name = 'models/Heb_1000'    
+model_name = "models/" + args.model_name     
 rnn = loadRNN(model_name)
 print('evaluating model #', model_name)
 rnn.load(model_name)
 # set the task (either context or Williams)
-task = context_task()
+if args.rdm:
+    task = Williams()
+elif args.context:
+    task = context_task()
+elif args.dnms:
+    raise NotImplementedError()
 ###############################################################################
 # End Analysis Specification
 ###############################################################################

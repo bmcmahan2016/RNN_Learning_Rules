@@ -52,10 +52,10 @@ def getMDS(modelNum, learningRule="bptt"):
     
 
 
-    if learningRule[0].lower() == 'f':
-        modelPath = "models/" + learningRule + "0" + str(modelNum)
-    else:
+    if modelNum < 100:
         modelPath = "models/" + learningRule + "_0" + str(modelNum)
+    else:
+        modelPath = "models/" + learningRule + "_" + str(modelNum)
     model = loadRNN(modelPath)
     print(modelPath)
     '''
@@ -92,18 +92,18 @@ max_fixed_points = 0
 counter = 0
 
 bptt_start = 0
-for num in [69, 68, 87, 88, 89, 90, 91, 92]:
+for num in [200, 201, 202, 203, 204, 205, 206, 207, 208, 209]:
     embeddings.append(getMDS(num).reshape(1,-1))
     counter += 1
 bptt_end = counter
 ga_start = counter
-for num in [ 81, 82, 83, 84, 85, 86, 87, 88]:
-    embeddings.append(getMDS(num, "ga").reshape(1,-1))
+for num in [ 90,91, 92, 93, 81, 82, 83, 84, 85, 86]:
+    embeddings.append(getMDS(num, "bptt").reshape(1,-1))
     counter += 1
 ga_end = counter
 
 # ff_start = counter
-# for num in [80, 81, 83, 84, 85, 86, 87, 88, 89, 90, 91, 92, 93]:
+# for num in [41, 42, 43, 44, 45]:
 #     embeddings.append(getMDS(num, "FullForce").reshape(1,-1))
 #     counter +=1 
 # ff_end = counter
@@ -130,6 +130,6 @@ plt.figure()
 plt.scatter(clustered_data[:bptt_end,0], clustered_data[:bptt_end,1], c='r')         # BPTT
 plt.scatter(clustered_data[-3:,0], clustered_data[-3:,1], c='b')       # BPTT
 plt.scatter(clustered_data[ga_start:ga_end,0], clustered_data[ga_start:ga_end,1], c='g')         # GA
-plt.scatter(clustered_data[ff_start:ff_end,0], clustered_data[ff_start:ff_end,1], c='y')
-plt.legend(["BPTT (var=1.0)", "BPTT (var=0.5)", "GA (var=1.0)", "FF (var=1.0)"])       # FF
+#plt.scatter(clustered_data[ff_start:ff_end,0], clustered_data[ff_start:ff_end,1], c='y')
+plt.legend(["ReLU", "tanh"])       # FF
 plt.show()

@@ -17,7 +17,7 @@ class context_task():
         self._var = var
         self._version = ""
         
-    def GetInput(self, mean_overide=1):
+    def GetInput(self, mean_overide=1, var_overide=1):
         '''
         
 
@@ -102,7 +102,7 @@ if __name__ == '__main__':
     sys.path.insert(0,parentdir) 
     from rnn import loadRNN, RNN
     
-    model = loadRNN("bptt_1000")
+    model = loadRNN("Heb_1000")
     
     
     task = context_task()

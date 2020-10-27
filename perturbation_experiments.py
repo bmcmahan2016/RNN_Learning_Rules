@@ -11,7 +11,7 @@ from task.context import context_task
 from sklearn.decomposition import PCA
 import json
 import sys
-
+import pdb
 import matplotlib.pyplot as plt
 
 #####################################################
@@ -151,6 +151,8 @@ def AnalyzeLesioned(model, fig_name, PC1_min=-10, PC1_max=10, PC2_min=-10, PC2_m
         title='fixed points', print_out=True, plot_recurrent=False, cs=cs)
     model._pca = PCA()
     model_trajectories = model._pca.fit_transform(trial_data.reshape(-1, 50)).reshape(10,-1,50)
+    assert(model_trajectories.shape[1]==model._task.N)           # number of timesteps in trial
+    assert(model_trajectories.shape[2]==model._hiddenSize)       # number of hidden units
 
     # find the fixed points for the model using the PC axis found on the niave model
     if True: #model._fixedPoints == []:
@@ -460,7 +462,6 @@ def niave_network(modelPath, xmin=-10, xmax=10, ymin=-10, ymax=10, test_inpt=.1)
     #    print("using hebbian RDM version")
     #    model._task._version = "Heb"
     modelPath+='_control'
-    model._use_ReLU = True
     #AnalyzePerturbedNetwork(model, model_choice, test_inpt=test_inpt)
     AnalyzeLesioned(model, model_choice, xmin, xmax, ymin, ymax)
 
@@ -605,9 +606,10 @@ def PlotRoots(all_roots, roots_embedded, idxs, colors, marker='o'):
         start_idx += idxs[_]
 
 def ContextFixedPoints(model_choice):
+    import FP_Analysis as fp
     model = loadRNN(model_choice)
     #model.load(model_choice)
-    task = context_task()
+    model._task = context_task()
 
     model.plotLosses()
 
@@ -650,7 +652,7 @@ def ContextFixedPoints(model_choice):
     # add gaussian noise to ignored context
     #inpts[:, 0] = np.random.randn(19)-1
 
-    context2_roots, context2_idxs, pca = FindFixedPoints(model, context2_inpts, embedding='pca', embedder=model._pca, Verbose=False)
+    context2_roots = fp.FindFixedPoints(model, context2_inpts, embedding='pca', embedder=model._pca, Verbose=False)
 
     # create inputs for context 1 by transposing the first and second columns of inputs for 
     # context 2
@@ -660,37 +662,32 @@ def ContextFixedPoints(model_choice):
 
     print('Inputs for context 1 \n\n', context1_inpts)    # print to verify correct
 
-    context1_roots, context1_idxs, pca = FindFixedPoints(model, context1_inpts, embedding='pca', embedder=model._pca, Verbose=False)
+    context1_roots = fp.FindFixedPoints(model, context1_inpts, embedding='pca', embedder=model._pca, Verbose=False)
 
     print('\n'*5)
     print('shape of roots found for context 1: ', len(context1_roots))
     print('shape of roots found for context 2: ', len(context2_roots))
 
-    # compute the number of roots in each context
-    num_roots_context1 = len(context1_roots)
-    num_roots_context2 = len(context2_roots)
-    total_num_roots = num_roots_context1 + num_roots_context2
 
-    # initialize an array to hold all the roots
-    all_roots = np.zeros((total_num_roots, 50))
-
-    # fill this array with the roots found in both contexts
-    all_roots[:num_roots_context1, :] = context1_roots
-    all_roots[num_roots_context1:, :] = context2_roots
-
-    # perform PCA on these roots
-    pca = PCA()
-    roots_embedded=pca.fit_transform(all_roots)
-
-    # save fixed points
-    print('Saving fixed point data ...\n')
-    fixed_point_data = {
-    'context1_roots' : context1_roots.tolist(),
-    'context2_roots' : context2_roots.tolist()
-    }
-    with open('bptt_context_data.json', 'w') as fp:
-        json.dump(fixed_point_data, fp)
-    print('Fixed point data succesfully saved! \n')
+    # perform PCA on trajectories to get embedding
+    cs = ['r', 'r', 'r', 'r', 'r', 'b', 'b', 'b', 'b', 'b']
+    trial_data, trial_labels = r.record(model, \
+        title='fixed points', print_out=True, plot_recurrent=False, cs=cs)
+    model._pca = PCA()
+    model_trajectories = model._pca.fit_transform(trial_data.reshape(-1, 50)).reshape(10,-1,50)
+    assert(model_trajectories.shape[1]==model._task.N)           # number of timesteps in trial
+    assert(model_trajectories.shape[2]==model._hiddenSize)       # number of hidden units
+    
+    
+    
+    roots1_embedded = fp.embed_fixed_points(context1_roots, model._pca)
+    roots2_embedded = fp.embed_fixed_points(context2_roots, model._pca)
+    plt.figure()
+    fp.plotFixedPoints(roots1_embedded)
+    plt.figure()
+    fp.plotFixedPoints(roots2_embedded)
+    plt.show()
+    assert False
 
     # plot results in a figure
     colors = [[[1, 0, 0]], [[0.9, 0, 0]], [[0.8, 0, 0]], [[0.7, 0, 0]], [[0.6, 0, 0]], [[0.5, 0, 0]],\

@@ -22,10 +22,15 @@ hyperParams = {                  # dictionary of all RNN hyper-parameters
    "dt" : 0.1,
    "batchSize" : 500,
    "taskMean" : 0.1857,
-   "taskVar" : 1
+   "taskVar" : 1,
+   "ReLU" : 0
    }
 
 def TrainRDM(name, hyperParams, use_ReLU=False):
+    if use_ReLU:
+        print("Using ReLU activations")
+        hyperParams["ReLU"] = 1
+
     print(name.lower()[:2])
     if name.lower()[:2] == "bp":
         rnnModel = Bptt(hyperParams)
@@ -36,15 +41,17 @@ def TrainRDM(name, hyperParams, use_ReLU=False):
     else:
         print("unclear which learning rule should be used for training")
         raise NotImplementedError()
-    if use_ReLU:
-        rnnModel._use_ReLU = True
+
         
     # trains the  network according to learning rule specified by name    
     rnnModel.setName(name)
     rnnModel.train()
     rnnModel.save()
     
-def TrainContext(name, hyperParams):
+def TrainContext(name, hyperParams, use_ReLU=False):
+    if use_ReLU:
+        print("Using ReLU activations")
+        hyperParams["ReLU"] = 1
     if name.lower()[:2] == "bp":
         print("begining training BPTT network")
         rnnModel = Bptt(hyperParams, task="context")
@@ -62,17 +69,21 @@ def TrainContext(name, hyperParams):
 
 parser = argparse.ArgumentParser(description="Trains RNN models")
 parser.add_argument("model_name", help="name of model")
-parser.add_argument("-m", "--mean", type=float, help="input mean")
-parser.add_argument("-v", "--variance", type=float, help="input variance")
+parser.add_argument("-m", "--mean", type=float, help="input mean", default=0.1857)
+parser.add_argument("-v", "--variance", type=float, help="input variance", default=1)
+parser.add_argument("--relu", action="store_true", default=False)
 task_choice = parser.add_mutually_exclusive_group()
 task_choice.add_argument("--rdm", action="store_true", default=False)
 task_choice.add_argument("--context", action="store_true", default=False)
 
 args = parser.parse_args()
+hyperParams["taskVar"] = args.variance
+hyperParams["taskMean"] = args.mean
 if args.rdm:
-    TrainRDM(args.model_name, hyperParams)
+    TrainRDM(args.model_name, hyperParams, use_ReLU=args.relu)
 elif args.context:
-    pass
+    hyperParams["inputSize"] = 4
+    TrainContext(args.model_name, hyperParams, use_ReLU=args.relu)
 else:
     raise NotImplementedError()
     
