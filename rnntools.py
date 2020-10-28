@@ -290,9 +290,12 @@ def record(model, cs=['r', 'b', 'k', 'g', 'y'], title='', print_out=False, plot_
         length_of_data=750    #200   #100
         #create identical valued input data and feed it to network
         #pdb.set_trace()
-        taskData, target = model._task.GetInput(mean_overide=3*model._task._mean, var_overide=False)
+        taskData, target = model._task.GetInput(mean_overide=0.5*model._task._mean, var_overide=False)
         taskData = taskData[:750]
-        taskData[200:] = 0
+        if taskData.shape[1] == 4:   # context task
+            taskData[200:, :2] = 0
+        else:                        # rdm task
+            taskData[10:] = 0
         trial_labels.append(target)
         #data = np.linspace(conditions[_], conditions[_], length_of_data).reshape(length_of_data,1)
         #data = torch.from_numpy(data).float().cuda()

@@ -17,7 +17,7 @@ class context_task():
         self._var = var
         self._version = ""
         
-    def GetInput(self, mean_overide=1, var_overide=1):
+    def GetInput(self, mean_overide=-1, var_overide=1):
         '''
         
 
@@ -36,17 +36,22 @@ class context_task():
         '''
         inpts = torch.zeros((self.N, 4)).cuda()
         
+        #randomly draw mean from distribution
+        mean = torch.rand(1).item() * self._mean
+        if mean_overide != -1:
+            mean = mean_overide
+        
         # randomly generates context 1
         if torch.rand(1).item() < 0.5:
-            inpts[:,0] = self._mean*torch.ones(self.N)
+            inpts[:,0] = mean*torch.ones(self.N)
         else:
-            inpts[:,0] = -self._mean*torch.ones(self.N)
+            inpts[:,0] = -mean*torch.ones(self.N)
             
         # randomly generates context 2
         if torch.rand(1).item() < 0.5:
-            inpts[:,1] = self._mean*torch.ones(self.N)
+            inpts[:,1] = mean*torch.ones(self.N)
         else:
-            inpts[:,1] = -self._mean*torch.ones(self.N)
+            inpts[:,1] = -mean*torch.ones(self.N)
             
         # randomly sets GO cue
         if torch.rand(1).item() > 0.5:

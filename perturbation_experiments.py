@@ -299,53 +299,6 @@ def AnalyzePerturbedNetwork(model, model_name, test_inpt=1):
     r.TestTaskInputs(model, task)
     plt.show()
     
-    '''I uncomented the code to plot energy surfaces as I am not using it
-    #####################################################
-    #ENERGY SURFACE CODE
-    #####################################################
-    resolution=200
-    #create the grid in PC space
-    x_grid, y_grid = np.meshgrid(np.linspace(-20, 20, resolution), np.linspace(10,-10,resolution))
-    landscapes = [np.zeros((resolution, resolution)) for i in range(6)]    #will hold the energy landscapes for 6 input conditions
-    
-    #we are interested in landscapes under the following input conditions
-    energy_functions = [F([1]), F([0.6666]), F([0.3333]), F([-0.3333]), F([-0.6666]), F([-1])]
-    
-    x_comp = np.array(pca.components_[0])
-    y_comp = np.array(pca.components_[1])
-    #loop over each input
-    for condition in range(len(energy_functions)):
-        #print('Input Condition#', condition+1, '...')
-        for x_idx in range(resolution):
-            #start = time.time()
-            for y_idx in range(resolution):
-                #transform point into state space
-                X = x_grid[x_idx, y_idx]*x_comp + y_grid[x_idx, y_idx]*y_comp #(50,)
-                #evaluate derivative at this point
-                landscapes[condition][x_idx, y_idx] = LA.norm(energy_functions[condition](X))
-            #stop = time.time()
-            #print('x index', x_idx,'(computed in',stop-start,'seconds)')
-    
-    plt.figure()
-    inpts = [1, 0.6666, 0.3333, -0.3333, -0.6666, -1]
-    for _ in range(6):
-        plt.subplot(2,3,_+1)
-        plt.contour(x_grid, y_grid, np.log(landscapes[_]), levels=20)
-        #add trajectories for 0.3333 input
-        #if _ == 2:
-        #    for curr_trial in range(len(trial_data)):
-        #        curr_trajectory = pca.transform(trial_data[curr_trial])
-        #        plt.scatter(curr_trajectory[:,0], curr_trajectory[:,1], marker='x', s=3, alpha=0.5, c=cs[curr_trial])
-        plt.title('When Input Is '+ str(inpts[_]))
-    
-    #fig = plt.figure()
-    #ax = fig.gca(projection='3d')
-    #surf = ax.plot_surface(x_grid, y_grid, landscape)
-    #plt.title('When Input is 1')
-                           #linewidth=0, antialiased=False)
-    #Axes3D.plot_surface(x_grid, y_grid, landscape)
-    plt.show()
-    '''
 
 def remove_inhibition(model_choice, xmin=-10, xmax=10, ymin=-10, ymax=10, test_inpt=1):
     #####################################################
@@ -634,32 +587,20 @@ def ContextFixedPoints(model_choice):
     F = model.GetF()#func_master
     #roots, pca = FindFixedPoints(F, [0.1,-0.1], embedding='custom', embedder=model.pca
 
-    context1_inpts = np.zeros((20, 4))
-    context1_inpts[:,0] = np.linspace(-0.1857, 0.1857, 20)
+    context1_inpts = np.zeros((1, 4))
+    context1_inpts[:,0] = 0
     context1_inpts[:,2] = 1
-    context1_inpts[:,1] = 0.1*np.random.randn(20)
+    context1_inpts[:,1] = 0
     
-    context2_inpts = np.zeros((20, 4))
-    context2_inpts[:,1] = np.linspace(-0.1857, 0.1857, 20)
+    context2_inpts = np.zeros((1, 4))
+    context2_inpts[:,1] = 0
     context2_inpts[:,3] = 1
-    context2_inpts[:,0] = 0.1*np.random.randn(20)
+    context2_inpts[:,0] = 0
      
 
-    # switch input to be the ignored context
-    #inpts[:, 2] = 1
-    #inpts[:, 3] = 0
 
-    # add gaussian noise to ignored context
-    #inpts[:, 0] = np.random.randn(19)-1
 
     context2_roots = fp.FindFixedPoints(model, context2_inpts, embedding='pca', embedder=model._pca, Verbose=False)
-
-    # create inputs for context 1 by transposing the first and second columns of inputs for 
-    # context 2
-    #context1_inpts = context2_inpts
-    #context1_inpts[:,0] = context2_inpts[:,1]
-    #context1_inpts[:,1] = 0
-
     print('Inputs for context 1 \n\n', context1_inpts)    # print to verify correct
 
     context1_roots = fp.FindFixedPoints(model, context1_inpts, embedding='pca', embedder=model._pca, Verbose=False)
@@ -684,8 +625,13 @@ def ContextFixedPoints(model_choice):
     roots2_embedded = fp.embed_fixed_points(context2_roots, model._pca)
     plt.figure()
     fp.plotFixedPoints(roots1_embedded)
-    plt.figure()
+    plt.legend(['Context 1'])
+    for i in range(10):
+        plt.plot(model_trajectories[i,:,0], model_trajectories[i,:,1], c = cs[i], alpha=0.25)
     fp.plotFixedPoints(roots2_embedded)
+    plt.legend(['Context 2'])
+    for i in range(10):
+        plt.plot(model_trajectories[i,:,0], model_trajectories[i,:,1], c = cs[i], alpha=0.25)
     plt.show()
     assert False
 

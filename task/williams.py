@@ -11,7 +11,7 @@ import pdb
 class Williams():
     def __init__(self, N=750, mean=1, variance=0.333, version=""):
         self.N = N
-        self.mean = mean
+        self._mean = mean
         self.variance = variance
         self._version = version
         
@@ -35,7 +35,7 @@ class Williams():
         '''
         inp = torch.zeros((self.N, 1))
         # create a random mean in [0, 1)
-        mean = torch.rand(1)*self.mean #self.mean#
+        mean = torch.rand(1)*self._mean #self.mean#
         if mean_overide != -1:
             mean = mean_overide
         if torch.rand(1) < 0.5:
@@ -87,7 +87,7 @@ class Williams():
         '''
         inp = torch.zeros((self.N, 1))
         # create a random mean in [0, 1)
-        mean = torch.rand(1)*self.mean #self.mean#
+        mean = torch.rand(1)*self._mean #self.mean#
         if mean_overide != -1:
             mean = mean_overide
         if torch.rand(1) < 0.5:
