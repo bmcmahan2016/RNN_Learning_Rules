@@ -125,6 +125,7 @@ ga_start = counter
 for num in ga_list:
     num = int(num)
     embeddings.append(getMDS(num, learningRule = "ga").reshape(1,-1))
+    # a comment to test github
     counter += 1
 ga_end = counter
 
