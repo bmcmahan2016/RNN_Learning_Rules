@@ -216,7 +216,7 @@ def TestTaskInputs(model, task, num_test=50, ShowFig=True, return_hidden=False, 
         plt.figure()
     for _ in range(num_test):
         # get network output for current task instance
-        inp, condition = task.GetInput()
+        inp, condition = task.GetInput(mean_overide=0.1857)
         output, hidden_activities = model.feed(inpt_scale*torch.unsqueeze(inp.t(), 0), return_hidden=True)
         if model._task._version == "Heb":
             output = hidden_activities[:,0,0]
@@ -283,7 +283,8 @@ def record(model, cs=['r', 'b', 'k', 'g', 'y'], title='', print_out=False, plot_
         #plot_annotated = False
     outputs = []
 
-    model._hiddenInitScale = model._hiddenInitScale * 1
+    model._hiddenInitScale = model._hiddenInitScale * 0
+
 
     #loop over conditions to create trials
     for _ in range(10):
@@ -293,7 +294,7 @@ def record(model, cs=['r', 'b', 'k', 'g', 'y'], title='', print_out=False, plot_
         taskData, target = model._task.GetInput(mean_overide=0.5*model._task._mean, var_overide=False)
         taskData = taskData[:750]
         if taskData.shape[1] == 4:   # context task
-            taskData[200:, :2] = 0
+            taskData[200:, :] = 0
         else:                        # rdm task
             taskData[10:] = 0
         trial_labels.append(target)
@@ -301,6 +302,7 @@ def record(model, cs=['r', 'b', 'k', 'g', 'y'], title='', print_out=False, plot_
         #data = torch.from_numpy(data).float().cuda()
         #if add_in_noise:
         #    data += 0.01*add_in_noise*torch.randn(data.shape[0], data.shape[1]).cuda()
+        model._init_hidden()
         output, hidden = model.feed(torch.unsqueeze(taskData.t(), 0), return_hidden=True)
         if model._task._version=="Heb":
             output = hidden[-1,0,0]

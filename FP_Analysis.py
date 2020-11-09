@@ -18,7 +18,7 @@ from sklearn.decomposition import PCA
 import sys
 from AnhilationPotential import *            #CHANGE THIS 
 import torch
-
+import pdb
 import numpy as np 
 
 def GetUnique(points, tol=1e-3, verbose=False):
@@ -125,7 +125,7 @@ def FindZeros2(F, num_iters=100, visualize=True, num_hidden=50, inpts=False, Emb
         #random activations on U[-1,1]
         x0 = 10_000*(np.random.rand(num_hidden,1)-0.5)
         # tolerance changed from 1e-8
-        sol = root(F, x0, tol=1)#e-8)
+        sol = root(F, x0, tol=1e-8)
         if sol.success == True:
             if norm:
                 #if not a zero vector
@@ -281,6 +281,7 @@ def plotFixedPoints(roots_embedded):
     '''
     for _ in range(roots_embedded.shape[0]):
         if roots_embedded[_, 0] == 1:      # checks stability flag of current root
+            #pdb.set_trace()
             plt.scatter(roots_embedded[_, 2], roots_embedded[_, 3], c=cmap(roots_embedded[_,1]), alpha=1)
         else:
             plt.scatter(roots_embedded[_, 2], roots_embedded[_, 3], marker='x', c=cmap(roots_embedded[_,1]), alpha=1)

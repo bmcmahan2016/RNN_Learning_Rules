@@ -3,12 +3,19 @@
 Created on Mon Aug 24 13:07:16 2020
 
 @author: bmcma
+
+Description: Clusters model fixed points based on input topology
+
 """
 import numpy as np
 from rnn import loadRNN, RNN
 from sklearn.manifold import MDS
 from sklearn.neighbors import NearestNeighbors
 import matplotlib.pyplot as plt
+import os
+import sys
+import pdb
+import argparse
 
 def key2array(key):
     '''
@@ -86,19 +93,38 @@ def getMDS(modelNum, learningRule="bptt"):
     return MDS_embedding[start_idx:end_idx].reshape(num_fixed_points_found,3)
 
 
+# determines what analysis to run
+parser = argparse.ArgumentParser(description="Clusters RNNs by Topology of Fixed Points")
+parser.add_argument("fname", help="name of file containing RNNs to analyze")
+args = parser.parse_args()
+
+a_file = open("models/"+args.fname, 'r')
+list_of_lists = [(line.strip()).split() for line in a_file]
+a_file.close()
 
 embeddings = []
 max_fixed_points = 0
 counter = 0
 
+bptt_list = list_of_lists[0]
 bptt_start = 0
-for num in [200, 201, 202, 203, 204, 205, 206, 207, 208, 209]:
+for num in bptt_list:
+    num = int(num)
     embeddings.append(getMDS(num).reshape(1,-1))
     counter += 1
 bptt_end = counter
+ReLU_list = list_of_lists[1]
+ReLU_start = counter
+for num in ReLU_list:
+    num = int(num)
+    embeddings.append(getMDS(num).reshape(1,-1))
+    counter += 1
+ReLU_end = counter
+ga_list = list_of_lists[2]
 ga_start = counter
-for num in [ 90,91, 92, 93, 81, 82, 83, 84, 85, 86]:
-    embeddings.append(getMDS(num, "bptt").reshape(1,-1))
+for num in ga_list:
+    num = int(num)
+    embeddings.append(getMDS(num, learningRule = "ga").reshape(1,-1))
     counter += 1
 ga_end = counter
 
@@ -127,9 +153,9 @@ embeddings = np.squeeze(np.array(embeddings))
 clustering_algorithm = MDS()
 clustered_data = clustering_algorithm.fit_transform(embeddings)
 plt.figure()
-plt.scatter(clustered_data[:bptt_end,0], clustered_data[:bptt_end,1], c='r')         # BPTT
-plt.scatter(clustered_data[-3:,0], clustered_data[-3:,1], c='b')       # BPTT
-plt.scatter(clustered_data[ga_start:ga_end,0], clustered_data[ga_start:ga_end,1], c='g')         # GA
-#plt.scatter(clustered_data[ff_start:ff_end,0], clustered_data[ff_start:ff_end,1], c='y')
-plt.legend(["ReLU", "tanh"])       # FF
+plt.scatter(clustered_data[:bptt_end,0], clustered_data[:bptt_end,1], c='r')                      # BPTT (tanh)
+plt.scatter(clustered_data[ReLU_start:ReLU_end,0], clustered_data[ReLU_start:ReLU_end,1], c='b')  # BPTT (ReLU)
+plt.scatter(clustered_data[ga_start:ga_end,0], clustered_data[ga_start:ga_end,1], c='g')          # GA
+#plt.scatter(clustered_data[ff_start:ff_end,0], clustered_data[ff_start:ff_end,1], c='y')         # FF
+plt.legend(["BPTT (tanh)", "BPTT (ReLU)", "GA", "FF", "Heb"])      
 plt.show()

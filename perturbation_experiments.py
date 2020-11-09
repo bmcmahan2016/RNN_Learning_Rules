@@ -587,27 +587,42 @@ def ContextFixedPoints(model_choice):
     F = model.GetF()#func_master
     #roots, pca = FindFixedPoints(F, [0.1,-0.1], embedding='custom', embedder=model.pca
 
+    '''
     context1_inpts = np.zeros((1, 4))
     context1_inpts[:,0] = 0
-    context1_inpts[:,2] = 1
+    context1_inpts[:,2] = 0
     context1_inpts[:,1] = 0
     
     context2_inpts = np.zeros((1, 4))
     context2_inpts[:,1] = 0
-    context2_inpts[:,3] = 1
+    context2_inpts[:,3] = 0
     context2_inpts[:,0] = 0
-     
+    
+    context1_inpts = np.zeros((20, 4))
+    context1_inpts[:,0] = np.linspace(-0.1857, 0.1857, 20)
+    context1_inpts[:,2] = 1
+    context1_inpts[:,1] = 0
 
+    context2_inpts = np.zeros((20, 4))
+    context2_inpts[:,1] = np.linspace(-0.1857, 0.1857, 20)
+    context2_inpts[:,3] = 1
+    context2_inpts[:,0] = 0 
+    '''
 
+    static_inpts = np.zeros((40, 4))
+    static_inpts[:20, 0] = np.linspace(-0.1857, 0.1857, 20)     # motion context
+    static_inpts[:20, 2] = 1                                    # go signal for motion context
+    static_inpts[20:, 1] = np.linspace(0-.1857, 0.1857, 20)     # color context
+    static_inpts[20:, 3] = 1                                    # go signal for color context
 
-    context2_roots = fp.FindFixedPoints(model, context2_inpts, embedding='pca', embedder=model._pca, Verbose=False)
-    print('Inputs for context 1 \n\n', context1_inpts)    # print to verify correct
+    roots = fp.FindFixedPoints(model, static_inpts, embedding='pca', embedder=model._pca, Verbose=False)
+    print('Static Inputs \n\n', static_inpts)    # print to verify correct
 
-    context1_roots = fp.FindFixedPoints(model, context1_inpts, embedding='pca', embedder=model._pca, Verbose=False)
+    #context1_roots = fp.FindFixedPoints(model, context1_inpts, embedding='pca', embedder=model._pca, Verbose=False)
 
     print('\n'*5)
-    print('shape of roots found for context 1: ', len(context1_roots))
-    print('shape of roots found for context 2: ', len(context2_roots))
+    print('Number of roots found: ', len(roots))
+    #print('shape of roots found for context 2: ', len(context2_roots))
 
 
     # perform PCA on trajectories to get embedding
@@ -618,20 +633,21 @@ def ContextFixedPoints(model_choice):
     model_trajectories = model._pca.fit_transform(trial_data.reshape(-1, 50)).reshape(10,-1,50)
     assert(model_trajectories.shape[1]==model._task.N)           # number of timesteps in trial
     assert(model_trajectories.shape[2]==model._hiddenSize)       # number of hidden units
+    model.updateFixedPoints(roots, model._pca)                   # fixed points now saved
     
     
     
-    roots1_embedded = fp.embed_fixed_points(context1_roots, model._pca)
-    roots2_embedded = fp.embed_fixed_points(context2_roots, model._pca)
-    plt.figure()
-    fp.plotFixedPoints(roots1_embedded)
+    roots_embedded = fp.embed_fixed_points(roots, model._pca)
+    #roots2_embedded = fp.embed_fixed_points(context2_roots, model._pca)
+    plt.figure(100)
+    fp.plotFixedPoints(roots_embedded)
     plt.legend(['Context 1'])
     for i in range(10):
-        plt.plot(model_trajectories[i,:,0], model_trajectories[i,:,1], c = cs[i], alpha=0.25)
-    fp.plotFixedPoints(roots2_embedded)
-    plt.legend(['Context 2'])
-    for i in range(10):
-        plt.plot(model_trajectories[i,:,0], model_trajectories[i,:,1], c = cs[i], alpha=0.25)
+        plt.plot(model_trajectories[i,:,0], model_trajectories[i,:,1], c = cs[int(trial_labels[i].item())], alpha=0.25)
+    #fp.plotFixedPoints(roots2_embedded)
+    #plt.legend(['Context 2'])
+    #for i in range(10):
+    #    plt.plot(model_trajectories[i,:,0], model_trajectories[i,:,1], c = cs[int(trial_labels[i].item())], alpha=0.25)
     plt.show()
     assert False
 

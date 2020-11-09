@@ -68,15 +68,12 @@ class context_task():
     
     def PsychoTest(self, coherence, context="in"):
         inpts = torch.zeros((self.N, 4)).cuda()
-        inpts[:,0] = coherence*torch.ones(self.N)
-        if context=="in":
-             # TODO: implement an in context signal with specified coherence
-             # out of context signal should be random
+        inpts[:,0] = coherence*torch.ones(self.N)                # attended signal
+        inpts[:,1] = 2*(torch.rand(1)-0.5)*0.1857*torch.ones(self.N)   # ignored signal
+        if context=="in":  # signals attended signal
              inpts[:, 2] = 1
              
-        else:
-             # TODO: implement an out of context signal with specified coherence
-             # in context signal should be random
+        else: # attends to the ignored signal
              inpts[:, 3] = 1
          
         inpts[:,:2] += self._var*torch.randn(750, 2).cuda()    # adds noise to inputs
