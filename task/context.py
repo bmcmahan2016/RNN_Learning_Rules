@@ -68,13 +68,13 @@ class context_task():
     
     def PsychoTest(self, coherence, context="in"):
         inpts = torch.zeros((self.N, 4)).cuda()
-        inpts[:,0] = coherence*torch.ones(self.N)                # attended signal
-        inpts[:,1] = 2*(torch.rand(1)-0.5)*0.1857*torch.ones(self.N)   # ignored signal
+        inpts[:,0] = coherence*torch.ones(self.N)                # attended signal       changed 0->2
+        inpts[:,1] = 2*(torch.rand(1)-0.5)*0.1857*torch.ones(self.N)   # ignored signal  changed 1->3
         if context=="in":  # signals attended signal
-             inpts[:, 2] = 1
+             inpts[:, 2] = 1    # changed 2 - >0
              
         else: # attends to the ignored signal
-             inpts[:, 3] = 1
+             inpts[:, 3] = 1    # changed 3 -> 1
          
         inpts[:,:2] += self._var*torch.randn(750, 2).cuda()    # adds noise to inputs
         

@@ -218,7 +218,9 @@ def TestTaskInputs(model, task, num_test=50, ShowFig=True, return_hidden=False, 
         # get network output for current task instance
         inp, condition = task.GetInput(mean_overide=0.1857)
         output, hidden_activities = model.feed(inpt_scale*torch.unsqueeze(inp.t(), 0), return_hidden=True)
+        pdb.set_trace()
         if model._task._version == "Heb":
+            print("Heb"*80)
             output = hidden_activities[:,0,0]
         else:
             output = output.cpu().detach().numpy()
@@ -294,7 +296,7 @@ def record(model, cs=['r', 'b', 'k', 'g', 'y'], title='', print_out=False, plot_
         taskData, target = model._task.GetInput(mean_overide=0.5*model._task._mean, var_overide=False)
         taskData = taskData[:750]
         if taskData.shape[1] == 4:   # context task
-            taskData[200:, :] = 0
+            taskData[200:, :2] = 0
         else:                        # rdm task
             taskData[10:] = 0
         trial_labels.append(target)
@@ -305,8 +307,9 @@ def record(model, cs=['r', 'b', 'k', 'g', 'y'], title='', print_out=False, plot_
         model._init_hidden()
         output, hidden = model.feed(torch.unsqueeze(taskData.t(), 0), return_hidden=True)
         if model._task._version=="Heb":
-            output = hidden[-1,0,0]
-            outputs.append(hidden[-1,0,0])
+            #pdb.set_trace()
+            output = hidden[:,0]
+            outputs.append(output)
         else:
             #convert output to numpy array
             for lol in range(len(output)):

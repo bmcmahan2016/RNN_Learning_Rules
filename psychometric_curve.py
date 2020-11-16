@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
 from task.context import context_task
 import argparse
+import pdb
 
 def CountReaches(network_decisions, tol=1):
     
@@ -167,6 +168,7 @@ task_type.add_argument("--context", action="store_true")
 task_type.add_argument("--dnms", action="store_true")
 
 parser.add_argument("model_name", help="filename of model to analyze")
+parser.add_argument("--nofit", action="store_true", default=False)
 
 args = parser.parse_args()
 
@@ -216,10 +218,10 @@ def sigmoid(x, L ,x0, k, b):
 xdata = coherence_vals
 ydata = num_right_reaches_mean
 p0 = [max(ydata), np.median(xdata),1,min(ydata)] 
-popt, pcov = curve_fit(sigmoid, xdata, ydata, p0, method='dogbox')
 
-
-ydataa = sigmoid(np.linspace(-0.2, 0.2, 100), *popt)
+if not args.nofit:
+    popt, pcov = curve_fit(sigmoid, xdata, ydata, p0, method='dogbox')
+    ydataa = sigmoid(np.linspace(-0.2, 0.2, 100), *popt)
 
 fig_object = plt.figure(4)
 axis_object = fig_object.add_subplot(1,1,1)
@@ -234,7 +236,9 @@ axis_object.xaxis.set_label("top")
 print(coherence_vals.shape)
 print(num_right_reaches[0,:].shape)
 plt.scatter(coherence_vals, num_right_reaches_mean)
-plt.plot(np.linspace(-0.2, 0.2, 100), ydataa, c='k', alpha=.5)
+if not args.nofit:
+    plt.plot(np.linspace(-0.2, 0.2, 100), ydataa, c='k', alpha=.5)
+
 if context_choice != "":
     plt.title('in context')
 else:

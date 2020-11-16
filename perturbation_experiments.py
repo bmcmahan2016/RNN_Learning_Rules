@@ -558,11 +558,15 @@ def PlotRoots(all_roots, roots_embedded, idxs, colors, marker='o'):
             #plt.scatter(curr_set_of_roots_x[curr_point], curr_set_of_roots_y[curr_point], facecolors='none', edgecolors=colors[_], alpha=alpha)
         start_idx += idxs[_]
 
-def ContextFixedPoints(model_choice):
+def ContextFixedPoints(model_choice, save_fixed_points=False):
     import FP_Analysis as fp
     model = loadRNN(model_choice)
+
+
     #model.load(model_choice)
     model._task = context_task()
+    if model_choice[7].lower() == 'h':
+        model._task._version = "Heb"
 
     model.plotLosses()
 
@@ -608,12 +612,12 @@ def ContextFixedPoints(model_choice):
     context2_inpts[:,3] = 1
     context2_inpts[:,0] = 0 
     '''
-
-    static_inpts = np.zeros((40, 4))
-    static_inpts[:20, 0] = np.linspace(-0.1857, 0.1857, 20)     # motion context
-    static_inpts[:20, 2] = 1                                    # go signal for motion context
-    static_inpts[20:, 1] = np.linspace(0-.1857, 0.1857, 20)     # color context
-    static_inpts[20:, 3] = 1                                    # go signal for color context
+    fixed_point_resolution = 3
+    static_inpts = np.zeros((2*fixed_point_resolution, 4))
+    static_inpts[:fixed_point_resolution, 0] = np.linspace(-0.1857, 0.1857, fixed_point_resolution)     # motion context
+    static_inpts[:fixed_point_resolution, 2] = 1                                    # go signal for motion context
+    static_inpts[fixed_point_resolution:, 1] = np.linspace(-0.1857, 0.1857, fixed_point_resolution)     # color context
+    static_inpts[fixed_point_resolution:, 3] = 1                                    # go signal for color context
 
     roots = fp.FindFixedPoints(model, static_inpts, embedding='pca', embedder=model._pca, Verbose=False)
     print('Static Inputs \n\n', static_inpts)    # print to verify correct
@@ -633,7 +637,11 @@ def ContextFixedPoints(model_choice):
     model_trajectories = model._pca.fit_transform(trial_data.reshape(-1, 50)).reshape(10,-1,50)
     assert(model_trajectories.shape[1]==model._task.N)           # number of timesteps in trial
     assert(model_trajectories.shape[2]==model._hiddenSize)       # number of hidden units
-    model.updateFixedPoints(roots, model._pca)                   # fixed points now saved
+    if save_fixed_points:
+        print("saving fixed points to model")
+        model.updateFixedPoints(roots, model._pca)                   # fixed points now saved
+    else:
+        print("Fixed points not saved!")
     
     
     

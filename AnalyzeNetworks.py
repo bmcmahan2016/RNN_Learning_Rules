@@ -17,6 +17,7 @@ task_type.add_argument("--context", action="store_true")
 task_type.add_argument("--dnms", action="store_true")
 
 parser.add_argument("model_name", help="filename of model to analyze")
+parser.add_argument("--save_fp", action="store_true", default=False)
 
 args = parser.parse_args()
 
@@ -29,7 +30,7 @@ if True:
         niave_network('models/'+args.model_name, xmin=-10, xmax=10, ymin=-10, ymax=10)
     elif args.context:
         plt.figure()
-        ContextFixedPoints('models/'+args.model_name)
+        ContextFixedPoints('models/'+args.model_name, save_fixed_points=args.save_fp)
     else:
         raise NotImplementedError
     

@@ -580,7 +580,7 @@ def create_test_time_ativity_tensor(rnnModel):
         activityTensor[trial_num, :, :] = np.squeeze(hidden_states[::10, :, :])        # record every 10th timestep from hidden state
     rnnModel._activityTensor = activityTensor
 
-def importHeb(name = "undeclared_heb", modelNum="", context_flag=False, var=1):
+def importHeb(name = "undeclared_heb", modelNum="50400", context_flag=False, var=1):
     '''
     loads data from training with the biologically plausible learning algorithm
     (Miconi 2017) and loads it into an RNN model. Win and Jrec text files must be
@@ -621,7 +621,7 @@ def importHeb(name = "undeclared_heb", modelNum="", context_flag=False, var=1):
     rnnModel = RNN(hyperParams)
     #rnnModel._task._version = "Heb"
     Jin = np.loadtxt("Win"+str(modelNum)+".txt")
-    Jrec = np.loadtxt("Jrec"+str(modelNum)+".txt")
+    Jrec = np.loadtxt("J"+str(modelNum)+".txt")
     Jout = np.zeros((1,50))
     print("Jin: ", Jin[:,1:].shape)
     rnnModel.AssignWeights(Jin[:,1:], Jrec, Jout)   # only take the second row of Win

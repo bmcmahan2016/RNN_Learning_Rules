@@ -255,11 +255,18 @@ def cmap(static_inpt, max_inpt=0.1857):
         r,g,b color that should be used to plot current fixed points.
 
     '''
+    
+    # clamps input so RGGB values remain in range
+    if static_inpt > max_inpt:
+        static_inpt = max_inpt
+    elif static_inpt < -max_inpt:
+        static_inpt = -max_inpt
+
     m_r = 0.5 / max_inpt
     m_b = - 0.5 / max_inpt
     
-    r = m_r * static_inpt/5 + 0.5
-    b = m_b * static_inpt/5 + 0.5
+    r = m_r * static_inpt + 0.5
+    b = m_b * static_inpt + 0.5
     g = 0
 
     return [[r, g, b]]
@@ -361,7 +368,17 @@ def FindFixedPoints(model, inpts, embedding='PCA', embedder=[], Verbose=True):
         curr_roots = roots[-1]
         num_roots[IX,-1] = len(roots[IX])
         for _ in range(len(roots[IX])):
-            inpt_levels.append(static_input[0])
+            # appends static input value to roots
+            if len(static_input) == 4:  # indicates context task network
+                if (static_input[0] == 0 and static_input[1] == 0):   # both contexts are zero
+                    inpt_levels.append(static_input[0])
+                elif (static_input[0] == 0):                          # context 1 is zero
+                    inpt_levels.append(static_input[1])
+                elif (static_input[1] == 0):                          # context 2 is zero
+                    inpt_levels.append(static_input[0])
+                    
+            else: # this is not the context task
+                inpt_levels.append(static_input[0])
             if (IsAttractor(roots[-1][_], functions[IX])):
                 stability_flag.append(1)
             else:
