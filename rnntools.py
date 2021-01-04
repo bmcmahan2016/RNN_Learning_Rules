@@ -213,12 +213,13 @@ def TestTaskInputs(model, task, num_test=50, ShowFig=True, return_hidden=False, 
     target_outputs = []         # will hold correct outputs for each condition
     network_hidden = []
     if ShowFig:
-        plt.figure()
+        plt.figure(85)
+        plt.title("Network Output at Test Time")
     for _ in range(num_test):
         # get network output for current task instance
         inp, condition = task.GetInput(mean_overide=0.1857)
         output, hidden_activities = model.feed(inpt_scale*torch.unsqueeze(inp.t(), 0), return_hidden=True)
-        pdb.set_trace()
+        #pdb.set_trace()
         if model._task._version == "Heb":
             print("Heb"*80)
             output = hidden_activities[:,0,0]
@@ -284,6 +285,7 @@ def record(model, cs=['r', 'b', 'k', 'g', 'y'], title='', print_out=False, plot_
         #plt.figure()
         #plot_annotated = False
     outputs = []
+    pdb.set_trace()
 
     model._hiddenInitScale = model._hiddenInitScale * 0
 
@@ -293,12 +295,14 @@ def record(model, cs=['r', 'b', 'k', 'g', 'y'], title='', print_out=False, plot_
         length_of_data=750    #200   #100
         #create identical valued input data and feed it to network
         #pdb.set_trace()
-        taskData, target = model._task.GetInput(mean_overide=0.5*model._task._mean, var_overide=False)
+        #taskData, target = model._task.GetInput(mean_overide=0.5*model._task._mean, var_overide=False)
+        taskData, target = model._task.GetInput()       # this line is used for multi_sensory task
         taskData = taskData[:750]
         if taskData.shape[1] == 4:   # context task
             taskData[200:, :2] = 0
-        else:                        # rdm task
-            taskData[10:] = 0
+        else:
+            pass                        # rdm task
+            #taskData[10:] = 0
         trial_labels.append(target)
         #data = np.linspace(conditions[_], conditions[_], length_of_data).reshape(length_of_data,1)
         #data = torch.from_numpy(data).float().cuda()
@@ -326,7 +330,7 @@ def record(model, cs=['r', 'b', 'k', 'g', 'y'], title='', print_out=False, plot_
                 plt.plot(output, c='b', alpha=0.5)
             #add labels to plot if not already done
             #if not plot_annotated:
-            plt.title('Activity of Output Neuron for ' +str(title)+ ' Model')
+            plt.title('Activity of Output Neuron for ' +str(title)+ ' Model (Pulsed Experiments)')
             plt.xlabel('Time in Trial')
             plt.ylabel('Activation of Output Neuron')
             plot_annotated=True

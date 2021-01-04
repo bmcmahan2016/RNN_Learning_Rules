@@ -10,7 +10,7 @@ from rnn import RNN
 
 
 class Genetic(RNN):
-    def __init__(self, hyperParams, numPop = 50, numGenerations = 700, numParents=5, mutation=0.005, task="rdm"):
+    def __init__(self, hyperParams, numPop = 50, numGenerations = 2_000, numParents=5, mutation=0.005, task="rdm"):
         super(Genetic, self).__init__(hyperParams, task=task)                             # initialize parent class
 
         self._numGenerations = numGenerations                                  # maximum allowed generations for convergence
@@ -131,9 +131,9 @@ class Genetic(RNN):
         # for CUDA implementation
         self.batch_data = torch.zeros(self._batchSize, self._inputSize, self._task.N).cuda()
         self.batch_labels = torch.zeros(self._batchSize,1).cuda()
-        self.activity_tensor = np.zeros((700, 75, self._hiddenSize))  # MAX_GENERATIONS x TIMESTEPS x HIDDEN_UNITS
+        self.activity_tensor = np.zeros((self._numGenerations, 75, self._hiddenSize))  # MAX_GENERATIONS x TIMESTEPS x HIDDEN_UNITS
         neuronActivities = np.zeros((75, self._hiddenSize*num_pop))        # holds activity of all population members through trial
-        self.activity_targets = np.zeros((700))
+        self.activity_targets = np.zeros((self._numGenerations))
 
         
         
@@ -143,7 +143,7 @@ class Genetic(RNN):
         validation_acc_hist = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
         #while(generationCounter < self.num_generations):
         while(validation_accuracy < termination_accuracy):
-            if (generationCounter == 700):
+            if (generationCounter == self._numGenerations):
                 break      # max training reached
             print("Current Generation:", generationCounter)
         # create a training batch

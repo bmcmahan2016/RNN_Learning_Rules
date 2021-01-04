@@ -9,6 +9,7 @@ This script trains RNN models using a specified learning rule
 from genetic import Genetic
 from bptt import Bptt
 import argparse
+import pdb 
 
 hyperParams = {                  # dictionary of all RNN hyper-parameters
    "inputSize" : 1,
@@ -42,7 +43,22 @@ def TrainRDM(name, hyperParams, use_ReLU=False):
         print("unclear which learning rule should be used for training")
         raise NotImplementedError()
 
-        
+
+def TrainMulti(name, hyperParams, use_ReLU=False):
+    if use_ReLU:
+        print("Using ReLU activations")
+        hyperParams["ReLU"] = 1
+
+    print(name.lower()[:2])
+    if name.lower()[:2] == "bp":
+        rnnModel = Bptt(hyperParams, task="multi")
+    elif name.lower()[:2] == "he":
+        raise NotImplementedError()
+    elif name.lower()[:2] == "ga" or name.lower()[:2] == "ge":      # use genetic learning rule
+        rnnModel = Genetic(hyperParams, task="multi")
+    else:
+        print("unclear which learning rule should be used for training")
+        raise NotImplementedError()
     # trains the  network according to learning rule specified by name    
     rnnModel.setName(name)
     rnnModel.train()
@@ -75,6 +91,7 @@ parser.add_argument("--relu", action="store_true", default=False)
 task_choice = parser.add_mutually_exclusive_group()
 task_choice.add_argument("--rdm", action="store_true", default=False)
 task_choice.add_argument("--context", action="store_true", default=False)
+task_choice.add_argument("--multi", action="store_true", default=False)
 
 args = parser.parse_args()
 hyperParams["taskVar"] = args.variance
@@ -84,8 +101,15 @@ if args.rdm:
 elif args.context:
     hyperParams["inputSize"] = 4
     TrainContext(args.model_name, hyperParams, use_ReLU=args.relu)
+if args.multi:
+    print("Training network on multisensory integration task!")
+    hyperParams["inputSize"] = 2
+    hyperParams["g"] = 2
+    hyperParams["hiddenSize"] = 50
+    TrainMulti(args.model_name, hyperParams)
 else:
-    raise NotImplementedError()
+    print("Please specify a training task")
+    exit()
     
     
     # hyperParams["taskVar"] = 0.5        # train an ensemble of GA models w/ var = 0.75

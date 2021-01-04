@@ -129,11 +129,13 @@ for num in ga_list:
     counter += 1
 ga_end = counter
 
-# ff_start = counter
-# for num in [41, 42, 43, 44, 45]:
-#     embeddings.append(getMDS(num, "FullForce").reshape(1,-1))
-#     counter +=1 
-# ff_end = counter
+ff_list = list_of_lists[3]
+ff_start = counter
+for num in ff_list:
+    num = int(num)
+    embeddings.append(getMDS(num, learningRule="FullForce").reshape(1,-1))
+    counter +=1 
+ff_end = counter
 
 
 
@@ -157,6 +159,6 @@ plt.figure()
 plt.scatter(clustered_data[:bptt_end,0], clustered_data[:bptt_end,1], c='r')                      # BPTT (tanh)
 plt.scatter(clustered_data[ReLU_start:ReLU_end,0], clustered_data[ReLU_start:ReLU_end,1], c='b')  # BPTT (ReLU)
 plt.scatter(clustered_data[ga_start:ga_end,0], clustered_data[ga_start:ga_end,1], c='g')          # GA
-#plt.scatter(clustered_data[ff_start:ff_end,0], clustered_data[ff_start:ff_end,1], c='y')         # FF
+plt.scatter(clustered_data[ff_start:ff_end,0], clustered_data[ff_start:ff_end,1], c='y')          # FF
 plt.legend(["BPTT (tanh)", "BPTT (ReLU)", "GA", "FF", "Heb"])      
 plt.show()

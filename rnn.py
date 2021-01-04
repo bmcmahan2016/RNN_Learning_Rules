@@ -20,6 +20,8 @@ from task.williams import Williams
 from task.context import context_task
 import os
 import pdb
+from task.dnms import DMC
+from task.multi_sensory import multi_sensory
 #from bptt import Bptt
 #from genetic import Genetic
 
@@ -66,6 +68,11 @@ class RNN(nn.Module):
         if task == "context":
             self._task = context_task(N=750, mean=hyperParams["taskMean"], \
                                       var = hyperParams["taskVar"])
+        elif task == "DMC":
+            self._task = DMC()     # TODO: add arguments for task statistics
+
+        elif task == "multi":
+            self._task = multi_sensory(var=hyperParams["taskVar"])
         else:
             self._task = Williams(N=750, mean=hyperParams["taskMean"], \
                                   variance=hyperParams["taskVar"])                
@@ -202,11 +209,21 @@ class RNN(nn.Module):
         condition = self.validationTargets
         condition = torch.squeeze(condition)
         output = self.feed(inpt_data)
-        output_final = torch.sign(output[-1,:])
-        # compute the difference magnitudes between model output and target output
-        error = torch.abs(condition-output_final)
-        # threshold this so that errors greater than tol(=0.1) are counted
-        num_errors = torch.where(error>tol)[0].shape[0]
+        if self._task._name == "multi":
+            output_final = torch.round(output[-1,:])
+            error = torch.abs(condition-output_final)
+            # threshold this so that errors greater than tol(=0.1) are counted
+            num_errors = torch.where(error>0.5)[0].shape[0]
+        else:
+            output_final = torch.sign(output[-1,:])
+            # compute the difference magnitudes between model output and target output
+            #if isinstance(self._task, DMC):
+            #    differences = self.validationTargets-output_final.view(-1,1)
+            #    num_errors = torch.sum(torch.abs(differences) > 0.15).item()
+            #else:
+            error = torch.abs(condition-output_final)
+            # threshold this so that errors greater than tol(=0.1) are counted
+            num_errors = torch.where(error>tol)[0].shape[0]
         accuracy = (test_iters - num_errors) / test_iters
 
         
@@ -284,7 +301,7 @@ class RNN(nn.Module):
 
         return output, self._hidden.clone()
 
-    def feed(self, inpt_data, return_hidden=False):
+    def feed(self, inpt_data, return_hidden=False, return_states=False):
         '''
         Feeds an input data sequence into an RNN
 
@@ -303,22 +320,33 @@ class RNN(nn.Module):
         output_trace : PyTorch CUDA Tensor
             output_trace: output of the network over all timesteps. Will have shape 
             (batchSize, inputSize) i.e. 40x1 for single sample inputs
+        hidden_states : PyTorch CUDA Tensor
+            hidden_states: hidden states of the network through a trial, has shape
+            (batch_size, time_steps, hidden_size)
 
         '''
 
         #num_inputs = len(inpt_data[0])
         batch_size = inpt_data.shape[0]
+        inpt_seq_len = inpt_data.shape[-1]
         assert inpt_data.shape[1] == self._inputSize, "Size of inputs:{} does not match network's input size:{}".format(inpt_data.shape[1], self._inputSize)
         num_t_steps = inpt_data.shape[2]
         
         output_trace = torch.zeros(num_t_steps, batch_size).cuda()
-        hidden_trace = []
+        if return_hidden:
+            hidden_trace = []
+        if return_states:
+            hidden_states = torch.zeros((batch_size, inpt_seq_len, self._hiddenSize), requires_grad=True)
+
         self._init_hidden(numInputs=batch_size)  # initializes hidden state
         inpt_data = inpt_data.permute(2,1,0)     # now has shape TxMxB
         for t_step in range(len(inpt_data)):
             output, hidden = self._forward(inpt_data[t_step])
             if return_hidden:
-                hidden_trace.append(hidden.cpu().detach().numpy())
+                hidden_trace.append(hidden.cpu().detach().numpy())      # unsure if there are any dependencies on hidden_trace
+
+            if return_states:
+                hidden_states[:,t_step,:] = hidden.T                    # (batch_size, hidden_size)
                 
             if self._task._version == "Heb":
                 output_trace[t_step,:] = hidden.detach()[0]
@@ -326,6 +354,8 @@ class RNN(nn.Module):
                 output_trace[t_step,:] = output
         if return_hidden:
             return output_trace, np.array(hidden_trace)
+        if return_states:
+            return output_trace, hidden_states
         #print('shape of output trace', len(output_trace[0]))
         return output_trace
     
@@ -566,7 +596,7 @@ def loadRNN(fName, optimizer=""):
 
 def create_test_time_ativity_tensor(rnnModel):
     ''' create activity tensors at test time '''
-    activityTensor = np.zeros((500, 75, 50))  # test_trials x TIMESTEPS x HIDDEN_UNITS
+    activityTensor = np.zeros((500, 75, rnnModel._hiddenSize))  # test_trials x TIMESTEPS x HIDDEN_UNITS
     rnnModel._targets = []
     for trial_num in range(500): # perform 2,000 trials
         if trial_num %100 == 0:
@@ -580,7 +610,7 @@ def create_test_time_ativity_tensor(rnnModel):
         activityTensor[trial_num, :, :] = np.squeeze(hidden_states[::10, :, :])        # record every 10th timestep from hidden state
     rnnModel._activityTensor = activityTensor
 
-def importHeb(name = "undeclared_heb", modelNum="50400", context_flag=False, var=1):
+def importHeb(name = "undeclared_heb", modelNum="50400", context_flag=False, dnms_flag=False, var=1):
     '''
     loads data from training with the biologically plausible learning algorithm
     (Miconi 2017) and loads it into an RNN model. Win and Jrec text files must be
@@ -597,7 +627,12 @@ def importHeb(name = "undeclared_heb", modelNum="50400", context_flag=False, var
         rnn object with weights learned using the biologically plausable 
         training algorithm (Miconi 2017).
     '''
-    if context_flag:
+    hidden_size = 50
+    if dnms_flag:
+        input_dim=2
+        hidden_size = 50
+        task = DMC()
+    elif context_flag:
         input_dim = 4
         task = context_task()
     else:
@@ -606,7 +641,7 @@ def importHeb(name = "undeclared_heb", modelNum="50400", context_flag=False, var
                                   variance=var)       
     hyperParams = {       # dictionary of all hyper-parameters
     "inputSize" : input_dim,
-    "hiddenSize" : 50,
+    "hiddenSize" : hidden_size,
     "outputSize" : 1,
     "g" : 1 ,
     "inputVariance" : 0.5,
@@ -615,14 +650,14 @@ def importHeb(name = "undeclared_heb", modelNum="50400", context_flag=False, var
     "initScale" : 0.3,
     "dt" : 0.1,
     "batchSize" : 500,
-    "taskMean" : 0.1857, 
+    "taskMean" : 1, 
     "taskVar" : 0.1
     }
     rnnModel = RNN(hyperParams)
     #rnnModel._task._version = "Heb"
     Jin = np.loadtxt("Win"+str(modelNum)+".txt")
     Jrec = np.loadtxt("J"+str(modelNum)+".txt")
-    Jout = np.zeros((1,50))
+    Jout = np.zeros((1,hidden_size))
     print("Jin: ", Jin[:,1:].shape)
     rnnModel.AssignWeights(Jin[:,1:], Jrec, Jout)   # only take the second row of Win
     rnnModel._task = task

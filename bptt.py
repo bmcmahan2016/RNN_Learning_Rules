@@ -13,7 +13,7 @@ import torch.nn as nn
 import matplotlib.pyplot as plt
 import facilities as fac
 from torch.autograd import Variable
-
+import pdb
 
 class Bptt(RNN):
     '''create a trainer object that will be used to trian an RNN object'''
@@ -24,14 +24,14 @@ class Bptt(RNN):
 
         '''
 
-        self._num_epochs = 500
-        self._learning_rate = 5e-4
+        self._num_epochs = 2_000
+        self._learning_rate = 5e-4    # was 5e-4 previously
         self._hParams["learning_rate"] = self._learning_rate
         
         # cast as PyTorch variables
-        #self._J['in'] = Variable(self._J['in'], requires_grad=True)
+        self._J['in'] = Variable(self._J['in'], requires_grad=True)
         self._J['rec'] = Variable(self._J['rec'], requires_grad=True)
-        #self._J['out'] = Variable(self._J['out'], requires_grad=True)
+        self._J['out'] = Variable(self._J['out'], requires_grad=True)
         
         #self._params = [self._J['in'], self._J['rec'], self._J['out']]
         self._params = [self._J['rec']]
@@ -43,28 +43,45 @@ class Bptt(RNN):
         
         self._hidden = Variable(self._hidden, requires_grad=True)
 
-
-    # hack for now, fix by casting to numpy and then back to Torch perhaps
-    # TODO: fix this
-    def my_loss(self, mu, output):
-        np_loss = self._task.Loss(output, mu)  # here mu is condition
-        # torch_loss = Variable(torch.from_numpy(np.array(np_loss)))
-        #print("np_loss", np_loss)
-        return np_loss  # torch.log(1 + torch.exp(-mu * yt))
+    def my_loss(self, mu, output, hidden_states=0):
+        '''computs the loss for training BPTT'''
+        task_loss = self._task.Loss(output, mu)  # mu is condition
+        if self._task._name == "dnms":   # use Pascanu regularization for DNMS task
+            #omega = self.pascanu_regularizer(hidden_states, "tanh") 
+            total_loss = task_loss
+        else:
+            total_loss = task_loss
+        return total_loss  
 
     def trainBPTT(self, input, trial, condition):
-        #create an activities tensor for the rnn_model
-        self._activityTensor = np.zeros((self._num_epochs, int(self._task.N/10), self._hiddenSize))
-        self._optimizer.zero_grad()
-        self.StoreRecMag()
+        '''
+        train the BPTT model 
 
-        output = torch.zeros((self._task.N, 500*self._outputSize))      #i am lazy and this is a hack
+        Parameters
+        ----------
+        input : PyTorch CUDA Tensor
+            Inputs sequence to be fed into RNN. Has shape (batchSize, sequence_len, inputSize)
+        
+        Returns
+        -------
+        output : PyTorch CUDA Tensor
+        '''
+
+        batch_size, inpt_seq_len, input_size = input.shape      # input dimensions
+
+        #create an activities tensor for the rnn_model
+        self._optimizer.zero_grad()
+        #self.StoreRecMag()
+
+        output = torch.zeros((self._task.N, batch_size*self._outputSize)) 
         output_temp = torch.Tensor([0])
 
         trial_length = self._task.N
+        #hidden_states = torch.zeros((batch_size, inpt_seq_len, self._hiddenSize), requires_grad=True)
         for i in range(trial_length): 
             inputNow = input[:,i,:].t()
             output_temp, hidden = self._forward(inputNow)           #I need to generalize this line to work for context task
+            #hidden_states[:,i,:] = hidden.T                         # (batch_size, hidden_size)
             #output_temp, hidden = self.rnn_model.forward(input[:,i], hidden, dt)             #this incridebly hacky must improve data formatting accross all modules to correctly implement a context task that doesn't clash with DM task
             output[i] = np.squeeze(output_temp)
             if (i %10 == 0):
@@ -73,7 +90,11 @@ class Bptt(RNN):
         self.trial_count += 1
         # self.activity_tensor[trial, i, :] = hidden.detach().numpy()  # make sure calling detach does not mess with the backprop gradients (I think .data does)
         # https://pytorch.org/docs/stable/autograd.html
-        loss = self.my_loss(condition, output)
+        #pdb.set_trace()
+        if self._task._name == "dnms":   # use pascanu regularization
+            loss = self.my_loss(condition.view(-1,1), output)
+        else:
+            loss = self.my_loss(condition, output)
         loss.backward()
         self._optimizer.step()
         
@@ -93,6 +114,9 @@ class Bptt(RNN):
         self._startTimer()
         # create a validation dataset for the model
         self.createValidationSet()
+        # create activity tensor
+        self._activityTensor = np.zeros((self._num_epochs, int(self._task.N/10), self._hiddenSize))
+
         
         # inps_save = np.zeros((num_epochs, trial_length))
         self.trial_count=0

@@ -99,7 +99,7 @@ def COM_Flag(rnn_output):
 def TestCoherence(rnn, task, context_choice="in"):
     global coherence_vals
     num_trials = 2_000
-    coherence_vals = 2*np.array([-0.009, -0.09, -0.036, -0.15, 0.009, 0.036, 0.09, 0.15])#np.linspace(-.2,.2,6)
+    coherence_vals = 2*np.array([-0.009, -0.09, -0.036, -0.15, 0.009, 0.036, 0.09, 0.15])#np.linspace(-.2,.2,6) change 10 back to 2
     # will hold thenumber of rightward reaches for each coherence level
     num_right_reaches = []
     num_right_reaches_com = []

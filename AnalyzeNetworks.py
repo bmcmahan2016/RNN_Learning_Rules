@@ -31,6 +31,9 @@ if True:
     elif args.context:
         plt.figure()
         ContextFixedPoints('models/'+args.model_name, save_fixed_points=args.save_fp)
+    elif args.dnms:
+    	print("Analyzing DNMS network")
+    	DNMS_fixed_points('models/'+args.model_name)
     else:
         raise NotImplementedError
     

@@ -14,6 +14,7 @@ class Williams():
         self._mean = mean
         self.variance = variance
         self._version = version
+        self._name = "rdm"
         
     def GetInput(self, mean_overide=-1, var_overide=False):
         '''

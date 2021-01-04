@@ -1,22 +1,33 @@
-# -*- coding: utf-8 -*-
-"""
-Created on Mon Aug 24 14:05:52 2020
+'''
+delayed non-match to sample
+----segment of RDM-----delay-----segment of rdm----
+Network must output if the two RDM segments have the same net sign
 
-@author: bmcma
-context dependent integration task
-"""
+lets start with an easier version of this task, say 0.5 input mean
+
+standard trial:
+1s rest
+500ms fixation
+650ms of sample
+1s rest
+250ms test
+1s choice period
+
+we will shorten this to
+500ms sample, 500ms rest, 250ms test
+'''
 
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
 
-class context_task():
+class DMC():
     def __init__(self, N=750, mean=0.5, var=1):
         self.N = N
         self._mean = mean
         self._var = var
         self._version = ""
-        self._name = "context"
+        self._name = "dnms"
         
     def GetInput(self, mean_overide=-1, var_overide=1):
         '''
@@ -44,28 +55,28 @@ class context_task():
         
         # randomly generates context 1
         if torch.rand(1).item() < 0.5:
-            inpts[:,0] = mean*torch.ones(self.N)
+            inpts[:600,0] = torch.ones(600)
+            target = torch.tensor(1)
         else:
-            inpts[:,0] = -mean*torch.ones(self.N)
+            inpts[:,0] = 0*torch.ones(self.N)
+            target = torch.tensor(-1)
             
         # randomly generates context 2
         if torch.rand(1).item() < 0.5:
-            inpts[:,1] = mean*torch.ones(self.N)
+            inpts[:,1] = torch.ones(self.N)
         else:
-            inpts[:,1] = -mean*torch.ones(self.N)
+            inpts[:,1] = -torch.ones(self.N)
             
-        # randomly sets GO cue
-        if torch.rand(1).item() > 0.5:
-            inpts[:, 2] = 1
-            target = torch.sign(torch.mean(inpts[:,0]))
+        '''    
+        if torch.mean(inpts[:750,0]) == torch.mean(inpts[:750,1]):
+            target = torch.tensor(1)
         else:
-            inpts[:,3] = 1
-            target = torch.sign(torch.mean(inpts[:,1]))
-        
+            target= torch.tensor(-1)
+        '''
         # adds noise to inputs
-        inpts[:,:2] += self._var*torch.randn(750, 2).cuda()
+        #inpts[:,:2] += self._var*torch.randn(750, 2).cuda()
         
-        return inpts, target
+        return inpts[:,:2], target
     
     def PsychoTest(self, coherence, context="in"):
         inpts = torch.zeros((self.N, 4)).cuda()
@@ -98,31 +109,24 @@ class context_task():
             return meanSquareLoss
 
 
-if __name__ == '__main__':
-    import os,sys,inspect
-    currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-    parentdir = os.path.dirname(currentdir)
-    sys.path.insert(0,parentdir) 
-    from rnn import loadRNN, RNN
-    
-    model = loadRNN("Heb_1000")
-    
-    
-    task = context_task()
-    inpts, target = task.GetInput()
-    model_output = model.feed(torch.unsqueeze(inpts.t(),0))
-    inpts = inpts.cpu().detach().numpy()
-    print("target:", target.item())
-    plt.figure(1)
-    plt.plot(inpts[:,0])
-    plt.plot(inpts[:,1])
-    plt.legend(["Context 1", "Context 2"])
-    
-    
-    plt.figure(2)
-    plt.plot(inpts[:,2])
-    plt.plot(inpts[:,3])
-    plt.legend(["Go 1", "Go 2"])
-    
-    plt.figure()
-    plt.plot(model_output.detach().cpu().numpy())
+# construct
+
+if __name__=="__main__":
+    import matplotlib.pyplot as plt
+    import pdb
+    print("Delayed Categorical Match Task Called Directly! \n")
+    dnms = DMC()
+
+    for i in range(10):
+        signal, target = dnms.GetInput()
+        signal = signal.detach().cpu().numpy()
+        plt.figure(i)
+        plt.plot(signal[:,0])
+        plt.plot(signal[:,1])
+        plt.legend(["channel 1", "channel 2"])
+        plt.ylim([-5 ,5])
+        if target==1:
+            plt.title("target=1")
+        else:
+            plt.title("target=-1")
+    plt.show()
