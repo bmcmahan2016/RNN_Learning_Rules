@@ -59,7 +59,24 @@ class RNN(nn.Module):
         self._totalTrainTime = 0                                               # accumulates training time
         self._timerStarted = False
         self._useForce = False            # if set to true this slightly changes the forward pass 
+        self._useHeb = False
         self._fixedPoints = []
+        self._tol = 1
+        
+        self._J = {
+        'in' : (torch.randn(self._hiddenSize, self._inputSize).cuda())*(1/2),
+        'rec' : ((self._g**2)/50)*torch.randn(self._hiddenSize, self._hiddenSize).cuda(),
+        'out' : (0.1*torch.randn(self._outputSize, self._hiddenSize).cuda()),
+        'bias' : torch.zeros(self._hiddenSize, 1).cuda()*(1/2)
+        }
+
+        # these is an outdated dependence, these lines should be removed
+        # removing these lines will cause conflict elsewhere that must be 
+        # cleaned up
+        self._input_mask = torch.ones_like(self._J["in"])
+        self._input_mask[:17, 0] = 1
+        self._input_mask[17:34, 1] = 1
+
         try:
             self._use_ReLU = int(hyperParams["ReLU"])             # determines the activation function to use
         except:
@@ -73,6 +90,8 @@ class RNN(nn.Module):
 
         elif task == "multi":
             self._task = multi_sensory(var=hyperParams["taskVar"])
+
+
         else:
             self._task = Williams(N=750, mean=hyperParams["taskMean"], \
                                   variance=hyperParams["taskVar"])                
@@ -92,12 +111,7 @@ class RNN(nn.Module):
 
         #self.fractions = []
         #weight matrices for the RNN are initialized with random normal
-        self._J = {
-        'in' : (torch.randn(self._hiddenSize, self._inputSize).cuda())*(1/2),
-        'rec' : ((self._g**2)/50)*torch.randn(self._hiddenSize, self._hiddenSize).cuda(),
-        'out' : (0.1*torch.randn(self._outputSize, self._hiddenSize).cuda()),
-        'bias' : torch.zeros(self._hiddenSize, 1).cuda()*(1/2)
-        }
+
         
     def _startTimer(self):
         '''
@@ -203,19 +217,22 @@ class RNN(nn.Module):
         determine if training should be terminated
         '''
         accuracy = 0.0
-        tol = 1
+        tol = self._tol
 
         inpt_data = self.validationData#.t()
         condition = self.validationTargets
         condition = torch.squeeze(condition)
         output = self.feed(inpt_data)
         if self._task._name == "multi":
-            output_final = torch.round(output[-1,:])
+            output_final = output[-1,:]
+            output_final = 2 * (output_final-0.5)
+            condition[condition==0] = -1
             error = torch.abs(condition-output_final)
             # threshold this so that errors greater than tol(=0.1) are counted
-            num_errors = torch.where(error>0.5)[0].shape[0]
+            num_errors = torch.where(error>tol)[0].shape[0]
         else:
             output_final = torch.sign(output[-1,:])
+            # scale ouput in the case of multisensory network
             # compute the difference magnitudes between model output and target output
             #if isinstance(self._task, DMC):
             #    differences = self.validationTargets-output_final.view(-1,1)
@@ -233,7 +250,10 @@ class RNN(nn.Module):
         return accuracy
 
     def _UpdateHidden(self, inpt):
-        '''
+        '''Updates the hidden state of the RNN. NOTE: The way the hidden state is updated 
+        will vary depending on the task and learning rule the RNN was trained with. 
+
+
         Parameters
         ----------
         inpt : PyTorch cuda tensor
@@ -248,20 +268,26 @@ class RNN(nn.Module):
 
         '''
         dt = self._dt
-        if self._use_ReLU:
+        if self._task._name == "multi":    # mask inputs RNNs trained on multisensory task
+            Jin = torch.mul(self._J["in"], self._input_mask)
+        else:
+            Jin = self._J["in"]
+
+        if self._use_ReLU:  # ReLU activation
             hidden_floor = torch.zeros(self._hidden.shape).cuda()
             hidden_next = dt*torch.matmul(self._J['in'], inpt) + \
             dt*torch.matmul(self._J['rec'], (torch.max(hidden_floor, self._hidden))) + \
             (1-dt)*self._hidden + dt*self._J['bias']
-        else:   # add nosie term
-            if self._task._version == "Heb":
+
+        else:               # tanh activation
+            if self._useHeb:     # hebbian version of task
                 noiseTerm=0
-                hidden_next = dt*torch.matmul(self._J['in'], inpt) + \
+                hidden_next = dt*torch.matmul(Jin, inpt) + \
                 dt*torch.matmul(self._J['rec'], (torch.tanh(self._hidden))) + \
                 (1-dt)*self._hidden + dt*self._J['bias'] + 0*noiseTerm
             else:
                 noiseTerm=0
-                hidden_next = dt*torch.matmul(self._J['in'], inpt) + \
+                hidden_next = dt*torch.matmul(Jin, inpt) + \
                 dt*torch.matmul(self._J['rec'], (1+torch.tanh(self._hidden))) + \
                 (1-dt)*self._hidden + dt*self._J['bias'] + 0*noiseTerm
 
@@ -294,7 +320,9 @@ class RNN(nn.Module):
         
         # compute the forward pass
         self._UpdateHidden(inpt)
-        if self._useForce:
+        if self._useHeb:
+            output = torch.tanh(self._hidden[0])
+        elif self._useForce:
             output = torch.tanh(torch.matmul(self._J['out'], torch.tanh(self._hidden)))
         else:
             output = torch.matmul(self._J['out'], self._hidden)
@@ -558,7 +586,7 @@ class RNN(nn.Module):
 ###########################################################
 
 
-def loadRNN(fName, optimizer=""):
+def loadRNN(fName, optimizer="", load_hyper=False, task="rdm"):
     '''
     loads an rnn object that was previously saved
 
@@ -583,14 +611,20 @@ def loadRNN(fName, optimizer=""):
             model = Genetic(hyperParams)
             
         else:
-            model = RNN(hyperParams)
+            model = RNN(hyperParams, task=task)
             
         model.load(fName)      # loads the RNN object
         model._MODEL_NAME = fName
         if fName[7].lower() == 'h' or fName[0].lower() == 'h':
-            print("loaded hebain version")
-            model._task._version = "Heb"
-        return model
+            print("Using RNN update for Hebbian network")
+            model._useHeb = True
+        elif fName[7].lower() == 'f':
+            print("using RNN update for Full FORCE network")
+            model._useForce = True
+        if load_hyper:
+            return model, hyperParams
+        else:
+            return model
     else:       # file does not exist
         return False
 
@@ -610,7 +644,7 @@ def create_test_time_ativity_tensor(rnnModel):
         activityTensor[trial_num, :, :] = np.squeeze(hidden_states[::10, :, :])        # record every 10th timestep from hidden state
     rnnModel._activityTensor = activityTensor
 
-def importHeb(name = "undeclared_heb", modelNum="50400", context_flag=False, dnms_flag=False, var=1):
+def importHeb(name = "undeclared_heb", modelNum="100400", context_flag=False, dnms_flag=False, var=1):
     '''
     loads data from training with the biologically plausible learning algorithm
     (Miconi 2017) and loads it into an RNN model. Win and Jrec text files must be
@@ -631,7 +665,7 @@ def importHeb(name = "undeclared_heb", modelNum="50400", context_flag=False, dnm
     if dnms_flag:
         input_dim=2
         hidden_size = 50
-        task = DMC()
+        task = multi_sensory(var=8)
     elif context_flag:
         input_dim = 4
         task = context_task()
@@ -656,7 +690,7 @@ def importHeb(name = "undeclared_heb", modelNum="50400", context_flag=False, dnm
     rnnModel = RNN(hyperParams)
     #rnnModel._task._version = "Heb"
     Jin = np.loadtxt("Win"+str(modelNum)+".txt")
-    Jrec = np.loadtxt("J"+str(modelNum)+".txt")
+    Jrec = np.loadtxt("J_"+str(modelNum)+".txt")
     Jout = np.zeros((1,hidden_size))
     print("Jin: ", Jin[:,1:].shape)
     rnnModel.AssignWeights(Jin[:,1:], Jrec, Jout)   # only take the second row of Win

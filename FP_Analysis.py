@@ -279,18 +279,18 @@ def plotFixedPoints(roots_embedded):
     ----------
     roots_embedded : NumPy array
         contains the embedded roots along with stability flag (first column) and 
-        static_input (second column) has shape (2+num_roots, hidden_size).
+        static_input (second column) has shape (num_roots, 2+hidden_size).
 
     Returns
     -------
     None.
 
     '''
-    for _ in range(roots_embedded.shape[0]):
-        if roots_embedded[_, 0] == 1:      # checks stability flag of current root
-            #pdb.set_trace()
+    pdb.set_trace()
+    for _ in range(roots_embedded.shape[0]):  # loop over roots
+        if roots_embedded[_, 0] == 1:  # root is stable
             plt.scatter(roots_embedded[_, 2], roots_embedded[_, 3], c=cmap(roots_embedded[_,1]), alpha=1)
-        else:
+        else:    # root is unstable
             plt.scatter(roots_embedded[_, 2], roots_embedded[_, 3], marker='x', c=cmap(roots_embedded[_,1]), alpha=1)
 
 

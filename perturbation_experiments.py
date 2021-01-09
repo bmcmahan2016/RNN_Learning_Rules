@@ -303,33 +303,6 @@ def AnalyzePerturbedNetwork(model, model_name, test_inpt=1):
     plt.show()
     
 
-def remove_inhibition(model_choice, xmin=-10, xmax=10, ymin=-10, ymax=10, test_inpt=1):
-    #####################################################
-    ############################
-    #ANALYSIS CODE
-    ############################
-    #####################################################
-    model = RNN(1, 50, 1)
-    model.load(model_choice)
-    model_choice+='_no_inhibition'
-    
-    #zero all negative weights
-    W_rec = model.J['rec'].data.numpy()
-    W_rec[W_rec<0]=0                    #remove all inhibitory connections
-    W_in = model.J['in'].data
-    model.AssignWeights(model.J['in'].data, W_rec, model.J['out'].data)
-    outputs, targets = r.TestTaskInputs(model, Williams())
-    print('outputs', outputs.shape)
-    print('targets', targets.shape)
-    # compute the MSE
-    network_final_decisions = outputs[:,-1].reshape(-1, 1)    # column vector
-    # reshape conditions as column vector
-    target_outs = targets.reshape(-1, 1)
-    error = MeasureAccuracy(network_final_decisions, target_outs)
-    print('Accuracy', error)
-    
-    return error
-    AnalyzeLesioned(model, model_choice, xmin, xmax, ymin, ymax)
 
 def MeasureAccuracy(network_choices, target_choices, tol=1):
     '''
@@ -357,57 +330,7 @@ def MeasureAccuracy(network_choices, target_choices, tol=1):
     accuracy = num_correct / num_trials
     return accuracy
 
-def lesion_control(model_choice, xmin=-10, xmax=10, ymin=-10, ymax=10, test_inpt=1):
-    #####################################################
-    ############################
-    #ANALYSIS CODE
-    ############################
-    #####################################################
-    model = RNN(1, 50, 1)
-    model.load(model_choice)
-    model_choice+='_no_excitation'
-    
-    # we don't wish to alter any weights for the control experiment
-    outputs, targets = r.TestTaskInputs(model, Williams())
-    print('outputs', outputs.shape)
-    print('targets', targets.shape)
-    # compute the MSE
-    network_final_decisions = outputs[:,-1].reshape(-1, 1)    # column vector
-    # reshape conditions as column vector
-    target_outs = targets.reshape(-1, 1)
-    error = MeasureAccuracy(network_final_decisions, target_outs)
-    error = num_correct / total_num
-    print('Accuracy', error)
-    
-    return error
 
-def remove_excitation(model_choice, xmin=-10, xmax=10, ymin=-10, ymax=10, test_inpt=1):
-    #####################################################
-    ############################
-    #ANALYSIS CODE
-    ############################
-    #####################################################
-    model = RNN(1, 50, 1)
-    model.load(model_choice)
-    model_choice+='_no_excitation'
-    
-    #zero all negative weights
-    W_rec = model.J['rec'].data.numpy()
-    W_rec[W_rec>0]=0                    #remove all excitatory connections
-    W_in = model.J['in'].data
-    model.AssignWeights(model.J['in'].data, W_rec, model.J['out'].data)
-    outputs, targets = r.TestTaskInputs(model, Williams())
-    print('outputs', outputs.shape)
-    print('targets', targets.shape)
-    # compute the MSE
-    network_final_decisions = outputs[:,-1].reshape(-1, 1)    # column vector
-    # reshape conditions as column vector
-    target_outs = targets.reshape(-1, 1)    
-    error = MeasureAccuracy(network_final_decisions, target_outs)
-    print('Accuracy', error)
-    
-    return error
-    AnalyzeLesioned(model, model_choice, xmin, xmax, ymin, ymax)
 
 def niave_network(modelPath, xmin=-10, xmax=10, ymin=-10, ymax=10, test_inpt=.1):
     model = loadRNN(modelPath)
@@ -562,48 +485,29 @@ def PlotRoots(all_roots, roots_embedded, idxs, colors, marker='o'):
             #plt.scatter(curr_set_of_roots_x[curr_point], curr_set_of_roots_y[curr_point], facecolors='none', edgecolors=colors[_], alpha=alpha)
         start_idx += idxs[_]
 
-def DNMS_fixed_points(model_choice, save_fixed_points=False):
+def multi_fixed_points(model_choice, save_fixed_points=False):
     import FP_Analysis as fp
-    model = loadRNN(model_choice)
-
-
-    #model.load(model_choice)
-    model._task = multi_sensory()
+    model = loadRNN(model_choice, task="multi")
+    '''
     if model_choice[7].lower() == 'h':
         model._task._version = "Heb"
+    if model_choice[7:9].lower() == "ff":
+        model._useForce = True
+    '''
 
     model.plotLosses()
 
-    '''
-    model.plotLosses()
-    plt.title('Training Loss')
-    plt.figure()
 
-
-    activity_tensor = model.activity_tensor
-    neuron_factor = r.plotTCs(activity_tensor, model.targets, 1)
-    neuron_idx = np.argsort(neuron_factor)
-    #p is the index that partitions neuron_idx into two clusters
-    p = np.nonzero(np.diff(np.sign(neuron_factor[neuron_idx])))[0][0] + 1
-    #plot the sorted weight matrix
-    plt.figure()
-    model.VisualizeWeightMatrix(neuron_idx)
-    plt.figure()
-    model.VisualizeWeightClusters(neuron_idx, p)
-    '''
-
-    F = model.GetF()#func_master
+    F = model.GetF()    # RNN update equation
 
     # fixed points for dnms task
     static_inpts = np.zeros((3, 2))
-    static_inpts[0, :] = np.array([1,0])  
-    static_inpts[1, :] = np.array([0,1])         
-    static_inpts[2, :] = np.array([0,0]) 
+    static_inpts[0, :] = np.array([1,0])       # auditory input
+    static_inpts[1, :] = np.array([0,1])       # visual input
+    static_inpts[2, :] = np.array([1,1])       # multisensory input
 
     roots = fp.FindFixedPoints(model, static_inpts, embedding='pca', embedder=model._pca, Verbose=False)
     print('Static Inputs \n\n', static_inpts)    # print to verify correct
-
-    #context1_roots = fp.FindFixedPoints(model, context1_inpts, embedding='pca', embedder=model._pca, Verbose=False)
 
     print('\n'*5)
     print('Number of roots found: ', len(roots))
@@ -612,88 +516,35 @@ def DNMS_fixed_points(model_choice, save_fixed_points=False):
 
     # perform PCA on trajectories to get embedding
     cs = ['r', 'r', 'r', 'r', 'r', 'b', 'b', 'b', 'b', 'b']
+    # TODO: check that record is working properly inside this function call
     trial_data, trial_labels = r.record(model, \
         title='fixed points', print_out=True, plot_recurrent=False, cs=cs)
     model._pca = PCA()
     model_trajectories = model._pca.fit_transform(trial_data.reshape(-1, model._hiddenSize)).reshape(10,-1,model._hiddenSize)
-    assert(model_trajectories.shape[1]==model._task.N)           # number of timesteps in trial
-    assert(model_trajectories.shape[2]==model._hiddenSize)       # number of hidden units
+    # model_trajectories is (t_steps, hiddenSize)
+    assert(model_trajectories.shape[1]==model._task.N)
+    assert(model_trajectories.shape[2]==model._hiddenSize)
+
     if save_fixed_points:
         print("saving fixed points to model")
-        model.updateFixedPoints(roots, model._pca)                   # fixed points now saved
+        model.updateFixedPoints(roots, model._pca)    
     else:
         print("Fixed points not saved!")
     
     
     
     roots_embedded = fp.embed_fixed_points(roots, model._pca)
-    #roots2_embedded = fp.embed_fixed_points(context2_roots, model._pca)
     plt.figure(100)
+    plt.title("PCA of Fixed Points For Multisensory Task")
     fp.plotFixedPoints(roots_embedded)
-    plt.legend(['Context 1'])
     for i in range(10):
         plt.plot(model_trajectories[i,:,0], model_trajectories[i,:,1], c = cs[int(trial_labels[i])], alpha=0.25)
-    #fp.plotFixedPoints(roots2_embedded)
-    #plt.legend(['Context 2'])
-    #for i in range(10):
-    #    plt.plot(model_trajectories[i,:,0], model_trajectories[i,:,1], c = cs[int(trial_labels[i].item())], alpha=0.25)
 
     plt.figure(123)
-    plt.title('Evaluation of Model on DNMS Task')
-    task=DMC()
-    r.TestTaskInputs(model, task)
+    plt.title('Evaluation of Model on Multisensory Task')
+    r.TestTaskInputs(model)        
 
     plt.show()
-    assert False
-
-    # plot results in a figure
-    colors = [[[1, 0, 0]], [[0.9, 0, 0]], [[0.8, 0, 0]], [[0.7, 0, 0]], [[0.6, 0, 0]], [[0.5, 0, 0]],\
-            [[0.5, 0, 0.1]], [[0.5, 0, 0.2]], [[0.5, 0, 0.3]], [[0.5, 0, 0.4]], [[0.5, 0, 0.5]], [[0.4, 0, 0.5]], [[0.3, 0, 0.5]],\
-            [[0.2, 0, 0.5]], [[0.1, 0, 0.5]], [[0, 0, 0.5]], [[0, 0, 0.6]], [[0, 0, 0.7]], [[0, 0, 0.8]],\
-            [[0, 0, 0.9]], [[0, 0, 1]]]
-    plt.figure()
-    PlotRoots(context1_roots, roots_embedded[:num_roots_context1,:], context1_idxs, colors, marker='x')
-    PlotRoots(context2_roots, roots_embedded[num_roots_context1:,:], context2_idxs, colors, marker='o')
-    plt.show()
-    # we want to add Wout to the plot
-    W_out = model.J['out'].detach().numpy()
-    W_out_PC = pca.transform(W_out)
-    PC1_axis = np.linspace(-10, 10, 100)
-    Wout_partition = -(W_out_PC[:, 0]/W_out_PC[:, 1])*PC1_axis
-    plt.plot(PC1_axis, Wout_partition, c='k', linestyle='dashed')
-
-    # add inputs to the graph
-    # compute the forward pass for an input
-    inpt1 = np.array([10,0,1,0])
-    inpt2 = np.array([-10,0,1,0])
-    inpt3 = np.array([0,10,1,0])
-    inpt4 = np.array([0,-10,1,0])
-
-    # compute the forward pass
-    output, hidden1 = model.forward(inpt1, model.init_hidden(), 0.1)
-    output, hidden2 = model.forward(inpt2, model.init_hidden(), 0.1)
-    output, hidden3 = model.forward(inpt3, model.init_hidden(), 0.1)
-    output, hidden4 = model.forward(inpt4, model.init_hidden(), 0.1)
-
-    print('hidden1')
-    print(hidden1.t().shape)
-    # now transform hidden representations of input to PC space
-
-    inpt1_vec = pca.transform(hidden1.t().detach().numpy())
-    inpt2_vec = pca.transform(hidden2.t().detach().numpy())
-    inpt3_vec = pca.transform(hidden3.t().detach().numpy())
-    inpt4_vec = pca.transform(hidden4.t().detach().numpy())
-    ax = plt.axes()
-    print('vec1')
-    print(inpt1_vec.shape)
-    # plot vectors
-    ax.arrow(0, 0, inpt1_vec[0][0], inpt1_vec[0][1], head_width=0.2, head_length=0.3, fc='grey', ec='grey')
-    ax.arrow(0, 0, inpt2_vec[0][0], inpt2_vec[0][1], head_width=0.2, head_length=0.3, fc='blue', ec='blue')
-    ax.arrow(0, 0, inpt3_vec[0][0], inpt3_vec[0][1], head_width=0.2, head_length=0.3, fc='red', ec='red')
-    ax.arrow(0, 0, inpt4_vec[0][0], inpt4_vec[0][1], head_width=0.2, head_length=0.3, fc='green', ec='green')
-
-    plt.title('All Roots for Contextual Decision-Making Task')
-
 
 
 def ContextFixedPoints(model_choice, save_fixed_points=False):
@@ -845,99 +696,6 @@ def ContextFixedPoints(model_choice, save_fixed_points=False):
 
     plt.title('All Roots for Contextual Decision-Making Task')
 
-def ComputeStepSize(model_choice):
-    # load in the trained RNN model
-    model = RNN(4, 50, 1)
-    model.load(model_choice)
-    task = ContextTask()
-
-    # create an input to feed the network
-    inpt1 = np.array([1, 0, 1, 0])        #go signal of 1 in signaled context (context 1)
-    inpt2 = np.array([.1, 0, 1, 0])        #go signal of 0.1 in signaled context (context 1)
-    inpt3 = np.array([-1, 0, 1, 0])        #go signal of -1 in signaled context (context 1)
-    inpt4 = np.array([-.1, 0, 1, 0])    #go signal of -0.1 in signaled context (context 1)
-
-    inpts = [inpt1, inpt2, inpt3, inpt4]
-
-    # get the initial hidden state
-    hidden_old = model.init_hidden()
-
-    # initialize an empty list that will hold distances
-    dX_dt_ = []
-
-    # loop over all input conditions
-    for inpt in inpts:
-        dX_dt = []
-        # loop over this input 40 times
-        for _ in range(40):
-            output, hidden_new=model.forward(inpt, hidden_old, 0.1)
-            hidden_new=hidden_new.detach()
-            # compute distance between old and new hidden layers
-            dX_dt.append(ComputeDistance(hidden_old, hidden_new))
-            # update the old hidden layer before updating the new hidden layer
-            hidden_old = hidden_new
-        # end current input condition
-        dX_dt_.append(dX_dt)
-
-    # plot results
-    plt.figure()
-    plt.plot(np.array(dX_dt_[0]))
-    plt.plot(np.array(dX_dt_[1]))
-    plt.plot(np.array(dX_dt_[2]))
-    plt.plot(np.array(dX_dt_[3]))
-    plt.legend(['input: 1', 'input: 0.1', 'input: -1', 'input: -0.1'])
-    plt.ylabel('dX/dt')
-    plt.xlabel('Time')
-
-def PlotModelComplexities(models):
-    # create a list that will hold the complexities for each model
-    model_complexities = []
-    # loop over each model
-    for model_choice in models:
-        model = RNN(1, 50, 1)
-        model.load(model_choice)
-        # get the PCA for the current model
-        explained_var = model.pca.explained_variance_ratio_
-        print(model_choice)
-        print(explained_var)
-        print('\n\n\n')
-        total_var = 0
-        num_comps_needed = 0
-        # compute the number of components needed to account for 95% of variance
-        while(total_var<=.99):
-            num_comps_needed += 1
-            total_var += explained_var[num_comps_needed-1]
-
-        # append the results to the list of model complexities
-        model_complexities.append(num_comps_needed)
-
-    # plot the complexeties of each model
-    model_complexities = np.array(model_complexities)
-    plt.figure()
-    plt.bar([1, 2, 3, 4], model_complexities, tick_label=['BPTT', 'Genetic', 'Hebbian', 'FORCE'])
-    plt.ylabel('PCs Needed To Explain 99% of Variance')
-    
-def QuantifyVacillation(rnn_inst, task):
-    vacillations = []
-    vacillations_tmp = []
-    
-    # loop over different coherence levels to test the network
-    coherence_levels = np.linspace(-1, 1, 50)
-    for coherence in coherence_levels:
-        # test the network several times
-        for itr in range(100):
-            # generate input conditions to feed the model
-            inpt = task.PsychoTest(coherence)
-            network_outputs = rnn_inst.feed(inpt)
-            # count the number of vacillations in the network output
-            signed_output = np.sign(network_outputs)
-            sign_changes = np.diff(signed_output)
-            sign_change_locations = np.nonzero(sign_changes)
-            vacillations_tmp.append( (len(sign_change_locations[0])) )
-        vacillations.append( np.mean(np.array(vacillations_tmp)) )
-        vacillations_tmp = [] 
-    return vacillations, coherence_levels
-        
 
 def QuantifyVascillation(model_choice, inpt_coef, lesion=0):
     '''
@@ -1114,13 +872,3 @@ def GetModelAccuracy(model_choice, noise, layer='input', inpt_coef=1, tol=1):
     plt.ylabel('Network Accuracy')
 
     return accuracy
-
-
-
-
-
-
-
-
-
-

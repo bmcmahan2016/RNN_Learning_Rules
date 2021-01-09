@@ -59,20 +59,19 @@ class multi_sensory():
         assert(self._t_start < self.N)
         
     def GetInput(self, mean_overide=-1, var_overide=1):
-        '''
-        Generates input for training an RNN on the multisensory integration task. 
+        '''Generates input for training an RNN on the multisensory integration task. 
 
         Parameters
         ----------
-        mean_overide : TYPE, optional
-            DESCRIPTION. The default is 1.
+        mean_overide : float, optional
+            This is a vestigal dummy argument without a purpose.
 
         Returns
         -------
         inpts : PyTorch CUDA Tensor
-            DESCRIPTION.
-        target : TYPE
-            DESCRIPTION.
+            2 channel input for training the network. Has shape (t_steps, 2)
+        target : float64
+            Network target outputs for current input, either zero or one. 
 
         '''
         inpts = torch.zeros((self.N, 2)).cuda()   # inputs are timesteps by 2 channels
@@ -100,6 +99,43 @@ class multi_sensory():
         inpts += (self._var/self._peak)*torch.randn(self.N, 2).cuda()
         
         return inpts, target
+
+    def PsychoTest(self, coherence, context=0):
+        '''
+        Generates an input for generating a psychometric curve. There are three cases:
+        case 1: only auditory   (first channel)
+        case 2: only visual     (second channel)
+        case 3: congruent       (both channels)
+        '''
+
+        assert(coherence >= 0)                    # coherence must be non-negative
+        inpts = torch.zeros((self.N, 2)).cuda()   # inputs are timesteps by 2 channels
+        
+        
+        # event frequency is equal to specified coherence
+        event_freqx_range = self._peak - self._min
+        event_freqx = self._min + coherence*event_freqx_range
+        target = np.floor(event_freqx/self._thresh)
+        event_freqx /= self._peak            # normalizes event freqx to (0,1]
+        trial_duration = self.N - self._t_start 
+
+        # choose channel specified by context
+        if context == 0:   # auditory only
+            inpts[self._t_start:,0] = event_freqx*torch.ones(trial_duration)
+        elif context == 1: # visual only
+            inpts[self._t_start:,1] = event_freqx*torch.ones(trial_duration)
+        elif context == 2: # congruent stimulus
+            inpts[self._t_start:,0] = event_freqx*torch.ones(trial_duration)
+            inpts[self._t_start:,1] = event_freqx*torch.ones(trial_duration)
+        else:
+            raise NameError("This is not a supported context")
+
+        # add normalized noise to the inputs
+        inpts += (self._var/self._peak)*torch.randn(self.N, 2).cuda()
+
+        assert(inpts.shape[1] == 2)   # check that we have two channels
+        assert(inpts.shape[0] == self.N)   # check that trial is of correct length
+        return inpts
 
     def Loss(self, y, target, errorTrigger=-1):
         '''

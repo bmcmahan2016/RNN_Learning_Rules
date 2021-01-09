@@ -67,16 +67,17 @@ class context_task():
         
         return inpts, target
     
-    def PsychoTest(self, coherence, context="in"):
+    def PsychoTest(self, coherence, context=0):
         inpts = torch.zeros((self.N, 4)).cuda()
         inpts[:,0] = coherence*torch.ones(self.N)                # attended signal       changed 0->2
         inpts[:,1] = 2*(torch.rand(1)-0.5)*0.1857*torch.ones(self.N)   # ignored signal  changed 1->3
-        if context=="in":  # signals attended signal
+        if context==0:  # signals attended signal
              inpts[:, 2] = 1    # changed 2 - >0
              
-        else: # attends to the ignored signal
+        elif context==1: # attends to the ignored signal
              inpts[:, 3] = 1    # changed 3 -> 1
-         
+        else:
+            raise ValueError("Inappropriate value for context")
         inpts[:,:2] += self._var*torch.randn(750, 2).cuda()    # adds noise to inputs
         
         assert(inpts.shape[1] == 4)

@@ -204,7 +204,7 @@ def TestIdenticalInputs(model, conditions, cs=['r', 'b', 'k', 'g', 'y'], title='
         title += additional_title
     plt.title(title)
 
-def TestTaskInputs(model, task, num_test=50, ShowFig=True, return_hidden=False, inpt_scale=1):
+def TestTaskInputs(model, num_test=50, ShowFig=True, return_hidden=False, inpt_scale=1):
     '''
     Will test a model on the Williams 1D decision-making task
     '''
@@ -220,13 +220,15 @@ def TestTaskInputs(model, task, num_test=50, ShowFig=True, return_hidden=False, 
         inp, condition = task.GetInput(mean_overide=0.1857)
         output, hidden_activities = model.feed(inpt_scale*torch.unsqueeze(inp.t(), 0), return_hidden=True)
         #pdb.set_trace()
+        '''
         if model._task._version == "Heb":
             print("Heb"*80)
-            output = hidden_activities[:,0,0]
-        else:
-            output = output.cpu().detach().numpy()
-            #hidden_activities = hidden_activities.cpu().detach().numpy()
-            # add current output to list of network outputs
+            output = np.tanh(hidden_activities[:,0,0])
+        '''
+        #else:
+        output = output.cpu().detach().numpy()
+        #hidden_activities = hidden_activities.cpu().detach().numpy()
+        # add current output to list of network outputs
         network_outputs.append(output)
         network_hidden.append(hidden_activities)
         # add the current tast target to the list of all targets
@@ -239,22 +241,6 @@ def TestTaskInputs(model, task, num_test=50, ShowFig=True, return_hidden=False, 
                 plt.plot(output, c='b')
     return network_hidden, np.array(network_outputs), np.array(target_outputs)
 
-
-def TestInputs(model, variances=[2,4,8], cs=['r', 'b', 'k', 'g', 'y'], title=''):
-    plt.figure()
-    for _ in range(len(variances)):
-        #create identical input data
-        task = Williams(variance=variances[_])
-        condition = 0
-        while condition != 1:
-            data, condition = task.GetInput()
-        output = model.feed(data)
-        #print('target is', condition.item())
-        plt.plot(output, c=cs[_], alpha=0.8)
-        #print('variance:', variances[_], 'color', cs[_])
-        additional_title = '\nvariance:' + str(variances[_]) + 'is color:' + cs[_] 
-        title += additional_title
-    plt.title(title)
 
 def record(model, cs=['r', 'b', 'k', 'g', 'y'], title='', print_out=False, plot_recurrent=True, add_rec_noise=False, add_in_noise=False, only_out=False):
     '''
@@ -285,7 +271,6 @@ def record(model, cs=['r', 'b', 'k', 'g', 'y'], title='', print_out=False, plot_
         #plt.figure()
         #plot_annotated = False
     outputs = []
-    pdb.set_trace()
 
     model._hiddenInitScale = model._hiddenInitScale * 0
 
@@ -293,16 +278,9 @@ def record(model, cs=['r', 'b', 'k', 'g', 'y'], title='', print_out=False, plot_
     #loop over conditions to create trials
     for _ in range(10):
         length_of_data=750    #200   #100
-        #create identical valued input data and feed it to network
-        #pdb.set_trace()
-        #taskData, target = model._task.GetInput(mean_overide=0.5*model._task._mean, var_overide=False)
         taskData, target = model._task.GetInput()       # this line is used for multi_sensory task
-        taskData = taskData[:750]
         if taskData.shape[1] == 4:   # context task
             taskData[200:, :2] = 0
-        else:
-            pass                        # rdm task
-            #taskData[10:] = 0
         trial_labels.append(target)
         #data = np.linspace(conditions[_], conditions[_], length_of_data).reshape(length_of_data,1)
         #data = torch.from_numpy(data).float().cuda()
@@ -312,7 +290,7 @@ def record(model, cs=['r', 'b', 'k', 'g', 'y'], title='', print_out=False, plot_
         output, hidden = model.feed(torch.unsqueeze(taskData.t(), 0), return_hidden=True)
         if model._task._version=="Heb":
             #pdb.set_trace()
-            output = hidden[:,0]
+            output = np.tanh(hidden[:,0])
             outputs.append(output)
         else:
             #convert output to numpy array

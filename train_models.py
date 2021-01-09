@@ -51,7 +51,7 @@ def TrainMulti(name, hyperParams, use_ReLU=False):
 
     print(name.lower()[:2])
     if name.lower()[:2] == "bp":
-        rnnModel = Bptt(hyperParams, task="multi")
+        rnnModel = Bptt(hyperParams, task="multi", lr=1e-4)
     elif name.lower()[:2] == "he":
         raise NotImplementedError()
     elif name.lower()[:2] == "ga" or name.lower()[:2] == "ge":      # use genetic learning rule
@@ -104,7 +104,7 @@ elif args.context:
 if args.multi:
     print("Training network on multisensory integration task!")
     hyperParams["inputSize"] = 2
-    hyperParams["g"] = 2
+    hyperParams["g"] = 1
     hyperParams["hiddenSize"] = 50
     TrainMulti(args.model_name, hyperParams)
 else:

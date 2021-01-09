@@ -17,7 +17,7 @@ import pdb
 
 class Bptt(RNN):
     '''create a trainer object that will be used to trian an RNN object'''
-    def __init__(self, hyperParams, task="rdm"):
+    def __init__(self, hyperParams, task="rdm", lr=5e-4):
         super(Bptt, self).__init__(hyperParams, task=task)
         '''
         description of parameters:
@@ -25,7 +25,7 @@ class Bptt(RNN):
         '''
 
         self._num_epochs = 2_000
-        self._learning_rate = 5e-4    # was 5e-4 previously
+        self._learning_rate = lr   
         self._hParams["learning_rate"] = self._learning_rate
         
         # cast as PyTorch variables

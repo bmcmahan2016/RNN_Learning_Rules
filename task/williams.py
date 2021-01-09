@@ -127,7 +127,7 @@ class Williams():
         inp, condition = self.GetInput()
         return inp, condition
     
-    def PsychoTest(self, coherence):
+    def PsychoTest(self, coherence, context=0):
         var = self.variance#1-np.abs(coherence)
         inp = utils.GetGaussianVector(coherence, var, self.N)  # changed from 0.5
         #inp = inp.to(torch.device('cuda'))
