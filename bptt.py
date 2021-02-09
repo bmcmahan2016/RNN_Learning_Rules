@@ -136,7 +136,7 @@ class Bptt(RNN):
         
         # start main training loop
         while(validation_accuracy < termination_accuracy):
-            if self.trial_count >= self._num_epochs:
+            if self.trial_count >= 10*self._num_epochs:
                 break
             
             self.SaveWeights()

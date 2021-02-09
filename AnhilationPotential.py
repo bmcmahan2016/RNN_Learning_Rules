@@ -11,7 +11,7 @@ def GetUnique(points, tol=1e-3):
 	clf_pts = []	#will hold indices of points that have already been grouped
 	unclf_pts = []
 
-	#first pass--point is classified identically to self
+    #first pass--point is classified identically to self
 	for idx in range(len(points)):
 		pt1 = points[0]
 		pt2 = points[idx]
@@ -39,9 +39,6 @@ def GetUnique(points, tol=1e-3):
 			else:
 				unclf_pts_tmp.append(idx)
 		unclf_pts = unclf_pts_tmp	#reset unclassified points
-
-	print('number unique:',len(unique_pts))
-
 	for _ in range(len(unique_pts)):
 		unique_pts[_] = np.mean(unique_pts[_], axis=0)	#want to average over rows to get one point
 

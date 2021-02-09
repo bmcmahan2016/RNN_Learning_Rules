@@ -87,10 +87,10 @@ def CountReaches(network_decisions, tol=1):
     num_reaches = len(network_decisions)
     total_right = 0
     for _ in range(num_reaches):
-        if 1-network_decisions[_] <= tol:
+        if network_decisions[_] > 0:#1-network_decisions[_] <= tol:
             total_right += 1
             #print(network_decisions[_])
-        elif torch.abs(network_decisions[_]) < 1-tol:
+        elif network_decisions[_] == 0: #torch.abs(network_decisions[_]) < 1-tol:
             # omit trials where a clear reach was not made
             #print('reach omitted...\n')
             num_reaches -= 1
@@ -144,7 +144,8 @@ def TestCoherence(rnn, task, context_choice=0):
         network_decisions = output[-1,:]         # outputs are (t_steps, num_trials)
         if args.multi:                           # scales outputs from [0,1] -> [-1,1]
             print("Multisensory RNN scaling applied to network outputs")
-            network_decisions = 2 * (network_decisions - 0.5)
+            # TODO: uncomment below line to if network outputs [0, 1]
+            #network_decisions = 2 * (network_decisions - 0.5)
 
         # computes fraction of reaches that were to the right
         ReachFraction = CountReaches(network_decisions)
@@ -206,7 +207,8 @@ elif args.context:# generate psychometric curves for the context task
     Plot(coherence_vals, num_right_reaches, plt_title="in context", fit="sigmoid")    # plot in-context psychometric data
 
     num_right_reaches = TestCoherence(rnn, task, context_choice=1)
-    Plot(coherence_vals, num_right_reaches, plt_title="out context", fit="linear")   # plot out-context pyschometric data
+    Plot(coherence_vals, num_right_reaches, plt_title="out context", fit="linear", \
+         newFig=False)   # plot out-context pyschometric data on same axis
 elif args.rdm:    # generate psychometric curves for the rdm task
     coherence_vals = 2*np.array([-0.009, -0.09, -0.036, -0.15, 0.009, 0.036, 0.09, 0.15])
     num_right_reaches = TestCoherence(rnn, task)

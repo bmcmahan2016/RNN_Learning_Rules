@@ -80,7 +80,7 @@ class multi_sensory():
         # randomly choose event frequency
         event_freqx_range = self._peak - self._min
         event_freqx = self._min + torch.rand(1).item()*event_freqx_range
-        target = np.floor(event_freqx/self._thresh)
+        target = 2*np.floor(event_freqx/self._thresh)-1   # temporarily changed target range
         # normalize event frequency to be between zero and one
         event_freqx /= self._peak
         trial_duration = self.N - self._t_start 

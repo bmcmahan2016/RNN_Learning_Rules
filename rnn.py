@@ -15,13 +15,14 @@ import torch.nn as nn
 import matplotlib.pyplot as plt
 import matplotlib
 import time
-from FP_Analysis import FindFixedPoints
+from FP_Analysis import Roots
 from task.williams import Williams
 from task.context import context_task
 import os
 import pdb
 from task.dnms import DMC
 from task.multi_sensory import multi_sensory
+from task.Ncontext import Ncontext
 #from bptt import Bptt
 #from genetic import Genetic
 
@@ -70,12 +71,6 @@ class RNN(nn.Module):
         'bias' : torch.zeros(self._hiddenSize, 1).cuda()*(1/2)
         }
 
-        # these is an outdated dependence, these lines should be removed
-        # removing these lines will cause conflict elsewhere that must be 
-        # cleaned up
-        self._input_mask = torch.ones_like(self._J["in"])
-        self._input_mask[:17, 0] = 1
-        self._input_mask[17:34, 1] = 1
 
         try:
             self._use_ReLU = int(hyperParams["ReLU"])             # determines the activation function to use
@@ -90,6 +85,8 @@ class RNN(nn.Module):
 
         elif task == "multi":
             self._task = multi_sensory(var=hyperParams["taskVar"])
+        elif task=="Ncontext":
+            self._task = Ncontext()
 
 
         else:
@@ -268,10 +265,7 @@ class RNN(nn.Module):
 
         '''
         dt = self._dt
-        if self._task._name == "multi":    # mask inputs RNNs trained on multisensory task
-            Jin = torch.mul(self._J["in"], self._input_mask)
-        else:
-            Jin = self._J["in"]
+        Jin = self._J["in"]
 
         if self._use_ReLU:  # ReLU activation
             hidden_floor = torch.zeros(self._hidden.shape).cuda()
@@ -282,9 +276,13 @@ class RNN(nn.Module):
         else:               # tanh activation
             if self._useHeb:     # hebbian version of task
                 noiseTerm=0
+                self._hidden[1] = 1       # Bias from Miconi 2017
+                self._hidden[10] = 1
+                self._hidden[11] = -1
                 hidden_next = dt*torch.matmul(Jin, inpt) + \
                 dt*torch.matmul(self._J['rec'], (torch.tanh(self._hidden))) + \
                 (1-dt)*self._hidden + dt*self._J['bias'] + 0*noiseTerm
+
             else:
                 noiseTerm=0
                 hidden_next = dt*torch.matmul(Jin, inpt) + \
@@ -568,8 +566,16 @@ class RNN(nn.Module):
             if relu:
                 return lambda x: np.squeeze( dt*np.matmul(W_in, inpt) + dt*np.matmul(W_rec, (np.maximum( np.zeros((self._hiddenSize,1)), x.reshape(self._hiddenSize,1)) )) - dt*x.reshape(self._hiddenSize,1) + b*dt)
             else:
-                if self._task._version == "Heb":
-                    return lambda x: np.squeeze( dt*np.matmul(W_in, inpt) + dt*np.matmul(W_rec, (np.tanh(x.reshape(self._hiddenSize,1)))) - dt*x.reshape(self._hiddenSize,1) + b*dt)
+                if self._useHeb: #TODO: update this to incorporate bias
+                    def update_fcn(x):
+                        #print("x shape:", x.shape)
+                        #x[1] = 1       # Bias from Miconi 2017
+                        #x[10] = 1
+                        #x[11] = -1
+                        x = np.squeeze( dt*np.matmul(W_in, inpt) + dt*np.matmul(W_rec, (np.tanh(x.reshape(self._hiddenSize,1)))) - dt*x.reshape(self._hiddenSize,1) + b*dt)
+                        return x
+                    #return lambda x: np.squeeze( dt*np.matmul(W_in, inpt) + dt*np.matmul(W_rec, (np.tanh(x.reshape(self._hiddenSize,1)))) - dt*x.reshape(self._hiddenSize,1) + b*dt)
+                    return update_fcn
                 else:
                     return lambda x: np.squeeze( dt*np.matmul(W_in, inpt) + dt*np.matmul(W_rec, (1+np.tanh(x.reshape(self._hiddenSize,1)))) - dt*x.reshape(self._hiddenSize,1) + b*dt)
 

@@ -242,7 +242,7 @@ def TestTaskInputs(model, num_test=50, ShowFig=True, return_hidden=False, inpt_s
     return network_hidden, np.array(network_outputs), np.array(target_outputs)
 
 
-def record(model, cs=['r', 'b', 'k', 'g', 'y'], title='', print_out=False, plot_recurrent=True, add_rec_noise=False, add_in_noise=False, only_out=False):
+def record(model, cs=['r', 'b', 'k', 'g', 'y'], title='', print_out=True, plot_recurrent=True, add_rec_noise=False, add_in_noise=False, only_out=False):
     '''
     Records from recurrent neurons during an identical input sequence of length 50 while
     plotting the hidden state and activation of output neuron. Will also return hidden states 
@@ -278,9 +278,16 @@ def record(model, cs=['r', 'b', 'k', 'g', 'y'], title='', print_out=False, plot_
     #loop over conditions to create trials
     for _ in range(10):
         length_of_data=750    #200   #100
-        taskData, target = model._task.GetInput()       # this line is used for multi_sensory task
+        taskData, target = model._task.GetInput(mean_overide=-1)       # this line is used for multi_sensory task
         if taskData.shape[1] == 4:   # context task
-            taskData[200:, :2] = 0
+            #taskDataTmp = torch.zeros((5000, 4)).cuda()
+            #taskDataTmp[:400, :2] = taskData[:400, :2]
+            taskData[400:, :2] = 0    # only uses 200ms pulse
+            #taskDataTmp[:,2] = taskData[0,2].item()
+            #taskDataTmp[:,3] = taskData[0,3].item()
+            #taskData = taskDataTmp
+        elif taskData.shape[1] == 1:  # RDM task
+            taskData[200:] = 0
         trial_labels.append(target)
         #data = np.linspace(conditions[_], conditions[_], length_of_data).reshape(length_of_data,1)
         #data = torch.from_numpy(data).float().cuda()

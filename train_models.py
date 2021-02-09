@@ -81,6 +81,24 @@ def TrainContext(name, hyperParams, use_ReLU=False):
     rnnModel.setName(name)
     rnnModel.train()
     rnnModel.save()
+    
+def TrainN(name, hyperParams, use_ReLU=False):
+    if use_ReLU:
+        print("Using ReLU activations")
+        hyperParams["ReLU"] = 1
+    if name.lower()[:2] == "bp":
+        print("begining training BPTT network")
+        rnnModel = Bptt(hyperParams, task="Ncontext")
+    elif name.lower()[:2] == "he":
+        raise NotImplementedError()
+    elif name.lower()[:2] == "ga" or name.lower()[:2] == "ge":      # use genetic learning rule
+        rnnModel = Genetic(hyperParams, task="Ncontext", mutation=0.005, numPop=20)
+    else:
+        print("unclear which learning rule should be used for training")
+        raise NotImplementedError()
+    rnnModel.setName(name)
+    rnnModel.train()
+    rnnModel.save()
 
 
 parser = argparse.ArgumentParser(description="Trains RNN models")
@@ -92,6 +110,7 @@ task_choice = parser.add_mutually_exclusive_group()
 task_choice.add_argument("--rdm", action="store_true", default=False)
 task_choice.add_argument("--context", action="store_true", default=False)
 task_choice.add_argument("--multi", action="store_true", default=False)
+task_choice.add_argument("--N", action="store_true", default=False)
 
 args = parser.parse_args()
 hyperParams["taskVar"] = args.variance
@@ -101,12 +120,18 @@ if args.rdm:
 elif args.context:
     hyperParams["inputSize"] = 4
     TrainContext(args.model_name, hyperParams, use_ReLU=args.relu)
-if args.multi:
+elif args.multi:
     print("Training network on multisensory integration task!")
     hyperParams["inputSize"] = 2
     hyperParams["g"] = 1
     hyperParams["hiddenSize"] = 50
     TrainMulti(args.model_name, hyperParams)
+elif args.N:
+    print("Training network on N dimensional context task")
+    hyperParams["inputSize"] = 6
+    hyperParams["g"] = 1
+    hyperParams["hiddenSize"] = 50
+    TrainN(args.model_name, hyperParams)
 else:
     print("Please specify a training task")
     exit()

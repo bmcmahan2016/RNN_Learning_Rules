@@ -1,11 +1,22 @@
 # -*- coding: utf-8 -*-
 """
 Created on Mon Aug 24 13:07:16 2020
-
 @author: bmcma
 
 Description: Clusters model fixed points based on input topology
 
+Must pass this script a text file formatted as follows:
+---------------------------------------
+bptt 4000 4001 4002
+ga 4000 4003
+...
+---------------------------------------
+where each line starts with the name of the learing rule and each subsequent entry
+on that line is the model number. Dashes are used in this comment only to indicate
+start and end of text file and should not be included in the actual text file. in 
+the case of the file above, the first line in the text file should read: "bptt 4000 4001 4002"
+
+The file can not contain any blank lines
 """
 import numpy as np
 from rnn import loadRNN, RNN
@@ -16,6 +27,27 @@ import os
 import sys
 import pdb
 import argparse
+from FP_Analysis import Roots
+import perturbation_experiments as analyze
+
+def find_fixed_points(modelPath):
+    '''finds fixed points for a model'''
+    # look at text file to see how many inputs rnn has and then decide on task based on the input size
+    # call the appropriate function from perturbation experiments
+    f = open(modelPath+".txt", 'r')
+    hyperParams = {}
+    for line in f:
+        key, value = line.strip().split(':')
+        hyperParams[key.strip()] = float(value.strip())
+    f.close()
+    if hyperParams['inputSize'] == 2:
+        analyze.multi_fixed_points(modelPath)
+    elif hyperParams['inputSize'] == 4:
+        analyze.context_fixed_points(modelPath)
+    elif hyperParams['inputSize'] == 1:
+        raise NotImplementedError()
+    else:
+        raise NameError("This RNN does not have a valid input size")
 
 def key2array(key):
     '''
@@ -34,8 +66,19 @@ def key2array(key):
     '''
     return np.array(float(key[1:-1]))
 
-
-
+def parse_learning_rule(str):
+    '''parses learning rule from name string'''
+    if str[0].lower() == 'b':
+        return 'bptt'
+    elif str[0].lower() == 'g':
+        return 'ga'
+    elif str[0].lower() == 'h':
+        return 'heb'
+    elif str[0].lower() == 'f':
+        return 'ff'
+    else:
+        raise NameError("Ensure the first word on each line of text " \
+            "file starts with a letter designating the learning rule (b/g/h/f), got", str[0])
 
 def getMDS(modelNum, learningRule="bptt"):
     '''
@@ -56,42 +99,37 @@ def getMDS(modelNum, learningRule="bptt"):
         neighbors. Has shape (num_fixed_points, 3).
 
     '''
-    
+    learningRule = parse_learning_rule(learningRule)
 
 
     if modelNum < 100:
         modelPath = "models/" + learningRule + "_0" + str(modelNum)
     else:
         modelPath = "models/" + learningRule + "_" + str(modelNum)
-    model = loadRNN(modelPath)
+    
+    roots = Roots()
+    try:  # load roots
+        roots.load(modelPath)
+    except FileNotFoundError as e:
+        find_fixed_points(modelPath)    # solves for and saves model fixed points
+        roots.load(modelPath)            # load newly found fixed points
+
+
     print(modelPath)
-    '''
-    fixed_points = []
-    counter = 0
-    for key in model._fixedPoints:
-        print(key)
-        counter += 1
-    print(counter)
-    for inpt in model._fixedPoints:
-        for fixed_point in model._fixedPoints[inpt]:
-            # fixed_point is now a single fixed point
-            fixed_points.append( np.hstack((key2array(inpt), fixed_point)) )
-    fixed_points = np.array(fixed_points)
-    '''
-    #fixed_points = model._fixedPoints
-    inpt_values = model._fixedPoints[:,1]
-    fixed_points = model._fixedPoints[:,2:]
+    inpt_values = np.array(roots._static_inputs)[:,0]  #model._fixedPoints[:,1]
+    fixed_points = np.squeeze(np.array(roots._values))
     
     nbrs = NearestNeighbors(n_neighbors=3, algorithm='ball_tree').fit(fixed_points)
     distances, indices = nbrs.kneighbors(fixed_points)
-    MDS_embedding = inpt_values[indices]
-    num_fixed_points_found = 40
-    start_idx = -(num_fixed_points_found//2) + (num_fixed_points_found // 2)
-    end_idx = (num_fixed_points_found//2) + (num_fixed_points_found // 2)
+    # indices are (num_fixed_points, 3) and represent the two nearest neighbors to the fixed point
+    # indexed by the first column
     
+    MDS_embedding = np.array(inpt_values)[indices]
+    num_fixed_points_found = 5
+    start_idx = 0
+    end_idx = num_fixed_points_found
     
     return MDS_embedding[start_idx:end_idx].reshape(num_fixed_points_found,3)
-
 
 # determines what analysis to run
 parser = argparse.ArgumentParser(description="Clusters RNNs by Topology of Fixed Points")
@@ -103,46 +141,26 @@ list_of_lists = [(line.strip()).split() for line in a_file]
 a_file.close()
 
 embeddings = []
+names = []
 max_fixed_points = 0
+start_ix = []
+end_ix = []
 counter = 0
+new_line = True
+num_lists = len(list_of_lists)
 
-bptt_list = list_of_lists[0]
-bptt_start = 0
-for num in bptt_list:
-    num = int(num)
-    embeddings.append(getMDS(num).reshape(1,-1))
-    counter += 1
-bptt_end = counter
-ReLU_list = list_of_lists[1]
-ReLU_start = counter
-for num in ReLU_list:
-    num = int(num)
-    embeddings.append(getMDS(num).reshape(1,-1))
-    counter += 1
-ReLU_end = counter
-ga_list = list_of_lists[2]
-ga_start = counter
-for num in ga_list:
-    num = int(num)
-    embeddings.append(getMDS(num, learningRule = "ga").reshape(1,-1))
-    # a comment to test github
-    counter += 1
-ga_end = counter
-
-ff_list = list_of_lists[3]
-ff_start = counter
-for num in ff_list:
-    num = int(num)
-    embeddings.append(getMDS(num, learningRule="FullForce").reshape(1,-1))
-    counter +=1 
-ff_end = counter
-
-
-
-# embeddings.append(getMDS(67).reshape(1,-1))
-# embeddings.append(getMDS(68).reshape(1,-1))
-# embeddings.append(getMDS(69).reshape(1,-1))
-
+for list_ix in range(num_lists):
+    start_ix.append(counter)
+    for model_num in list_of_lists[list_ix]:
+        if new_line:
+            names.append(model_num)
+            new_line = False
+            continue
+        num = int(model_num)
+        embeddings.append(getMDS(num, learningRule=names[-1]).reshape(1,-1))
+        counter += 1
+    end_ix.append(counter)
+    new_line = True
 
 embeddings = np.squeeze(np.array(embeddings))
 
@@ -156,9 +174,7 @@ embeddings = np.squeeze(np.array(embeddings))
 clustering_algorithm = MDS()
 clustered_data = clustering_algorithm.fit_transform(embeddings)
 plt.figure()
-plt.scatter(clustered_data[:bptt_end,0], clustered_data[:bptt_end,1], c='r')                      # BPTT (tanh)
-plt.scatter(clustered_data[ReLU_start:ReLU_end,0], clustered_data[ReLU_start:ReLU_end,1], c='b')  # BPTT (ReLU)
-plt.scatter(clustered_data[ga_start:ga_end,0], clustered_data[ga_start:ga_end,1], c='g')          # GA
-plt.scatter(clustered_data[ff_start:ff_end,0], clustered_data[ff_start:ff_end,1], c='y')          # FF
-plt.legend(["BPTT (tanh)", "BPTT (ReLU)", "GA", "FF", "Heb"])      
+for ix in range(num_lists):
+    plt.scatter(clustered_data[start_ix[ix]:end_ix[ix],0], clustered_data[start_ix[ix]:end_ix[ix],1])
+plt.legend(names)      
 plt.show()

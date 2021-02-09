@@ -4,7 +4,7 @@ import torch
 from rnn import RNN, loadRNN 
  
 import rnntools as r
-import FP_Analysis as fp
+from FP_Analysis import Roots
 import time
 from task.williams import Williams
 from task.context import context_task
@@ -166,68 +166,40 @@ def AnalyzeLesioned(model, fig_name, PC1_min=-10, PC1_max=10, PC2_min=-10, PC2_m
                             [-.15],[-.2],[-.25],[-.3],[-.35],[-.4],[-.45],[-.5],[-.55],[-.6],[-.65],\
                             [-.7],[-.75],[-.8],[-.85],[-.9],[-.95],[-1]]
         input_values = [[0]]
+        input_values = [[1],[.5],[0],[-.5],[-1]]
         input_values = 3 * test_inpt * np.array(input_values)
-        #input_values = [[.1],[0],[-.1]]
-        roots = fp.FindFixedPoints(model, input_values)
-        model.updateFixedPoints(roots, model._pca)      # fixed points now saved
-        roots_embedded = fp.embed_fixed_points(roots, model._pca)
+    
+        model_roots = Roots(model)
+        model_roots.FindFixedPoints(input_values)
+        print('Static Inputs \n\n', input_values)    # print to verify correct
+        print('#'*50)
+        print('Number of roots found: ', model_roots.getNumRoots())
+
+
         plt.figure()
-        fp.plotFixedPoints(roots_embedded)
+        plt.title("PCA of Fixed Points For RDM Task")
         
-
-    else:
-        pca = model._pca
-        roots = model._fixedPoints
-    # partition PC space using Wout
-    # W_out = model._J['out'].cpu().detach().numpy()
-    # W_out_PC = pca.transform(W_out-pca.offset_)
-    # PC1_axis = np.linspace(PC1_min, PC1_max, 100)
-    # Wout_partition = -(W_out_PC[:, 0]/W_out_PC[:, 1])*PC1_axis
-    # plt.plot(PC1_axis, Wout_partition, c='k', linestyle='dashed')
-    
-    # partition PC space using Win
-    # W_in = model._J['in'].cpu().detach().numpy()
-    # W_in_PC_pos = pca.transform(0.1857*W_in.T-pca.offset_)
-    # W_in_PC_neg = pca.transform(-0.1857*W_in.T-pca.offset_)
-    # W_in_PC = np.zeros((2,2))
-    # W_in_PC[0,:] = W_in_PC_pos[0,:2]
-    # W_in_PC[1,:] = W_in_PC_neg[0,:2]
-
-    #plt.plot(np.linspace(0, W_in_PC[0,0], 100), np.linspace(0, W_in_PC[0,1], 100), 'r--', linewidth=3)
-    #plt.plot(np.linspace(0, W_in_PC[1,0], 100), np.linspace(0, W_in_PC[1,1], 100), 'b--', linewidth=3)
-    
-    # this will plot trajectories of artificial neurons on top of fixed points
-    #plotPCTrajectories(trial_data, trial_labels, pca, average=False)
+        model_roots.plot(fixed_pts=True, slow_pts=True, end_time = 50)
+        plt.title("Early")
+        model_roots.plot(fixed_pts=True, slow_pts=True, start_time=50, end_time=200)
+        plt.title("Mid")
+        model_roots.plot(fixed_pts=True, slow_pts=True, start_time=200)
+        plt.title("Late")
+        
+        model_roots.plot(fixed_pts=True, slow_pts=False)
+        
+        plt.figure()
+        plt.title('Evaluation of Model on RDM Task')
+        r.TestTaskInputs(model)     
+        
+        model_roots.save(model_choice)   
+        
 
     for i in range(10):
         plt.plot(model_trajectories[i,:,0], model_trajectories[i,:,1], c = cs[i], alpha=0.25)
     
     # plot the output of this lesioned network when feed a noisy input with mean +/-1
-    plt.figure(123)
-    plt.title('Evaluation of Model on 1D Decision-Making Task')
-    task=Williams()
-    r.TestTaskInputs(model, task)
     #plt.show()
-    
-    '''    This is not implemented yet
-    ####
-    #GET JACOBIAN
-    ####
-    jacobian = np.zeros((50, 50))
-    
-    hStars = model._fixedPoints["[0.02]"]
-    plt.figure()
-    cs = ["r", "b", "g"]
-    for pointNum in range(3):
-        jacobian = np.zeros((50, 50))
-        hStar = hStars[pointNum].reshape(50,1)
-        for j in range(50):
-            mask = np.zeros((50,1))
-            mask[j, 0] = 1
-            jacobian[:,j] = model._dt*np.squeeze(np.matmul(model._J["rec"].detach().cpu().numpy(), 1-np.tanh(hStar*mask)**2)) + np.squeeze((1-model._dt)*mask)
-        w, v = np.linalg.eig(jacobian)
-        plt.bar(np.linspace(0,len(w),len(w))+0.2*pointNum, np.real(w), color=cs[pointNum])
-    '''
 
 
 def AnalyzePerturbedNetwork(model, model_name, test_inpt=1):
@@ -334,15 +306,7 @@ def MeasureAccuracy(network_choices, target_choices, tol=1):
 
 def niave_network(modelPath, xmin=-10, xmax=10, ymin=-10, ymax=10, test_inpt=.1):
     model = loadRNN(modelPath)
-    if modelPath[7] == 'F':
-        model._useForce = True
-        print("Using force forward pass")
-    #if modelPath[7].lower() == 'h':
-    #    print("using hebbian RDM version")
-    #    model._task._version = "Heb"
     modelPath+='_control'
-    model._task = DMC()
-    #AnalyzePerturbedNetwork(model, model_choice, test_inpt=test_inpt)
     AnalyzeLesioned(model, model_choice, xmin, xmax, ymin, ymax)
 
 def GetNeuronIdx(model_choice):
@@ -485,217 +449,196 @@ def PlotRoots(all_roots, roots_embedded, idxs, colors, marker='o'):
             #plt.scatter(curr_set_of_roots_x[curr_point], curr_set_of_roots_y[curr_point], facecolors='none', edgecolors=colors[_], alpha=alpha)
         start_idx += idxs[_]
 
-def multi_fixed_points(model_choice, save_fixed_points=False):
-    import FP_Analysis as fp
+def multi_fixed_points(model_choice):
+    '''Generates fixed points for model trained on multisensory integration 
+    task
+    '''
     model = loadRNN(model_choice, task="multi")
-    '''
-    if model_choice[7].lower() == 'h':
-        model._task._version = "Heb"
-    if model_choice[7:9].lower() == "ff":
-        model._useForce = True
-    '''
+    if model == False:
+        raise NameError("This model does not exit!")
+    model_roots = Roots(model)
 
     model.plotLosses()
 
-
-    F = model.GetF()    # RNN update equation
-
     # fixed points for dnms task
-    static_inpts = np.zeros((3, 2))
-    static_inpts[0, :] = np.array([1,0])       # auditory input
-    static_inpts[1, :] = np.array([0,1])       # visual input
-    static_inpts[2, :] = np.array([1,1])       # multisensory input
+    static_inpts = np.zeros((30, 2))
+    static_inpts[:10, 0] = np.linspace(0,1,10)       # auditory input
+    static_inpts[10:20, 1] = np.linspace(0,1,10)       # visual input
+    static_inpts[20:, 0] = np.linspace(0,1,10)       # multisensory input
+    static_inpts[20:, 1] = np.linspace(0,1,10)
 
-    roots = fp.FindFixedPoints(model, static_inpts, embedding='pca', embedder=model._pca, Verbose=False)
+    model_roots.FindFixedPoints(static_inpts)
     print('Static Inputs \n\n', static_inpts)    # print to verify correct
+    print('#'*50)
+    print('Number of roots found: ', model_roots.getNumRoots())
 
-    print('\n'*5)
-    print('Number of roots found: ', len(roots))
-    #print('shape of roots found for context 2: ', len(context2_roots))
-
-
-    # perform PCA on trajectories to get embedding
-    cs = ['r', 'r', 'r', 'r', 'r', 'b', 'b', 'b', 'b', 'b']
-    # TODO: check that record is working properly inside this function call
-    trial_data, trial_labels = r.record(model, \
-        title='fixed points', print_out=True, plot_recurrent=False, cs=cs)
-    model._pca = PCA()
-    model_trajectories = model._pca.fit_transform(trial_data.reshape(-1, model._hiddenSize)).reshape(10,-1,model._hiddenSize)
-    # model_trajectories is (t_steps, hiddenSize)
-    assert(model_trajectories.shape[1]==model._task.N)
-    assert(model_trajectories.shape[2]==model._hiddenSize)
-
-    if save_fixed_points:
-        print("saving fixed points to model")
-        model.updateFixedPoints(roots, model._pca)    
-    else:
-        print("Fixed points not saved!")
     
-    
-    
-    roots_embedded = fp.embed_fixed_points(roots, model._pca)
+    #model_roots.embed()
     plt.figure(100)
     plt.title("PCA of Fixed Points For Multisensory Task")
-    fp.plotFixedPoints(roots_embedded)
-    for i in range(10):
-        plt.plot(model_trajectories[i,:,0], model_trajectories[i,:,1], c = cs[int(trial_labels[i])], alpha=0.25)
+    
+    model_roots.plot()
 
     plt.figure(123)
     plt.title('Evaluation of Model on Multisensory Task')
-    r.TestTaskInputs(model)        
+    r.TestTaskInputs(model)     
+
+    model_roots.save(model_choice)   
 
     plt.show()
 
 
-def ContextFixedPoints(model_choice, save_fixed_points=False):
-    import FP_Analysis as fp
-    model = loadRNN(model_choice)
-
-
-    #model.load(model_choice)
-    model._task = context_task()
-    if model_choice[7].lower() == 'h':
-        model._task._version = "Heb"
+def context_fixed_points(model_choice, save_fixed_points=False):
+    model = loadRNN(model_choice, task="context")
+    model_roots = Roots(model)
 
     model.plotLosses()
-
-    '''
-    model.plotLosses()
-    plt.title('Training Loss')
-    plt.figure()
-
-
-    activity_tensor = model.activity_tensor
-    neuron_factor = r.plotTCs(activity_tensor, model.targets, 1)
-    neuron_idx = np.argsort(neuron_factor)
-    #p is the index that partitions neuron_idx into two clusters
-    p = np.nonzero(np.diff(np.sign(neuron_factor[neuron_idx])))[0][0] + 1
-    #plot the sorted weight matrix
-    plt.figure()
-    model.VisualizeWeightMatrix(neuron_idx)
-    plt.figure()
+    
+    
+    ###########################################################################
+    #TENSOR COMPONENT ANALYSIS
+    ###########################################################################
+    activity_tensor = model._activityTensor
+    neuron_factor = r.plotTCs(activity_tensor, model._targets, 1)
+    neuron_idx = np.argsort(neuron_factor)     # sorted indices of artificial neurons
+    
+    # find the index where neuron_factors changes sign
+    # p is the index that partitions neuron_idx into two clusters
+    sign_change_idx = np.diff(np.sign(neuron_factor[neuron_idx]))
+    if not np.all(sign_change_idx==0):
+        # executes when neuron factors are not all the same sign
+        last_pos_neuron = np.nonzero(sign_change_idx)[0][0]
+        print('number of positive neurons:', last_pos_neuron)
+        print('number of negative neurons:', len(neuron_factor)-last_pos_neuron)
+        p = np.nonzero(np.diff(np.sign(neuron_factor[neuron_idx])))[0][0] + 1
+    else:
+        # executes when neuron factors all have the same sign
+        print('artifical neurons all have sign', np.sign(neuron_factor[0]))
+        p = 25
+    
+    
+    ###########################################################################
+    #VISUALIZE RECURRENT WEIGHTS
+    ###########################################################################
+    model._neuronIX = neuron_idx
+    model.VisualizeWeightMatrix()
     model.VisualizeWeightClusters(neuron_idx, p)
-    '''
+     
 
-    F = model.GetF()#func_master
-    #roots, pca = FindFixedPoints(F, [0.1,-0.1], embedding='custom', embedder=model.pca
-
-    '''
-    context1_inpts = np.zeros((1, 4))
-    context1_inpts[:,0] = 0
-    context1_inpts[:,2] = 0
-    context1_inpts[:,1] = 0
-    
-    context2_inpts = np.zeros((1, 4))
-    context2_inpts[:,1] = 0
-    context2_inpts[:,3] = 0
-    context2_inpts[:,0] = 0
-    
-    context1_inpts = np.zeros((20, 4))
-    context1_inpts[:,0] = np.linspace(-0.1857, 0.1857, 20)
-    context1_inpts[:,2] = 1
-    context1_inpts[:,1] = 0
-
-    context2_inpts = np.zeros((20, 4))
-    context2_inpts[:,1] = np.linspace(-0.1857, 0.1857, 20)
-    context2_inpts[:,3] = 1
-    context2_inpts[:,0] = 0 
-    '''
-    fixed_point_resolution = 3
+    fixed_point_resolution = 5
     static_inpts = np.zeros((2*fixed_point_resolution, 4))
     static_inpts[:fixed_point_resolution, 0] = np.linspace(-0.1857, 0.1857, fixed_point_resolution)     # motion context
     static_inpts[:fixed_point_resolution, 2] = 1                                    # go signal for motion context
     static_inpts[fixed_point_resolution:, 1] = np.linspace(-0.1857, 0.1857, fixed_point_resolution)     # color context
     static_inpts[fixed_point_resolution:, 3] = 1                                    # go signal for color context
 
-    roots = fp.FindFixedPoints(model, static_inpts, embedding='pca', embedder=model._pca, Verbose=False)
+    #roots = fp.FindFixedPoints(model, static_inpts, embedding='pca', embedder=model._pca, Verbose=False)
     print('Static Inputs \n\n', static_inpts)    # print to verify correct
-
+    model_roots.FindFixedPoints(static_inpts)
     #context1_roots = fp.FindFixedPoints(model, context1_inpts, embedding='pca', embedder=model._pca, Verbose=False)
 
-    print('\n'*5)
-    print('Number of roots found: ', len(roots))
-    #print('shape of roots found for context 2: ', len(context2_roots))
 
-
-    # perform PCA on trajectories to get embedding
-    cs = ['r', 'r', 'r', 'r', 'r', 'b', 'b', 'b', 'b', 'b']
-    trial_data, trial_labels = r.record(model, \
-        title='fixed points', print_out=True, plot_recurrent=False, cs=cs)
-    model._pca = PCA()
-    model_trajectories = model._pca.fit_transform(trial_data.reshape(-1, 50)).reshape(10,-1,50)
-    assert(model_trajectories.shape[1]==model._task.N)           # number of timesteps in trial
-    assert(model_trajectories.shape[2]==model._hiddenSize)       # number of hidden units
-    if save_fixed_points:
-        print("saving fixed points to model")
-        model.updateFixedPoints(roots, model._pca)                   # fixed points now saved
-    else:
-        print("Fixed points not saved!")
-    
-    
-    
-    roots_embedded = fp.embed_fixed_points(roots, model._pca)
-    #roots2_embedded = fp.embed_fixed_points(context2_roots, model._pca)
     plt.figure(100)
-    fp.plotFixedPoints(roots_embedded)
-    plt.legend(['Context 1'])
-    for i in range(10):
-        plt.plot(model_trajectories[i,:,0], model_trajectories[i,:,1], c = cs[int(trial_labels[i].item())], alpha=0.25)
-    #fp.plotFixedPoints(roots2_embedded)
-    #plt.legend(['Context 2'])
-    #for i in range(10):
-    #    plt.plot(model_trajectories[i,:,0], model_trajectories[i,:,1], c = cs[int(trial_labels[i].item())], alpha=0.25)
-    plt.show()
-    assert False
+    plt.title("PCA of Fixed Points For Contextual Integration Task")
+    
+    
+    model_roots.plot(fixed_pts=True, slow_pts=True, end_time = 100)
+    plt.title("Early")
+    model_roots.plot(fixed_pts=True, slow_pts=True, start_time = 100, end_time = 300)
+    plt.title("Mid")
+    model_roots.plot(fixed_pts=True, slow_pts=True, start_time = 400)
+    plt.title("Late")
+    
+    model_roots.plot(fixed_pts=True, slow_pts=False)
 
-    # plot results in a figure
-    colors = [[[1, 0, 0]], [[0.9, 0, 0]], [[0.8, 0, 0]], [[0.7, 0, 0]], [[0.6, 0, 0]], [[0.5, 0, 0]],\
-            [[0.5, 0, 0.1]], [[0.5, 0, 0.2]], [[0.5, 0, 0.3]], [[0.5, 0, 0.4]], [[0.5, 0, 0.5]], [[0.4, 0, 0.5]], [[0.3, 0, 0.5]],\
-            [[0.2, 0, 0.5]], [[0.1, 0, 0.5]], [[0, 0, 0.5]], [[0, 0, 0.6]], [[0, 0, 0.7]], [[0, 0, 0.8]],\
-            [[0, 0, 0.9]], [[0, 0, 1]]]
+
+    plt.figure(123)
+    plt.title('Evaluation of Model on Multisensory Task')
+    
     plt.figure()
-    PlotRoots(context1_roots, roots_embedded[:num_roots_context1,:], context1_idxs, colors, marker='x')
-    PlotRoots(context2_roots, roots_embedded[num_roots_context1:,:], context2_idxs, colors, marker='o')
+    r.TestTaskInputs(model)     
+
+    model_roots.save(model_choice)   
+
     plt.show()
-    # we want to add Wout to the plot
-    W_out = model.J['out'].detach().numpy()
-    W_out_PC = pca.transform(W_out)
-    PC1_axis = np.linspace(-10, 10, 100)
-    Wout_partition = -(W_out_PC[:, 0]/W_out_PC[:, 1])*PC1_axis
-    plt.plot(PC1_axis, Wout_partition, c='k', linestyle='dashed')
 
-    # add inputs to the graph
-    # compute the forward pass for an input
-    inpt1 = np.array([10,0,1,0])
-    inpt2 = np.array([-10,0,1,0])
-    inpt3 = np.array([0,10,1,0])
-    inpt4 = np.array([0,-10,1,0])
 
-    # compute the forward pass
-    output, hidden1 = model.forward(inpt1, model.init_hidden(), 0.1)
-    output, hidden2 = model.forward(inpt2, model.init_hidden(), 0.1)
-    output, hidden3 = model.forward(inpt3, model.init_hidden(), 0.1)
-    output, hidden4 = model.forward(inpt4, model.init_hidden(), 0.1)
+def N_fixed_points(model_choice, save_fixed_points=False):
+    model = loadRNN(model_choice, task="Ncontext")
+    model_roots = Roots(model)
 
-    print('hidden1')
-    print(hidden1.t().shape)
-    # now transform hidden representations of input to PC space
+    model.plotLosses()
+    
+    
+    ###########################################################################
+    #TENSOR COMPONENT ANALYSIS
+    ###########################################################################
+    activity_tensor = model._activityTensor
+    neuron_factor = r.plotTCs(activity_tensor, model._targets, 1)
+    neuron_idx = np.argsort(neuron_factor)     # sorted indices of artificial neurons
+    
+    # find the index where neuron_factors changes sign
+    # p is the index that partitions neuron_idx into two clusters
+    sign_change_idx = np.diff(np.sign(neuron_factor[neuron_idx]))
+    if not np.all(sign_change_idx==0):
+        # executes when neuron factors are not all the same sign
+        last_pos_neuron = np.nonzero(sign_change_idx)[0][0]
+        print('number of positive neurons:', last_pos_neuron)
+        print('number of negative neurons:', len(neuron_factor)-last_pos_neuron)
+        p = np.nonzero(np.diff(np.sign(neuron_factor[neuron_idx])))[0][0] + 1
+    else:
+        # executes when neuron factors all have the same sign
+        print('artifical neurons all have sign', np.sign(neuron_factor[0]))
+        p = 25
+    
+    
+    ###########################################################################
+    #VISUALIZE RECURRENT WEIGHTS
+    ###########################################################################
+    model._neuronIX = neuron_idx
+    model.VisualizeWeightMatrix()
+    model.VisualizeWeightClusters(neuron_idx, p)
+     
 
-    inpt1_vec = pca.transform(hidden1.t().detach().numpy())
-    inpt2_vec = pca.transform(hidden2.t().detach().numpy())
-    inpt3_vec = pca.transform(hidden3.t().detach().numpy())
-    inpt4_vec = pca.transform(hidden4.t().detach().numpy())
-    ax = plt.axes()
-    print('vec1')
-    print(inpt1_vec.shape)
-    # plot vectors
-    ax.arrow(0, 0, inpt1_vec[0][0], inpt1_vec[0][1], head_width=0.2, head_length=0.3, fc='grey', ec='grey')
-    ax.arrow(0, 0, inpt2_vec[0][0], inpt2_vec[0][1], head_width=0.2, head_length=0.3, fc='blue', ec='blue')
-    ax.arrow(0, 0, inpt3_vec[0][0], inpt3_vec[0][1], head_width=0.2, head_length=0.3, fc='red', ec='red')
-    ax.arrow(0, 0, inpt4_vec[0][0], inpt4_vec[0][1], head_width=0.2, head_length=0.3, fc='green', ec='green')
+    fixed_point_resolution = 5
+    static_inpts = np.zeros((2*fixed_point_resolution, 6))
+    static_inpts[:fixed_point_resolution, 0] = np.linspace(-0.1857, 0.1857, fixed_point_resolution)     # motion context
+    static_inpts[:fixed_point_resolution, 3] = 1                                    # go signal for motion context
+    static_inpts[fixed_point_resolution:, 1] = np.linspace(-0.1857, 0.1857, fixed_point_resolution)     # color context
+    static_inpts[fixed_point_resolution:, 4] = 1                                    # go signal for color context
+    static_inpts[fixed_point_resolution:, 2] = np.linspace(-0.1857, 0.1857, fixed_point_resolution)     # color context
+    static_inpts[fixed_point_resolution:, 5] = 1                                    # go signal for color context
 
-    plt.title('All Roots for Contextual Decision-Making Task')
+    #roots = fp.FindFixedPoints(model, static_inpts, embedding='pca', embedder=model._pca, Verbose=False)
+    print('Static Inputs \n\n', static_inpts)    # print to verify correct
+    model_roots.FindFixedPoints(static_inpts)
+    #context1_roots = fp.FindFixedPoints(model, context1_inpts, embedding='pca', embedder=model._pca, Verbose=False)
 
+
+    plt.figure(100)
+    plt.title("PCA of Fixed Points For Contextual Integration Task")
+    
+    
+    model_roots.plot(fixed_pts=True, slow_pts=True, end_time = 100)
+    plt.title("Early")
+    model_roots.plot(fixed_pts=True, slow_pts=True, start_time = 100, end_time = 300)
+    plt.title("Mid")
+    model_roots.plot(fixed_pts=True, slow_pts=True, start_time = 400)
+    plt.title("Late")
+    
+    model_roots.plot(fixed_pts=True, slow_pts=False)
+
+
+    plt.figure(123)
+    plt.title('Evaluation of Model on Multisensory Task')
+    
+    plt.figure()
+    r.TestTaskInputs(model)     
+
+    model_roots.save(model_choice)   
+
+    plt.show()
+    
 
 def QuantifyVascillation(model_choice, inpt_coef, lesion=0):
     '''
