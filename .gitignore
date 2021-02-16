@@ -18,3 +18,6 @@ models/GA_001.pt
 *.stats
 *.pt
 *.pt
+*.pt
+*.txt
+*.pt
