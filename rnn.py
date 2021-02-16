@@ -567,12 +567,22 @@ class RNN(nn.Module):
                 return lambda x: np.squeeze( dt*np.matmul(W_in, inpt) + dt*np.matmul(W_rec, (np.maximum( np.zeros((self._hiddenSize,1)), x.reshape(self._hiddenSize,1)) )) - dt*x.reshape(self._hiddenSize,1) + b*dt)
             else:
                 if self._useHeb: #TODO: update this to incorporate bias
-                    def update_fcn(x):
+                    def update_fcn(x_in):
                         #print("x shape:", x.shape)
-                        #x[1] = 1       # Bias from Miconi 2017
-                        #x[10] = 1
-                        #x[11] = -1
+                        
+                        x = np.zeros((50,))
+                        offset = 0
+                        for i in range(50):
+                            if (i==1 or i==10 or i==11):
+                                offset+=1
+                                continue
+                            x[i] = x_in[i-offset]
+                        assert offset==3
+                        x[1] = 1       # Bias from Miconi 2017
+                        x[10] = 1
+                        x[11] = -1
                         x = np.squeeze( dt*np.matmul(W_in, inpt) + dt*np.matmul(W_rec, (np.tanh(x.reshape(self._hiddenSize,1)))) - dt*x.reshape(self._hiddenSize,1) + b*dt)
+                        
                         return x
                     #return lambda x: np.squeeze( dt*np.matmul(W_in, inpt) + dt*np.matmul(W_rec, (np.tanh(x.reshape(self._hiddenSize,1)))) - dt*x.reshape(self._hiddenSize,1) + b*dt)
                     return update_fcn
@@ -650,7 +660,7 @@ def create_test_time_ativity_tensor(rnnModel):
         activityTensor[trial_num, :, :] = np.squeeze(hidden_states[::10, :, :])        # record every 10th timestep from hidden state
     rnnModel._activityTensor = activityTensor
 
-def importHeb(name = "undeclared_heb", modelNum="100400", context_flag=False, dnms_flag=False, var=1):
+def importHeb(name = "undeclared_heb", modelNum="100400", context_flag=False, dnms_flag=False, N_flag = False, var=1):
     '''
     loads data from training with the biologically plausible learning algorithm
     (Miconi 2017) and loads it into an RNN model. Win and Jrec text files must be
@@ -675,6 +685,9 @@ def importHeb(name = "undeclared_heb", modelNum="100400", context_flag=False, dn
     elif context_flag:
         input_dim = 4
         task = context_task()
+    elif N_flag:
+        input_dim = 6
+        task = Ncontext()
     else:
         input_dim = 1
         task = Williams(N=750, mean=0.1857, \

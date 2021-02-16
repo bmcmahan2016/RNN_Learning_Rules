@@ -8,3 +8,13 @@ models/GA_001.pt
 *.txt
 *.pt
 *.pyc
+*.txt
+*.pt
+*.pyc
+*.pkl
+*.dat
+*.ini
+*.bak
+*.stats
+*.pt
+*.pt

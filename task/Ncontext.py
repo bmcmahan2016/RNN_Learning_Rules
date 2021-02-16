@@ -12,13 +12,14 @@ import matplotlib.pyplot as plt
 from random import randrange
 
 class Ncontext():
-    def __init__(self, N=750, mean=0.1857, var=1):
+    def __init__(self, N=750, mean=0.1857, var=1, device="cuda:0"):
         self._dim = 3            # number of input contexts
         self.N = N               # trial duration
         self._mean = mean
         self._var = var
         self._version = ""
         self._name = "Ncontext"
+        self._device = torch.device(device)
 
     def _random_generate_input(self, mean):
         '''randomly generates an input channel'''
@@ -26,6 +27,13 @@ class Ncontext():
             return mean*torch.ones(self.N)
         else:
             return -mean*torch.ones(self.N)
+        
+    def get_inps_and_targs(self, mean_overide=-1, var_overide=1, dt=""):
+        '''returns inputs, hints, and targets for FF training algorithm'''
+        inpts, target = self.GetInput(mean_overide=mean_overide, var_overide=var_overide)
+        inpts = inpts.cpu().detach().numpy()
+        targets = np.ones((self.N, 1))*target.item()
+        return inpts, targets, targets
         
     def GetInput(self, mean_overide=-1, var_overide=1):
         '''
@@ -44,7 +52,7 @@ class Ncontext():
             DESCRIPTION.
 
         '''
-        inpts = torch.zeros((self.N, 2*self._dim)).cuda()
+        inpts = torch.zeros((self.N, 2*self._dim)).to(self._device)
         
         #randomly draw mean from distribution
         mean = torch.rand(1).item() * self._mean
@@ -64,24 +72,26 @@ class Ncontext():
 
         
         # adds noise to inputs
-        inpts[:,:self._dim] += self._var*torch.randn(self.N, self._dim).cuda()
+        inpts[:,:self._dim] += self._var*torch.randn(self.N, self._dim).to(self._device)
         return inpts, target
     
     def PsychoTest(self, coherence, context=0):
-        assert False, "PsychoTest not implemented for Ncontext"
-        inpts = torch.zeros((self.N, 4)).cuda()
+        inpts = torch.zeros((self.N, 2*self._dim)).cuda()
         inpts[:,0] = coherence*torch.ones(self.N)                # attended signal       changed 0->2
         inpts[:,1] = 2*(torch.rand(1)-0.5)*0.1857*torch.ones(self.N)   # ignored signal  changed 1->3
+        inpts[:,2] = 2*(torch.rand(1)-0.5)*0.1857*torch.ones(self.N)
         if context==0:  # signals attended signal
-             inpts[:, 2] = 1    # changed 2 - >0
+             inpts[:, 3] = 1    # changed 2 - >0
              
         elif context==1: # attends to the ignored signal
-             inpts[:, 3] = 1    # changed 3 -> 1
+             inpts[:, 4] = 1    # changed 3 -> 1
+        elif context == 2: # attends to other ignored signal
+                inpts[:,5] = 1
         else:
-            raise ValueError("Inappropriate value for context")
-        inpts[:,:2] += self._var*torch.randn(750, 2).cuda()    # adds noise to inputs
+            raise ValueError("Inappropriate value for Ncontext PsychoTest")
+        inpts[:,:self._dim] += self._var*torch.randn(750, self._dim).cuda()    # adds noise to inputs
         
-        assert(inpts.shape[1] == 4)
+        assert(inpts.shape[1] == 2*self._dim)
         return inpts
     
     def Loss(self, y, target, errorTrigger=-1):

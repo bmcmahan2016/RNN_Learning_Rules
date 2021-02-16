@@ -601,13 +601,13 @@ def N_fixed_points(model_choice, save_fixed_points=False):
      
 
     fixed_point_resolution = 5
-    static_inpts = np.zeros((2*fixed_point_resolution, 6))
+    static_inpts = np.zeros((3*fixed_point_resolution, 6))
     static_inpts[:fixed_point_resolution, 0] = np.linspace(-0.1857, 0.1857, fixed_point_resolution)     # motion context
     static_inpts[:fixed_point_resolution, 3] = 1                                    # go signal for motion context
-    static_inpts[fixed_point_resolution:, 1] = np.linspace(-0.1857, 0.1857, fixed_point_resolution)     # color context
-    static_inpts[fixed_point_resolution:, 4] = 1                                    # go signal for color context
-    static_inpts[fixed_point_resolution:, 2] = np.linspace(-0.1857, 0.1857, fixed_point_resolution)     # color context
-    static_inpts[fixed_point_resolution:, 5] = 1                                    # go signal for color context
+    static_inpts[fixed_point_resolution:2*fixed_point_resolution, 1] = np.linspace(-0.1857, 0.1857, fixed_point_resolution)     # color context
+    static_inpts[fixed_point_resolution:2*fixed_point_resolution, 4] = 1                                    # go signal for color context
+    static_inpts[2*fixed_point_resolution:, 2] = np.linspace(-0.1857, 0.1857, fixed_point_resolution)     # color context
+    static_inpts[2*fixed_point_resolution:, 5] = 1                                    # go signal for color context
 
     #roots = fp.FindFixedPoints(model, static_inpts, embedding='pca', embedder=model._pca, Verbose=False)
     print('Static Inputs \n\n', static_inpts)    # print to verify correct
