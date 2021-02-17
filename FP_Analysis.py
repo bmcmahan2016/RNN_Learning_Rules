@@ -76,6 +76,11 @@ class Roots(object):
         static_inpts = np.array(static_inpts)                                   # inpts is array with shape (num_static_inputs, input_dim)
         num_roots = np.zeros((len(static_inpts), 1+len(static_inpts[0])))              # use this line for non-context tasks
         
+        if self._model._useHeb:
+            num_hidden = 47
+        else:
+            num_hidden = 50
+        
         F = []         # holds RNN update functions under different static inputs
         for static_input in static_inpts:
             F.append(rnn_update_eq(static_input))
@@ -89,7 +94,7 @@ class Roots(object):
             num_roots[IX,:len(static_inpts[0])] = static_input               # update summary table
             self._updateStatusBar()    # reports progress to console
             roots_found = []
-            if (not FindZeros(F[IX], roots_found, num_hidden=self._model._hiddenSize)):  # no root found
+            if (not FindZeros(F[IX], roots_found, num_hidden=num_hidden)):  # no root found
                 print("No root was found !")
                 num_roots[IX, -1] = 0
                 continue
@@ -175,10 +180,10 @@ class Roots(object):
         trial_data, self._labels = r.record(self._model, \
             title='fixed points', print_out=True, plot_recurrent=False, cs=cs)
         self._model._pca = PCA()
-        self._trajectories = self._model._pca.fit_transform(trial_data.reshape(-1, self._model._hiddenSize)).reshape(10,-1,self._model._hiddenSize)
+        self._trajectories = self._model._pca.fit_transform(trial_data.reshape(-1, self._model._hiddenSize-3)).reshape(10,-1,self._model._hiddenSize-3)
         # model_trajectories is (t_steps, hiddenSize)
         assert(self._trajectories.shape[1]>=self._model._task.N)
-        assert(self._trajectories.shape[2]==self._model._hiddenSize)
+        assert(self._trajectories.shape[2]==self._model._hiddenSize-3)
             
         num_fixed_pts = len(self._values)
         fixed_pts = np.squeeze(np.array(self._values))    # cast fixed points as NumPy array
@@ -221,7 +226,7 @@ class Roots(object):
                 #plt.plot(self._trajectories[i,:start_time,0], self._trajectories[i,:start_time,1], c = 'k', alpha=0.25)
             plt.plot(self._trajectories[i,start_time:end_time,0], self._trajectories[i,start_time:end_time,1], c = cs[int(self._labels[i])], alpha=0.25)
         
-        if slow_pts:    # plot the slow points
+        if False: #slow_pts:    # plot the slow points
             if self._slow_points == []:    # slow points have not been found yet
                 self.FindSlowPoints()
         

@@ -295,7 +295,7 @@ def record(model, cs=['r', 'b', 'k', 'g', 'y'], title='', print_out=True, plot_r
         #    data += 0.01*add_in_noise*torch.randn(data.shape[0], data.shape[1]).cuda()
         model._init_hidden()
         output, hidden = model.feed(torch.unsqueeze(taskData.t(), 0), return_hidden=True)
-        if model._task._version=="Heb":
+        if model._useHeb:
             #pdb.set_trace()
             output = np.tanh(hidden[:,0])
             outputs.append(output)
@@ -321,8 +321,12 @@ def record(model, cs=['r', 'b', 'k', 'g', 'y'], title='', print_out=True, plot_r
             plot_annotated=True
 
         # plot multi-unit activity
+        mask = np.ones((50), dtype=bool)
+        mask[1] = 0
+        mask[10] = 0
+        mask[11] = 0
         data = np.squeeze(np.array(hidden))
-        trial_data.append(data)
+        trial_data.append(data[:, mask])
         if plot_recurrent:
             plt.figure()
             plotMultiUnit(data, normalize_cols=True)
