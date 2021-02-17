@@ -264,7 +264,7 @@ class Roots(object):
 ######################################################################
 # Auxillary Functions
 ######################################################################
-def FindZeros(F, result, num_hidden=50, tol=1e-5, norm=False):
+def FindZeros(F, result, num_hidden=50, tol=1e-8, norm=False):
     '''
     FindZeros takes a function F and will search for zeros
     using randomly generated initial conditions
