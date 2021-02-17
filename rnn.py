@@ -567,23 +567,15 @@ class RNN(nn.Module):
                 return lambda x: np.squeeze( dt*np.matmul(W_in, inpt) + dt*np.matmul(W_rec, (np.maximum( np.zeros((self._hiddenSize,1)), x.reshape(self._hiddenSize,1)) )) - dt*x.reshape(self._hiddenSize,1) + b*dt)
             else:
                 if self._useHeb: #TODO: update this to incorporate bias
-                    def update_fcn(x_in):
-                        #print("x shape:", x.shape)
-                        
-                        x = np.zeros((50,))
-                        offset = 0
-                        for i in range(50):
-                            if (i==1 or i==10 or i==11):
-                                offset+=1
-                                continue
-                            x[i] = x_in[i-offset]
-                        assert offset==3
+                    def update_fcn(x):
                         x[1] = 1       # Bias from Miconi 2017
                         x[10] = 1
                         x[11] = -1
                         x = np.squeeze( dt*np.matmul(W_in, inpt) + dt*np.matmul(W_rec, (np.tanh(x.reshape(self._hiddenSize,1)))) - dt*x.reshape(self._hiddenSize,1) + b*dt)
-                        
-                        return x
+                        x[1] = 1       # Bias from Miconi 2017
+                        x[10] = 1
+                        x[11] = -1
+                        return np.tanh(x)
                     #return lambda x: np.squeeze( dt*np.matmul(W_in, inpt) + dt*np.matmul(W_rec, (np.tanh(x.reshape(self._hiddenSize,1)))) - dt*x.reshape(self._hiddenSize,1) + b*dt)
                     return update_fcn
                 else:

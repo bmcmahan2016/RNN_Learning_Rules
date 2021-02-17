@@ -76,11 +76,6 @@ class Roots(object):
         static_inpts = np.array(static_inpts)                                   # inpts is array with shape (num_static_inputs, input_dim)
         num_roots = np.zeros((len(static_inpts), 1+len(static_inpts[0])))              # use this line for non-context tasks
         
-        if self._model._useHeb:
-            num_hidden=self._model._hiddenSize
-        else:
-            num_hidden = self._model._hiddenSize
-        
         F = []         # holds RNN update functions under different static inputs
         for static_input in static_inpts:
             F.append(rnn_update_eq(static_input))
@@ -94,7 +89,7 @@ class Roots(object):
             num_roots[IX,:len(static_inpts[0])] = static_input               # update summary table
             self._updateStatusBar()    # reports progress to console
             roots_found = []
-            if (not FindZeros(F[IX], roots_found, num_hidden=num_hidden)):  # no root found
+            if (not FindZeros(F[IX], roots_found, num_hidden=self._model._hiddenSize)):  # no root found
                 print("No root was found !")
                 num_roots[IX, -1] = 0
                 continue
@@ -151,12 +146,13 @@ class Roots(object):
             slow_pts = []
             if (not FindZeros(F, slow_pts, num_hidden=self._model._hiddenSize, tol=1)):
                 print("Failed to find any slow points")
-                assert False
+                return False
             tmp = GetUnique(slow_pts)
             if ix == 0:
                 self._slow_points = np.array(tmp)
             else:
                 self._slow_points = np.vstack((self._slow_points, np.array(tmp)))
+            return True
         
         #self._slow_points = np.squeeze(np.array(self._slow_points))
 
@@ -189,8 +185,9 @@ class Roots(object):
         if num_fixed_pts == 1:   # must reshape to a single row matrix 
             fixed_pts = fixed_pts.reshape(1,-1)   # data contains a single sample
 
-        roots_embedded = self._model._pca.transform(fixed_pts)
-        self._embedded = roots_embedded
+        if fixed_pts != []:
+            roots_embedded = self._model._pca.transform(fixed_pts)
+            self._embedded = roots_embedded
 
     def plot(self, fixed_pts=False, slow_pts=True, start_time = 0, end_time=-1):
         '''Plots the embedded fixed points in two dimensions
@@ -210,7 +207,7 @@ class Roots(object):
             self._embed()
         cs = ['g', 'b', 'r']
         plt.figure()
-        if fixed_pts:
+        if fixed_pts and self._embedded != []:
             for root_ix in range(self._embedded.shape[0]):  # loop over roots
                 if self._stability[root_ix]:  # root is stable
                     plt.scatter(self._embedded[root_ix, 0], self._embedded[root_ix, 1], c=cmap(self._static_inputs[root_ix]), alpha=0.5, s=200)
@@ -232,10 +229,10 @@ class Roots(object):
             slow_pts = np.squeeze(np.array(self._slow_points))    # cast slow points as NumPy array
             if num_slow_pts == 1:   # must reshape to a single row matrix 
                 slow_pts = slow_pts.reshape(1,-1)
-
-            slow_embedded = self._model._pca.transform(slow_pts)
-            for ix in range(num_slow_pts):
-                plt.scatter(slow_embedded[ix, 0], slow_embedded[ix, 1], c='k', marker='x', alpha=0.25)
+            if slow_pts != []: # if we were able to find any slow points
+                slow_embedded = self._model._pca.transform(slow_pts)
+                for ix in range(num_slow_pts):
+                    plt.scatter(slow_embedded[ix, 0], slow_embedded[ix, 1], c='k', marker='x', alpha=0.25)
             
 
     def save(self, fname):
@@ -267,7 +264,7 @@ class Roots(object):
 ######################################################################
 # Auxillary Functions
 ######################################################################
-def FindZeros(F, result, num_hidden=50, tol=1e-8, norm=False):
+def FindZeros(F, result, num_hidden=50, tol=1e-5, norm=False):
     '''
     FindZeros takes a function F and will search for zeros
     using randomly generated initial conditions
@@ -278,7 +275,7 @@ def FindZeros(F, result, num_hidden=50, tol=1e-8, norm=False):
         #random activations on U[-1,1]
         x0 = 10*(np.random.rand(num_hidden,1)-0.5)
         # tolerance changed from 1e-8
-        sol = root(F, x0, tol=tol)
+        sol = root(F, x0, tol=tol, method='lm')   # lm
         if sol.success == True:
             if norm:
                 #if not a zero vector

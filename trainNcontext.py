@@ -16,12 +16,12 @@ inps_and_targs = task.get_inps_and_targs
 
 # create the network and set hyper-parameters
 p = FF_Demo.create_parameters(dt=0.003)
-p['g'] = 1
+p['g'] = 1.0
 p['network_size'] = 50
 p['tau'] = 0.03
 p['test_init_trials']=10
 p['test_trials'] = 2_000
-p['ff_alpha'] = 100_000
+p['ff_alpha'] = 10_000
 p['ff_steps_per_update']=2
 rnn = FF_Demo.RNN(p,6,1)   # hyper-params, num_inputs, num_outputs
 
@@ -30,7 +30,7 @@ num_train_attempts = 0
 training_exit_status = False
 while (not training_exit_status):
     num_train_attempts += 1
-    training_exit_status = rnn.train_rdm(inps_and_targs, errorTrigger=50)
+    training_exit_status = rnn.train_rdm(inps_and_targs, errorTrigger=200)
 
 
 
