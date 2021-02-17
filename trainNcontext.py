@@ -9,8 +9,14 @@ import time
 import FF_Demo
 from task.Ncontext import Ncontext
 import pickle          # will be used to save model parameters
+import argparse
 
-var = 0.5
+parser = argparse.ArgumentParser(description="Trains RNN models")
+parser.add_argument("model_name", help="name of model")
+parser.add_argument("-v", "--variance", type=float, help="input variance", default=0.5)
+args = parser.parse_args()
+
+var = args.variance
 task = Ncontext(var=var, device="cpu")   # FULL FORCE doesn't use cuda
 inps_and_targs = task.get_inps_and_targs
 
@@ -71,7 +77,7 @@ import torch
 
 
 my_rnn = RNN(p)    # constructs RNN object
-modelName = "FullForce_N_" + str(time.time())
+modelName = args.model_name
 # convert the model
 
 	
