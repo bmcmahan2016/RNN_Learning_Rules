@@ -4,7 +4,7 @@ import time
 import matplotlib.pyplot as plt
 
 
-def GetUnique(points, tol=1e-3):
+def GetUnique(points, tol=1e-2):
 	'''find all unique points in a set of noisy points'''
 	#there must be at least one unique point
 	unique_pts = [ [] ]		#list of lists (each list is a list of points corresponding to a unique root)

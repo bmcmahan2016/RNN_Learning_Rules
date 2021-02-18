@@ -77,7 +77,7 @@ class Roots(object):
         num_roots = np.zeros((len(static_inpts), 1+len(static_inpts[0])))              # use this line for non-context tasks
         
         if self._model._useHeb:
-            num_hidden = 47
+            num_hidden = 50
         else:
             num_hidden = 50
         
@@ -101,10 +101,11 @@ class Roots(object):
 
             unique_roots = GetUnique(roots_found)
             for root in unique_roots:
-                print("shape of root: ", root.shape)
-                self._values.append(root)
-                self._static_inputs.append(static_input)
-                self._stability.append(IsAttractor(root, F[IX]))
+                if IsAttractor(root, F[IX]):
+                    print("shape of root: ", root.shape)
+                    self._values.append(root)
+                    self._static_inputs.append(static_input)
+                    self._stability.append(True)
 
             #curr_roots = self._values[-1]
             num_roots[IX,-1] = len(unique_roots)
@@ -180,10 +181,10 @@ class Roots(object):
         trial_data, self._labels = r.record(self._model, \
             title='fixed points', print_out=True, plot_recurrent=False, cs=cs)
         self._model._pca = PCA()
-        self._trajectories = self._model._pca.fit_transform(trial_data.reshape(-1, self._model._hiddenSize-3)).reshape(10,-1,self._model._hiddenSize-3)
+        self._trajectories = self._model._pca.fit_transform(trial_data.reshape(-1, self._model._hiddenSize)).reshape(10,-1,self._model._hiddenSize)
         # model_trajectories is (t_steps, hiddenSize)
         assert(self._trajectories.shape[1]>=self._model._task.N)
-        assert(self._trajectories.shape[2]==self._model._hiddenSize-3)
+        assert(self._trajectories.shape[2]==self._model._hiddenSize)
             
         num_fixed_pts = len(self._values)
         fixed_pts = np.squeeze(np.array(self._values))    # cast fixed points as NumPy array
@@ -226,7 +227,7 @@ class Roots(object):
                 #plt.plot(self._trajectories[i,:start_time,0], self._trajectories[i,:start_time,1], c = 'k', alpha=0.25)
             plt.plot(self._trajectories[i,start_time:end_time,0], self._trajectories[i,start_time:end_time,1], c = cs[int(self._labels[i])], alpha=0.25)
         
-        if False: #slow_pts:    # plot the slow points
+        if slow_pts:    # plot the slow points
             if self._slow_points == []:    # slow points have not been found yet
                 self.FindSlowPoints()
         
@@ -316,6 +317,7 @@ def IsAttractor(fixed_point, F, NumSimulations=25):   #NumSimulations=2500
 
     returns True if point is stable and False if point is unstable
     '''
+    
     num_stable_iters = 0
     num_unstable_iters = 0
 
@@ -325,6 +327,9 @@ def IsAttractor(fixed_point, F, NumSimulations=25):   #NumSimulations=2500
 
     for simulation in range(NumSimulations):
         epsilon = 10e-5 * np.random.randn(len(fixed_point), 1)                 #10e-3
+        epsilon[1] = 1
+        epsilon[10] = 1
+        epsilon[11] = -1
         nearby_point = fixed_point+epsilon
         initial_distance = ComputeDistance(nearby_point, fixed_point)
         for iterator in range(100):

@@ -326,7 +326,7 @@ def record(model, cs=['r', 'b', 'k', 'g', 'y'], title='', print_out=True, plot_r
         mask[10] = 0
         mask[11] = 0
         data = np.squeeze(np.array(hidden))
-        trial_data.append(data[:, mask])
+        trial_data.append(data)
         if plot_recurrent:
             plt.figure()
             plotMultiUnit(data, normalize_cols=True)

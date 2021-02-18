@@ -282,6 +282,9 @@ class RNN(nn.Module):
                 hidden_next = dt*torch.matmul(Jin, inpt) + \
                 dt*torch.matmul(self._J['rec'], (torch.tanh(self._hidden))) + \
                 (1-dt)*self._hidden + dt*self._J['bias'] + 0*noiseTerm
+                hidden_next[1] = 1       # Bias from Miconi 2017
+                hidden_next[10] = 1
+                hidden_next[11] = -1
 
             else:
                 noiseTerm=0
@@ -567,29 +570,16 @@ class RNN(nn.Module):
                 return lambda x: np.squeeze( dt*np.matmul(W_in, inpt) + dt*np.matmul(W_rec, (np.maximum( np.zeros((self._hiddenSize,1)), x.reshape(self._hiddenSize,1)) )) - dt*x.reshape(self._hiddenSize,1) + b*dt)
             else:
                 if self._useHeb: #TODO: update this to incorporate bias
-                    def update_fcn(x_in):
-                        x = np.zeros((50,1))
+                    def update_fcn(x):
                         x[1] = 1       # Bias from Miconi 2017
                         x[10] = 1
                         x[11] = -1
-                        num_skipped = 0
-                        for i in range(47):
-                            if (i==1 or i==10 or i==11):
-                                num_skipped += 1
-                                continue
-                            x[i] = x_in[i-num_skipped]
                         x = np.squeeze( dt*np.matmul(W_in, inpt) + dt*np.matmul(W_rec, (np.tanh(x.reshape(self._hiddenSize,1)))) - dt*x.reshape(self._hiddenSize,1) + b*dt)
                         x[1] = 1       # Bias from Miconi 2017
                         x[10] = 1
                         x[11] = -1
-                        x = np.tanh(x)
-                        num_skipped = 0
-                        for i in range(47):
-                            if (i==1 or i==10 or i==11):
-                                num_skipped += 1
-                                continue
-                            x_in[i] = x[i+num_skipped]
-                        return x_in
+                        #x = np.tanh(x)
+                        return x
                     #return lambda x: np.squeeze( dt*np.matmul(W_in, inpt) + dt*np.matmul(W_rec, (np.tanh(x.reshape(self._hiddenSize,1)))) - dt*x.reshape(self._hiddenSize,1) + b*dt)
                     return update_fcn
                 else:
