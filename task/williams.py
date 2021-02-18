@@ -157,14 +157,15 @@ class Williams():
 if __name__ == '__main__':
     import matplotlib.pyplot as plt 
 
-    task = Williams()
-    for _ in range(2):
-        meanOverride = 0.2*torch.rand(1)
+    task = Williams(variance=0.25)
+    for _ in range(1):
+        meanOverride = 1
         inp, condition = task.GetInput(mean_overide=meanOverride)
         if condition == 1:
-            plt.plot(inp.detach().cpu().numpy(), c='r')
+            plt.plot(inp.detach().cpu().numpy()[:20], c='r')
         else:
             plt.plot(inp.detach().cpu().numpy(), c='b')
+        plt.ylim([-2,4])
     plt.xlabel('Time')
     plt.ylabel('Input')
     plt.title('Perceptual Decision Making Task')

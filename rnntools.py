@@ -241,8 +241,25 @@ def TestTaskInputs(model, num_test=50, ShowFig=True, return_hidden=False, inpt_s
                 plt.plot(output, c='b')
     return network_hidden, np.array(network_outputs), np.array(target_outputs)
 
+def pulse_inputs(taskData):
+    '''turns inputs off later in trial'''
+    if taskData.shape[1] == 4:    # context task
+        taskData[400:, :2] = 0    # only uses 400ms pulse
+        if taskData[0,2] == 1:
+            taskData[:,1] = 0 # turn off out of context input
+        else:
+            taskData[:,0] = 0
+    elif taskData.shape[1] == 1:  # RDM task
+        taskData[200:] = 0        # use 200ms pulse
+    elif taskData.shape[1] == 6:  # N=3 task
+        taskData[400:, :3] = 0    # use 400ms pulse
+    elif taskData.shape[1] == 8:  # N=4 task
+        taskData[400:, :4] = 0    # use 400ms pulse
+    else:
+        return False # unable to pulse inputs
+    return True  # inputs succesfully pulsed
 
-def record(model, cs=['r', 'b', 'k', 'g', 'y'], title='', print_out=True, plot_recurrent=True, add_rec_noise=False, add_in_noise=False, only_out=False):
+def record(model, cs=['r', 'b', 'k', 'g', 'y'], title='', print_out=True, plot_recurrent=True, pulse=True, only_out=False):
     '''
     Records from recurrent neurons during an identical input sequence of length 50 while
     plotting the hidden state and activation of output neuron. Will also return hidden states 
@@ -274,20 +291,14 @@ def record(model, cs=['r', 'b', 'k', 'g', 'y'], title='', print_out=True, plot_r
 
     model._hiddenInitScale = model._hiddenInitScale * 0
 
+    
 
     #loop over conditions to create trials
     for _ in range(10):
         length_of_data=750    #200   #100
-        taskData, target = model._task.GetInput(mean_overide=-1)       # this line is used for multi_sensory task
-        if taskData.shape[1] == 4:   # context task
-            #taskDataTmp = torch.zeros((5000, 4)).cuda()
-            #taskDataTmp[:400, :2] = taskData[:400, :2]
-            taskData[400:, :2] = 0    # only uses 200ms pulse
-            #taskDataTmp[:,2] = taskData[0,2].item()
-            #taskDataTmp[:,3] = taskData[0,3].item()
-            #taskData = taskDataTmp
-        elif taskData.shape[1] == 1:  # RDM task
-            taskData[200:] = 0
+        taskData, target = model._task.GetInput(mean_overide=1)
+        if pulse:
+            pulse_inputs(taskData)
         trial_labels.append(target)
         #data = np.linspace(conditions[_], conditions[_], length_of_data).reshape(length_of_data,1)
         #data = torch.from_numpy(data).float().cuda()

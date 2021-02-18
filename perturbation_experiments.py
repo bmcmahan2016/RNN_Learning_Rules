@@ -526,10 +526,11 @@ def context_fixed_points(model_choice, save_fixed_points=False):
      
 
     fixed_point_resolution = 5
+    input_scale = 5.385  # makes fixed points range from +/-1
     static_inpts = np.zeros((2*fixed_point_resolution, 4))
-    static_inpts[:fixed_point_resolution, 0] = np.linspace(-0.1857, 0.1857, fixed_point_resolution)     # motion context
+    static_inpts[:fixed_point_resolution, 0] = input_scale*np.linspace(-0.1857, 0.1857, fixed_point_resolution)     # motion context
     static_inpts[:fixed_point_resolution, 2] = 1                                    # go signal for motion context
-    static_inpts[fixed_point_resolution:, 1] = np.linspace(-0.1857, 0.1857, fixed_point_resolution)     # color context
+    static_inpts[fixed_point_resolution:, 1] = input_scale*np.linspace(-0.1857, 0.1857, fixed_point_resolution)     # color context
     static_inpts[fixed_point_resolution:, 3] = 1                                    # go signal for color context
 
     #roots = fp.FindFixedPoints(model, static_inpts, embedding='pca', embedder=model._pca, Verbose=False)
@@ -549,7 +550,7 @@ def context_fixed_points(model_choice, save_fixed_points=False):
     model_roots.plot(fixed_pts=True, slow_pts=True, start_time = 400)
     plt.title("Late")
     
-    model_roots.plot(fixed_pts=True, slow_pts=False)
+    model_roots.plot(fixed_pts=True, slow_pts=True)
 
 
     plt.figure(123)

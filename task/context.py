@@ -38,21 +38,22 @@ class context_task():
         inpts = torch.zeros((self.N, 4)).cuda()
         
         #randomly draw mean from distribution
-        mean = torch.rand(1).item() * self._mean
+        means = torch.rand(2) * self._mean
         if mean_overide != -1:
-            mean = mean_overide
+            means[0] = mean_overide
+            means[1] = mean_overide
         
         # randomly generates context 1
         if torch.rand(1).item() < 0.5:
-            inpts[:,0] = mean*torch.ones(self.N)
+            inpts[:,0] = means[0]*torch.ones(self.N)
         else:
-            inpts[:,0] = -mean*torch.ones(self.N)
+            inpts[:,0] = -means[0]*torch.ones(self.N)
             
         # randomly generates context 2
         if torch.rand(1).item() < 0.5:
-            inpts[:,1] = mean*torch.ones(self.N)
+            inpts[:,1] = means[1]*torch.ones(self.N)
         else:
-            inpts[:,1] = -mean*torch.ones(self.N)
+            inpts[:,1] = -means[1]*torch.ones(self.N)
             
         # randomly sets GO cue
         if torch.rand(1).item() > 0.5:

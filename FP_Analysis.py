@@ -152,7 +152,7 @@ class Roots(object):
                 self._slow_points = np.array(tmp)
             else:
                 self._slow_points = np.vstack((self._slow_points, np.array(tmp)))
-            return True
+        return True
         
         #self._slow_points = np.squeeze(np.array(self._slow_points))
 
@@ -218,7 +218,7 @@ class Roots(object):
         for i in range(10):
             if start_time != 0:
                 pass
-                #plt.plot(self._trajectories[i,:start_time,0], self._trajectories[i,:start_time,1], c = 'k', alpha=0.25)
+                plt.plot(self._trajectories[i,:start_time,0], self._trajectories[i,:start_time,1], c = 'k', alpha=0.1)
             plt.plot(self._trajectories[i,start_time:end_time,0], self._trajectories[i,start_time:end_time,1], c = cs[int(self._labels[i])], alpha=0.25)
         
         if slow_pts:    # plot the slow points
@@ -232,7 +232,7 @@ class Roots(object):
             if slow_pts != []: # if we were able to find any slow points
                 slow_embedded = self._model._pca.transform(slow_pts)
                 for ix in range(num_slow_pts):
-                    plt.scatter(slow_embedded[ix, 0], slow_embedded[ix, 1], c='k', marker='x', alpha=0.25)
+                    plt.scatter(slow_embedded[ix, 0], slow_embedded[ix, 1], c='k', marker='x', alpha=0.1)
             
 
     def save(self, fname):
