@@ -21,3 +21,4 @@ models/GA_001.pt
 *.pt
 *.txt
 *.pt
+*.pyc
