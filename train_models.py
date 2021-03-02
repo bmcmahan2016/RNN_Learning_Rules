@@ -10,6 +10,7 @@ from genetic import Genetic
 from bptt import Bptt
 import argparse
 import pdb 
+from task.Ncontext import Ncontext
 
 hyperParams = {                  # dictionary of all RNN hyper-parameters
    "inputSize" : 1,
@@ -82,17 +83,18 @@ def TrainContext(name, hyperParams, use_ReLU=False):
     rnnModel.train()
     rnnModel.save()
     
-def TrainN(name, hyperParams, use_ReLU=False):
+def TrainN(name, hyperParams, use_ReLU=False, N=3):
+    task = Ncontext(mean=hyperParams["taskMean"], var=hyperParams["taskVar"], dim=N)
     if use_ReLU:
         print("Using ReLU activations")
         hyperParams["ReLU"] = 1
     if name.lower()[:2] == "bp":
         print("begining training BPTT network")
-        rnnModel = Bptt(hyperParams, task="Ncontext")
+        rnnModel = Bptt(hyperParams, task=task)
     elif name.lower()[:2] == "he":
         raise NotImplementedError()
     elif name.lower()[:2] == "ga" or name.lower()[:2] == "ge":      # use genetic learning rule
-        rnnModel = Genetic(hyperParams, task="Ncontext", mutation=0.005, numPop=20)
+        rnnModel = Genetic(hyperParams, task=task, mutation=0.005, numPop=20)
     else:
         print("unclear which learning rule should be used for training")
         raise NotImplementedError()
@@ -110,7 +112,7 @@ task_choice = parser.add_mutually_exclusive_group()
 task_choice.add_argument("--rdm", action="store_true", default=False)
 task_choice.add_argument("--context", action="store_true", default=False)
 task_choice.add_argument("--multi", action="store_true", default=False)
-task_choice.add_argument("--N", action="store_true", default=False)
+task_choice.add_argument("--N", type=int, default=0)
 
 args = parser.parse_args()
 hyperParams["taskVar"] = args.variance
@@ -126,12 +128,12 @@ elif args.multi:
     hyperParams["g"] = 1
     hyperParams["hiddenSize"] = 50
     TrainMulti(args.model_name, hyperParams)
-elif args.N:
+elif args.N != 0:
     print("Training network on N dimensional context task")
-    hyperParams["inputSize"] = 6
+    hyperParams["inputSize"] = args.N * 2
     hyperParams["g"] = 1
     hyperParams["hiddenSize"] = 50
-    TrainN(args.model_name, hyperParams)
+    TrainN(args.model_name, hyperParams, N=args.N)
 else:
     print("Please specify a training task")
     exit()

@@ -12,8 +12,8 @@ import matplotlib.pyplot as plt
 from random import randrange
 
 class Ncontext():
-    def __init__(self, N=750, mean=0.1857, var=1, device="cuda:0"):
-        self._dim = 3            # number of input contexts
+    def __init__(self, N=750, mean=0.1857, var=1, device="cuda:0", dim=3):
+        self._dim = dim            # number of input contexts
         self.N = N               # trial duration
         self._mean = mean
         self._var = var
@@ -25,9 +25,8 @@ class Ncontext():
         '''randomly generates an input channel'''
         if torch.rand(1).item() < 0.5:
             return mean*torch.ones(self.N)
-        else:
-            return -mean*torch.ones(self.N)
-        
+        return -mean*torch.ones(self.N)
+
     def get_inps_and_targs(self, mean_overide=-1, var_overide=1, dt=""):
         '''returns inputs, hints, and targets for FF training algorithm'''
         inpts, target = self.GetInput(mean_overide=mean_overide, var_overide=var_overide)
@@ -103,11 +102,10 @@ class Ncontext():
         ys = y[0]
         if type(y) is np.ndarray:
             assert False, "input to loss must be a PyTorch Tensor"
-        else:
-            # use loss from Mante 2013
-            squareLoss = (yt-torch.sign(target.T))**2 + (ys - 0)**2
-            meanSquareLoss = torch.sum( squareLoss, axis=0 )
-            return meanSquareLoss
+        # use loss from Mante 2013
+        squareLoss = (yt-torch.sign(target.T))**2 + (ys - 0)**2
+        meanSquareLoss = torch.sum( squareLoss, axis=0 )
+        return meanSquareLoss
 
 
 if __name__ == '__main__':
@@ -116,19 +114,24 @@ if __name__ == '__main__':
     parentdir = os.path.dirname(currentdir)
     sys.path.insert(0,parentdir) 
     
-    task = Ncontext(var=0.1)
+    task = Ncontext(var=0.1, dim=4)
     inpts, target = task.GetInput()
     inpts = inpts.cpu().detach().numpy()
     print("target:", target.item())
     plt.figure(1)
-    plt.plot(inpts[:,0])
-    plt.plot(inpts[:,1])
-    plt.plot(inpts[:,2])
-    plt.legend(["Context 1", "Context 2", "Context 3"])
+    N = inpts.shape[1] / 2
+    N = int(N)
+    print("Number of dimensions: ", N)
+    plt_legend = []
+    for i in range(N):
+        plt.plot(inpts[:,i])
+        plt_legend.append("Context" + str(i+1))
+    plt.legend(plt_legend)
     
     
     plt.figure(2)
-    plt.plot(inpts[:,3])
-    plt.plot(inpts[:,4])
-    plt.plot(inpts[:,5])
-    plt.legend(["Go 1", "Go 2", "Go 3"])
+    plt_legend = []
+    for i in range(N):
+        plt.plot(inpts[:,N+i])
+        plt_legend.append("Go" + str(i+1))
+    plt.legend(plt_legend)

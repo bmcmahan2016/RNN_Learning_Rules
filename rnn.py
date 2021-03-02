@@ -45,8 +45,7 @@ hyperParams = {       # dictionary of all hyper-parameters
 
 class RNN(nn.Module):
     # recently changed var by normalizing it by N, before was 0.045 w/o normilazation
-    def __init__(self, hyperParams, task="rdm"):
-
+    def __init__(self, hyperParams, task=0):
         super(RNN, self).__init__()                                            # initialize parent class
         self._inputSize = int(hyperParams["inputSize"])
         self._hiddenSize = int(hyperParams["hiddenSize"])
@@ -76,22 +75,11 @@ class RNN(nn.Module):
             self._use_ReLU = int(hyperParams["ReLU"])             # determines the activation function to use
         except:
             self._use_ReLU = 0
-        
-        if task == "context":
-            self._task = context_task(N=750, mean=hyperParams["taskMean"], \
-                                      var = hyperParams["taskVar"])
-        elif task == "DMC":
-            self._task = DMC()     # TODO: add arguments for task statistics
-
-        elif task == "multi":
-            self._task = multi_sensory(var=hyperParams["taskVar"])
-        elif task=="Ncontext":
-            self._task = Ncontext()
+            
+        self._task = task
 
 
-        else:
-            self._task = Williams(N=750, mean=hyperParams["taskMean"], \
-                                  variance=hyperParams["taskVar"])                
+              
 
         #create an activity tensor that will hold a history of all hidden states
         self._activityTensor = np.zeros((50))
