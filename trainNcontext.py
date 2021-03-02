@@ -14,10 +14,11 @@ import argparse
 parser = argparse.ArgumentParser(description="Trains RNN models")
 parser.add_argument("model_name", help="name of model")
 parser.add_argument("-v", "--variance", type=float, help="input variance", default=0.5)
+parser.add_argument("-N", type=int, help="Number of dimensions", default = 3)
 args = parser.parse_args()
 
 var = args.variance
-task = Ncontext(var=var, device="cpu")   # FULL FORCE doesn't use cuda
+task = Ncontext(var=var, device="cpu", dim=args.N)   # FULL FORCE doesn't use cuda
 inps_and_targs = task.get_inps_and_targs
 
 # create the network and set hyper-parameters
@@ -29,7 +30,7 @@ p['test_init_trials']=10
 p['test_trials'] = 2_000
 p['ff_alpha'] = 10_000
 p['ff_steps_per_update']=2
-rnn = FF_Demo.RNN(p,6,1)   # hyper-params, num_inputs, num_outputs
+rnn = FF_Demo.RNN(p,args.N*2,1)   # hyper-params, num_inputs, num_outputs
 
 # train the current model
 num_train_attempts = 0
@@ -56,7 +57,7 @@ model_data = {
    
 
 # converts to RNN object
-p["inputSize"] = 6
+p["inputSize"] = args.N*2
 p["hiddenSize"] = 50
 p["outputSize"] = 1
 p["inputVariance"] = 0.5

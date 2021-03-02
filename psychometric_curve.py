@@ -6,7 +6,7 @@ trained on the context task. Want
 '''
 import numpy as np 
 import torch 
-from rnn import RNN, loadRNN
+from rnn import RNN, loadRNN, loadHyperParams
 from task.williams import Williams
 from task.multi_sensory import multi_sensory
 import matplotlib.pyplot as plt
@@ -167,7 +167,7 @@ task_type = parser.add_mutually_exclusive_group()
 task_type.add_argument("--rdm", action="store_true")
 task_type.add_argument("--context", action="store_true")
 task_type.add_argument("--multi", action="store_true")
-task_type.add_argument("--N", action="store_true")
+task_type.add_argument("--N", type=int, default=0)
 
 parser.add_argument("model_name", help="filename of model to analyze")
 parser.add_argument("--nofit", action="store_true", default=False)
@@ -187,9 +187,12 @@ elif args.context:
 elif args.multi:
     rnn, hyperParams = loadRNN(model_name, load_hyper=True, task="multi")
     task = multi_sensory(var=hyperParams["taskVar"])
-elif args.N:
-    rnn, hyperParams = loadRNN(model_name, load_hyper=True, task="Ncontext")
-    task = Ncontext(var=hyperParams["taskVar"])
+elif args.N != 0:
+    hyperParams = {}
+    loadHyperParams(model_name, hyperParams)
+    task = Ncontext(var=hyperParams["taskVar"], dim=args.N)
+    rnn, hyperParams = loadRNN(model_name, load_hyper=True, task=task)
+    
 ###############################################################################
 # End Analysis Specification
 ###############################################################################
@@ -215,18 +218,14 @@ elif args.context:# generate psychometric curves for the context task
     Plot(coherence_vals, num_right_reaches, plt_title="out context", fit="linear", \
          newFig=False)   # plot out-context pyschometric data on same axis
 
-elif args.N: # generate psychometric curves for the Ncontext task
+elif args.N != 0: # generate psychometric curves for the Ncontext task
     coherence_vals = 2*np.array([-0.009, -0.09, -0.036, -0.15, 0.009, 0.036, 0.09, 0.15])
-    num_right_reaches = TestCoherence(rnn, task, context_choice=0)
-    Plot(coherence_vals, num_right_reaches, plt_title="in context", fit="sigmoid")    # plot in-context psychometric data
-
-    num_right_reaches = TestCoherence(rnn, task, context_choice=1)
-    Plot(coherence_vals, num_right_reaches, plt_title="out context 1", fit="linear", \
-         newFig=False)   # plot out-context pyschometric data on same axis
-        
-    num_right_reaches = TestCoherence(rnn, task, context_choice=2)
-    Plot(coherence_vals, num_right_reaches, plt_title="N=3 Context Task", fit="linear", \
-         newFig=False)   # plot out-context pyschometric data on same axis
+    titles = ["in context", "out context"] 
+    fit_type = ["sigmoid", "linear"]
+    use_new_fig = [1, 0]
+    for N in range(args.N):
+        num_right_reaches = TestCoherence(rnn, task, context_choice=N)
+        Plot(coherence_vals, num_right_reaches, plt_title=titles[N>=1], fit=fit_type[N>=1], newFig=(N==0))    # plot in-context psychometric data
 
 
 elif args.rdm:    # generate psychometric curves for the rdm task

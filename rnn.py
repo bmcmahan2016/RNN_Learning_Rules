@@ -581,6 +581,16 @@ class RNN(nn.Module):
 # AUXILLARY FUNCTIONS
 ###########################################################
 
+def loadHyperParams(fName, hyperParams):
+    '''loads hyper-parameters in hyperParams'''
+    if os.path.exists(fName+".pt"):
+        f = open(fName+".txt", 'r')
+        for line in f:
+            key, value = line.strip().split(':')
+            hyperParams[key.strip()] = float(value.strip())
+        f.close()
+        return True # hyper-parameters were loaded succesfully
+    return False # file was not found
 
 def loadRNN(fName, optimizer="", load_hyper=False, task="rdm"):
     '''
@@ -591,38 +601,30 @@ def loadRNN(fName, optimizer="", load_hyper=False, task="rdm"):
     model if it was succesfully loaded, otherwise false       
 
     '''
-    if os.path.exists(fName+".pt"):
-        f = open(fName+".txt", 'r')
-        hyperParams = {}
-        for line in f:
-            key, value = line.strip().split(':')
-            hyperParams[key.strip()] = float(value.strip())
-        f.close()
-        if optimizer == "BPTT":
-            from bptt import Bptt
-            model = Bptt(hyperParams)
+    # load the hyper-parameters
+    hyperParams = {} # will hold model hyper-parameters
+    if not loadHyperParams(fName, hyperParams):
+        return False # failed to get hyper-parameters
+    if optimizer == "BPTT":
+        from bptt import Bptt
+        model = Bptt(hyperParams)
+    elif optimizer == "GA":
+        from genetic import Genetic
+        model = Genetic(hyperParams)
+    else:
+        model = RNN(hyperParams, task=task)
             
-        elif optimizer == "GA":
-            from genetic import Genetic
-            model = Genetic(hyperParams)
-            
-        else:
-            model = RNN(hyperParams, task=task)
-            
-        model.load(fName)      # loads the RNN object
-        model._MODEL_NAME = fName
-        if fName[7].lower() == 'h' or fName[0].lower() == 'h':
-            print("Using RNN update for Hebbian network")
-            model._useHeb = True
-        elif fName[7].lower() == 'f':
-            print("using RNN update for Full FORCE network")
-            model._useForce = True
-        if load_hyper:
-            return model, hyperParams
-        else:
-            return model
-    else:       # file does not exist
-        return False
+    model.load(fName)      # loads the RNN object
+    model._MODEL_NAME = fName
+    if fName[7].lower() == 'h' or fName[0].lower() == 'h':
+        print("Using RNN update for Hebbian network")
+        model._useHeb = True
+    elif fName[7].lower() == 'f':
+        print("using RNN update for Full FORCE network")
+        model._useForce = True
+    if load_hyper:
+        return model, hyperParams
+    return model
 
 def create_test_time_ativity_tensor(rnnModel):
     ''' create activity tensors at test time '''
@@ -666,8 +668,8 @@ def importHeb(name = "undeclared_heb", modelNum="100400", context_flag=False, dn
         input_dim = 4
         task = context_task()
     elif N_flag:
-        input_dim = 6
-        task = Ncontext()
+        input_dim = 8
+        task = Ncontext(var=0.5, dim=4)
     else:
         input_dim = 1
         task = Williams(N=750, mean=0.1857, \

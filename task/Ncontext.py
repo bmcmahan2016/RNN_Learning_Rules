@@ -76,17 +76,15 @@ class Ncontext():
     
     def PsychoTest(self, coherence, context=0):
         inpts = torch.zeros((self.N, 2*self._dim)).cuda()
-        inpts[:,0] = coherence*torch.ones(self.N)                # attended signal       changed 0->2
-        inpts[:,1] = 2*(torch.rand(1)-0.5)*0.1857*torch.ones(self.N)   # ignored signal  changed 1->3
-        inpts[:,2] = 2*(torch.rand(1)-0.5)*0.1857*torch.ones(self.N)
-        if context==0:  # signals attended signal
-             inpts[:, 3] = 1    # changed 2 - >0
-             
-        elif context==1: # attends to the ignored signal
-             inpts[:, 4] = 1    # changed 3 -> 1
-        elif context == 2: # attends to other ignored signal
-                inpts[:,5] = 1
-        else:
+        inpts[:,0] = coherence*torch.ones(self.N)                      # attended signal       changed 0->2
+        for i in range(1, self._dim):
+            inpts[:,i] = 2*(torch.rand(1)-0.5)*0.1857*torch.ones(self.N)
+        #inpts[:,1] = 2*(torch.rand(1)-0.5)*0.1857*torch.ones(self.N)   # ignored signal  changed 1->3
+        #inpts[:,2] = 2*(torch.rand(1)-0.5)*0.1857*torch.ones(self.N)
+
+        try:
+            inpts[:, self._dim+context] = 1    # attend to specified context
+        except IndexError:
             raise ValueError("Inappropriate value for Ncontext PsychoTest")
         inpts[:,:self._dim] += self._var*torch.randn(750, self._dim).cuda()    # adds noise to inputs
         
