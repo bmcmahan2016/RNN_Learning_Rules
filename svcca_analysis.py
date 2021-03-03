@@ -12,6 +12,7 @@ import matplotlib.pyplot as plt
 import svcca.cca_core as cca_core
 from sklearn.manifold import MDS
 import pdb
+import argparse
 
 def getNumSVs(singularValues):
     counter = 0
@@ -47,14 +48,19 @@ def getActivations(rnn_model):
         static_inputs = torch.tensor(static_inputs).float().cuda()
         static_inputs = torch.unsqueeze(static_inputs.t(), -1)
         static_inputs = torch.matmul(static_inputs, torch.ones((1,750)).cuda())
-
+    elif rnn_model._inputSize == 8: # N=4 task
+        static_inputs = np.random.randn(8, NUM_INPUT_CONDITIONS)
+        # cast static inputs to PyTorch Tensor
+        static_inputs = torch.tensor(static_inputs).float().cuda() # 8, 500
+        static_inputs = torch.unsqueeze(static_inputs.t(), -1) # 8, 500, 1
+        static_inputs = static_inputs @ torch.ones((1, 750)).cuda()
 
     else:  # rdm task
         static_inputs = np.linspace(-0.1857, 0.1857, NUM_INPUT_CONDITIONS).reshape(1, NUM_INPUT_CONDITIONS)
         static_inputs = np.matmul(np.ones((750, 1)), static_inputs)
         static_inputs = torch.tensor(static_inputs).float().cuda()
         static_inputs = torch.unsqueeze(static_inputs.t(), 1)
-        pdb.set_trace()
+        #pdb.set_trace()
     # if rnn_model._task._version == "Heb":
     #     static_inputs_heb = torch.zeros((500, 2, 750)).float().cuda()
     #     static_inputs_heb[:, 1:2, :] = static_inputs
@@ -64,6 +70,15 @@ def getActivations(rnn_model):
     activations = np.swapaxes(activations, 0, 1).reshape(50, -1)
     return activations #finalActivations    # 50 x 500  ----> numHidden x numInputs
         
+# get a file of models to analyze
+parser = argparse.ArgumentParser(description="Clusters RNNs by SVCCA")
+parser.add_argument("fname", help="name of file containing RNNs to analyze")
+args = parser.parse_args()
+
+file_of_rnns = open("models/"+args.fname, 'r')
+models = [(line.strip()).split() for line in file_of_rnns]
+file_of_rnns.close()
+
 
 modelActivations = []
 NUM_DIMENSIONS = 2
@@ -72,24 +87,31 @@ NUM_DIMENSIONS = 2
 #ff = ["models/FullForce080", "models/FullForce081", "models/FullForce082", "models/FullForce083"]
 #h = ["models/Hebb_020"]
 
-bptt = ["models/bptt_4000", "models/bptt_4001", "models/bptt_4002", "models/bptt_4003", "models/bptt_4004", "models/bptt_4005", "models/bptt_4006", "models/bptt_4007", "models/bptt_4008", "models/bptt_4009", "models/bptt_4010"]
-ga = ["models/ga_4000", "models/ga_4001", "models/ga_4002", "models/ga_4003", "models/ga_4004", "models/ga_4005", "models/ga_4006", "models/ga_4007", "models/ga_4008", "models/ga_4009", "models/ga_4010"]
-ff = ["models/FullForce_1000","models/FullForce_1001","models/FullForce_1002","models/FullForce_1003","models/FullForce_1004","models/FullForce_1005"]
+#bptt = ["models/bptt_4000", "models/bptt_4001", "models/bptt_4002", "models/bptt_4003", "models/bptt_4004", "models/bptt_4005", "models/bptt_4006", "models/bptt_4007", "models/bptt_4008", "models/bptt_4009", "models/bptt_4010"]
+#ga = ["models/ga_4000", "models/ga_4001", "models/ga_4002", "models/ga_4003", "models/ga_4004", "models/ga_4005", "models/ga_4006", "models/ga_4007", "models/ga_4008", "models/ga_4009", "models/ga_4010"]
+#ff = ["models/FullForce_1000","models/FullForce_1001","models/FullForce_1002","models/FullForce_1003","models/FullForce_1004","models/FullForce_1005"]
 
-models = [bptt, ga]
-N_BPTT_MODELS = len(bptt)
-N_GA_MODELS = len(ga)
-#N_FF_MODELS = len(ff)
-#N_H_MODELS = len(h)
-N_TOTAL_MODELS = N_BPTT_MODELS + N_GA_MODELS #+ N_FF_MODELS #+ N_H_MODELS
-distances = np.zeros((N_TOTAL_MODELS, N_TOTAL_MODELS))
+#models = [bptt, ga]
+numModelsOfType = {}
+count = 0
+for i in range(len(models)):
+    numModelsOfType[models[i][0]] = len(models[i])-1
+    count += len(models[i]) - 1
+numModelsOfType["total"] = count
+
+distances = np.zeros((numModelsOfType["total"], numModelsOfType["total"]))
 for modelType in models:
-    for model in modelType:
-        print("model name:", model)
-        rnn_inst = rnn.loadRNN(model)
-        activations = getActivations(rnn_inst)
-        modelActivations.append(activations)
-    
+    for count, model in enumerate(modelType):
+        if (count == 0):
+            print("model name:", model)
+        else:
+            print("name:", model)
+            rnn_inst = rnn.loadRNN("models/"+model)
+            activations = getActivations(rnn_inst)
+            modelActivations.append(activations)
+ 
+# this nested loop is slow
+# TODO: add a progress bar
 for i in range(len(modelActivations)):
     for j in range(i, len(modelActivations)):
         activationsI = modelActivations[i]
@@ -116,13 +138,24 @@ plt.title("SVCCA Distances Between Networks")
 
 clustering_algorithm = MDS()
 clustered_data = clustering_algorithm.fit_transform(distances)
-plt.figure()
-plt.scatter(clustered_data[:N_BPTT_MODELS,0], clustered_data[:N_BPTT_MODELS,1], c='r')
-plt.scatter(clustered_data[N_BPTT_MODELS:N_BPTT_MODELS+N_GA_MODELS,0], clustered_data[N_BPTT_MODELS:N_BPTT_MODELS+N_GA_MODELS,1], c='g')
+
+plt.figure()  # Scatter plot all the models
+count = 0     # keeps track of how many models plotted so far
+legends = []  # holds model names to be used in legend
+for modelType in numModelsOfType:
+    if modelType == "total": # no plotting for total since it isn't a valid model type
+        continue
+    value = numModelsOfType[modelType]
+    plt.scatter(clustered_data[count:count+value,0], clustered_data[count:count+value,1])
+    i+=1
+    count += value  # increment the number of models plotted
+    legends.append(modelType) # add this model type name to the legend
+    
+#plt.scatter(clustered_data[N_BPTT_MODELS:N_BPTT_MODELS+N_GA_MODELS,0], clustered_data[N_BPTT_MODELS:N_BPTT_MODELS+N_GA_MODELS,1], c='g')
 #plt.scatter(clustered_data[N_BPTT_MODELS+N_GA_MODELS:N_BPTT_MODELS+N_GA_MODELS+N_FF_MODELS,0], clustered_data[N_BPTT_MODELS+N_GA_MODELS:N_BPTT_MODELS+N_GA_MODELS+N_FF_MODELS,1], c='b')
 #plt.scatter(clustered_data[N_BPTT_MODELS+N_GA_MODELS+N_FF_MODELS:N_BPTT_MODELS+N_GA_MODELS+N_FF_MODELS+N_H_MODELS,0], clustered_data[N_BPTT_MODELS+N_GA_MODELS+N_FF_MODELS:N_BPTT_MODELS+N_GA_MODELS+N_FF_MODELS+N_H_MODELS,1], c='y')
 
-plt.legend(["BPTT", "GA", "FF"])
+plt.legend(legends)
 plt.show()
 #assert False
 

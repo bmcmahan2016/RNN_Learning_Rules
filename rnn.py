@@ -362,7 +362,7 @@ class RNN(nn.Module):
             if return_states:
                 hidden_states[:,t_step,:] = hidden.T                    # (batch_size, hidden_size)
                 
-            if self._task._version == "Heb":
+            if self._useHeb:
                 output_trace[t_step,:] = hidden.detach()[0]
             else:
                 output_trace[t_step,:] = output
