@@ -49,7 +49,12 @@ def getActivations(rnn_model):
         static_inputs = torch.unsqueeze(static_inputs.t(), -1)
         static_inputs = torch.matmul(static_inputs, torch.ones((1,750)).cuda())
     elif rnn_model._inputSize == 8: # N=4 task
-        static_inputs = np.random.randn(8, NUM_INPUT_CONDITIONS)
+        static_inputs = np.zeros((8, NUM_INPUT_CONDITIONS))
+        static_inputs[0,:] = np.linspace(-0.1857, 0.1857, NUM_INPUT_CONDITIONS)
+        static_inputs[1,:] = np.linspace(-0.1857, 0.1857, NUM_INPUT_CONDITIONS)
+        static_inputs[2,:] = np.linspace(-0.1857, 0.1857, NUM_INPUT_CONDITIONS)
+        static_inputs[3,:] = np.linspace(-0.1857, 0.1857, NUM_INPUT_CONDITIONS)
+        static_inputs[5,:] = 1
         # cast static inputs to PyTorch Tensor
         static_inputs = torch.tensor(static_inputs).float().cuda() # 8, 500
         static_inputs = torch.unsqueeze(static_inputs.t(), -1) # 8, 500, 1
