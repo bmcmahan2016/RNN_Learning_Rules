@@ -149,7 +149,7 @@ class RNN:
         self.rnn_par['rec_weights'] = np.zeros((N,N))
         self.rnn_par['out_weights'] = np.zeros((self.rnn_par['out_weights'].shape))
         # create an activity tensor that will hold activities through time during trials
-        activity_tensor = np.zeros((5_000, 75, 50))
+        activity_tensor = np.zeros((5_000, 75, self.p["network_size"]))
         activity_targets = np.zeros((5_000, 1))
 
 

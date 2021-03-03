@@ -24,7 +24,7 @@ inps_and_targs = task.get_inps_and_targs
 # create the network and set hyper-parameters
 p = FF_Demo.create_parameters(dt=0.003)
 p['g'] = 1.0
-p['network_size'] = 50
+p['network_size'] = 100
 p['tau'] = 0.03
 p['test_init_trials']=10
 p['test_trials'] = 2_000
@@ -58,7 +58,7 @@ model_data = {
 
 # converts to RNN object
 p["inputSize"] = args.N*2
-p["hiddenSize"] = 50
+p["hiddenSize"] = p["network_size"]
 p["outputSize"] = 1
 p["inputVariance"] = 0.5
 p["outputVariance"] = 0.5
