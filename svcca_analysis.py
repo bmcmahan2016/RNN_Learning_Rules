@@ -49,23 +49,31 @@ def getActivations(rnn_model):
         static_inputs = torch.unsqueeze(static_inputs.t(), -1)
         static_inputs = torch.matmul(static_inputs, torch.ones((1,750)).cuda())
     elif rnn_model._inputSize == 8: # N=4 task
-        static_inputs = np.zeros((8, NUM_INPUT_CONDITIONS))
-        static_inputs[0,:] = np.linspace(-0.1857, 0.1857, NUM_INPUT_CONDITIONS)
-        static_inputs[1,:] = np.linspace(-0.1857, 0.1857, NUM_INPUT_CONDITIONS)
-        static_inputs[2,:] = np.linspace(-0.1857, 0.1857, NUM_INPUT_CONDITIONS)
-        static_inputs[3,:] = np.linspace(-0.1857, 0.1857, NUM_INPUT_CONDITIONS)
-        static_inputs[5,:] = 1
+        N_INPUTS_PER_CONTEXT = 10
+        N_CONTEXTS = 4
+        MIN_INPUT = -0.1857
+        MAX_INPUT = 0.1857
+        static_inpt_arr = np.zeros((N_INPUTS_PER_CONTEXT*N_CONTEXTS, 8))
+
+        # loop over contexts
+        for context in range(N_CONTEXTS):
+           strt_ix = context*N_INPUTS_PER_CONTEXT
+           end_ix = (context+1)*N_INPUTS_PER_CONTEXT
+           static_inpt_arr[strt_ix:end_ix, context] = np.linspace(MIN_INPUT, MAX_INPUT, N_INPUTS_PER_CONTEXT)  # set inputs
+           static_inpt_arr[strt_ix:end_ix, context+N_CONTEXTS] = 1  # set GO signal
+        # static_inpt_arr now filled in with shape (20, 8)
+        static_inpt_arr = np.expand_dims(static_inpt_arr, -1)  # (20, 8, 1)
+        assert static_inpt_arr.shape == (N_INPUTS_PER_CONTEXT*N_CONTEXTS, 8, 1)
+        inpts = np.matmul(static_inpt_arr, np.ones((1, 750))) # (20, 8, 750)
+        # feed batch of 20 inpts into network to get ativations 
         # cast static inputs to PyTorch Tensor
-        static_inputs = torch.tensor(static_inputs).float().cuda() # 8, 500
-        static_inputs = torch.unsqueeze(static_inputs.t(), -1) # 8, 500, 1
-        static_inputs = static_inputs @ torch.ones((1, 750)).cuda()
+        static_inputs = torch.tensor(inpts).float().cuda() # 20, 8, 750
 
     else:  # rdm task
         static_inputs = np.linspace(-0.1857, 0.1857, NUM_INPUT_CONDITIONS).reshape(1, NUM_INPUT_CONDITIONS)
         static_inputs = np.matmul(np.ones((750, 1)), static_inputs)
         static_inputs = torch.tensor(static_inputs).float().cuda()
         static_inputs = torch.unsqueeze(static_inputs.t(), 1)
-        #pdb.set_trace()
     # if rnn_model._task._version == "Heb":
     #     static_inputs_heb = torch.zeros((500, 2, 750)).float().cuda()
     #     static_inputs_heb[:, 1:2, :] = static_inputs
