@@ -48,9 +48,9 @@ def getActivations(rnn_model):
         static_inputs = torch.tensor(static_inputs).float().cuda()
         static_inputs = torch.unsqueeze(static_inputs.t(), -1)
         static_inputs = torch.matmul(static_inputs, torch.ones((1,750)).cuda())
-    elif rnn_model._inputSize == 8: # N=4 task
+    elif rnn_model._inputSize == 8 or rnn_model._inputSize == 6: # N=4 task
         N_INPUTS_PER_CONTEXT = 10
-        N_CONTEXTS = 4
+        N_CONTEXTS = int(rnn_model._inputSize / 2)
         MIN_INPUT = -0.1857
         MAX_INPUT = 0.1857
         static_inpt_arr = np.zeros((N_INPUTS_PER_CONTEXT*N_CONTEXTS, 8))
@@ -80,7 +80,7 @@ def getActivations(rnn_model):
     #     static_inputs = static_inputs_heb
     _, activations = rnn_model.feed(static_inputs, return_hidden=True)
     #finalActivations = activations[-1,:,:]       # keeps activation at end of trial only
-    activations = np.swapaxes(activations, 0, 1).reshape(50, -1)
+    activations = np.swapaxes(activations, 0, 1).reshape(rnn_model._hiddenSize, -1)
     return activations #finalActivations    # 50 x 500  ----> numHidden x numInputs
         
 # get a file of models to analyze

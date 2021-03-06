@@ -367,7 +367,9 @@ class RNN(nn.Module):
             else:
                 output_trace[t_step,:] = output
         if return_hidden:
-            return output_trace, np.array(hidden_trace)
+            hh = np.array(hidden_trace)
+            return output_trace, hh
+            
         if return_states:
             return output_trace, hidden_states
         #print('shape of output trace', len(output_trace[0]))
