@@ -132,7 +132,7 @@ elif args.N != 0:
     print("Training network on N dimensional context task")
     hyperParams["inputSize"] = args.N * 2
     hyperParams["g"] = 1
-    hyperParams["hiddenSize"] = 50
+    hyperParams["hiddenSize"] = 100
     TrainN(args.model_name, hyperParams, N=args.N)
 else:
     print("Please specify a training task")
