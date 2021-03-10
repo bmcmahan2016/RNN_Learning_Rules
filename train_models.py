@@ -106,7 +106,7 @@ def TrainN(name, hyperParams, use_ReLU=False, N=3):
 parser = argparse.ArgumentParser(description="Trains RNN models")
 parser.add_argument("model_name", help="name of model")
 parser.add_argument("-m", "--mean", type=float, help="input mean", default=0.1857)
-parser.add_argument("-v", "--variance", type=float, help="input variance", default=1)
+parser.add_argument("-v", "--variance", type=float, help="input variance", default=0.5)
 parser.add_argument("--relu", action="store_true", default=False)
 task_choice = parser.add_mutually_exclusive_group()
 task_choice.add_argument("--rdm", action="store_true", default=False)

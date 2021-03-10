@@ -11,6 +11,7 @@ import torch
 import matplotlib.pyplot as plt
 import svcca.cca_core as cca_core
 from sklearn.manifold import MDS
+from sklearn.cluster import KMeans
 import pdb
 import argparse
 
@@ -144,6 +145,9 @@ for i in range(len(modelActivations)):
         svcca_results = cca_core.get_cca_similarity(svacts1, svacts2, epsilon=1e-10, verbose=False)
         distances[i, j] = 1 - np.mean(svcca_results["cca_coef1"])
         distances[j, i] = distances[i, j]
+        # distances are shape (numRNNs, numRNNs)
+
+
 
 plt.imshow(distances)
 plt.colorbar()
@@ -151,6 +155,20 @@ plt.title("SVCCA Distances Between Networks")
 
 clustering_algorithm = MDS()
 clustered_data = clustering_algorithm.fit_transform(distances)
+
+################
+# compute K-Means clusters
+################
+K_cluster = KMeans(n_clusters = 4)
+kmeans = K_cluster.fit(distances)
+
+plt.figure()
+colors = ['r', 'b', 'g', 'y', 'k']
+for i in range(len(clustered_data)):
+    plt.scatter(clustered_data[i, 0], clustered_data[i,1], c = colors[kmeans.labels_[i]])
+
+################
+
 
 plt.figure()  # Scatter plot all the models
 count = 0     # keeps track of how many models plotted so far
