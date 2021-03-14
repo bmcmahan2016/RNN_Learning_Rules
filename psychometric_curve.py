@@ -124,7 +124,7 @@ def TestCoherence(rnn, task, context_choice=0):
         array of shape (coherence_levels, 1) with the number of rightward reaches for each coherence level
     '''
 
-    num_trials = 2_000
+    num_trials = 2000
     # will hold the number of rightward reaches for each coherence level
     num_right_reaches = []
     num_right_reaches_com = []

@@ -96,14 +96,6 @@ file_of_rnns.close()
 
 modelActivations = []
 NUM_DIMENSIONS = 2
-#bptt = ["models/bptt_081", "models/bptt_082", "models/bptt_083", "models/bptt_084", "models/bptt_085", "models/bptt_086", "models/bptt_087", "models/bptt_088", "models/bptt_089", "models/bptt_090", "models/bptt_091", "models/bptt_092", "models/bptt_093", "models/bptt_100", "models/bptt_101", "models/bptt_102", "models/bptt_103", "models/bptt_104"]
-#ga = ["models/GA_080", "models/GA_081", "models/GA_082", "models/GA_083", "models/GA_084", "models/GA_085", "models/GA_086", "models/GA_087", "models/GA_088", "models/GA_089", "models/GA_090", "models/GA_091", "models/GA_092", "models/GA_093", "models/GA_094", "models/GA_094", "models/GA_095", "models/GA_096", "models/GA_097", "models/GA_098", "models/GA_099", "models/GA_100"]
-#ff = ["models/FullForce080", "models/FullForce081", "models/FullForce082", "models/FullForce083"]
-#h = ["models/Hebb_020"]
-
-#bptt = ["models/bptt_4000", "models/bptt_4001", "models/bptt_4002", "models/bptt_4003", "models/bptt_4004", "models/bptt_4005", "models/bptt_4006", "models/bptt_4007", "models/bptt_4008", "models/bptt_4009", "models/bptt_4010"]
-#ga = ["models/ga_4000", "models/ga_4001", "models/ga_4002", "models/ga_4003", "models/ga_4004", "models/ga_4005", "models/ga_4006", "models/ga_4007", "models/ga_4008", "models/ga_4009", "models/ga_4010"]
-#ff = ["models/FullForce_1000","models/FullForce_1001","models/FullForce_1002","models/FullForce_1003","models/FullForce_1004","models/FullForce_1005"]
 
 #models = [bptt, ga]
 numModelsOfType = {}

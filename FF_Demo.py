@@ -149,8 +149,8 @@ class RNN:
         self.rnn_par['rec_weights'] = np.zeros((N,N))
         self.rnn_par['out_weights'] = np.zeros((self.rnn_par['out_weights'].shape))
         # create an activity tensor that will hold activities through time during trials
-        activity_tensor = np.zeros((5_000, 75, self.p["network_size"]))
-        activity_targets = np.zeros((5_000, 1))
+        activity_tensor = np.zeros((5000, 75, self.p["network_size"]))
+        activity_targets = np.zeros((5000, 1))
 
 
         # Need to initialize a target-generating network, used for computing error:
@@ -210,7 +210,7 @@ class RNN:
         # TRAINING LOOP 
         ##################################################################
         num_train_attempts = 1
-        while(trial_count < 5_000 and validation_accuracy < 0.9):
+        while(trial_count < 5000 and validation_accuracy < 0.9):
             self.initialize_act()
             # Create input, target, and hints. Combine for the driven network
             # want to create as a batch
@@ -465,7 +465,7 @@ if __name__=="__main__":
     p['network_size'] = 50
     p['tau'] = 0.03
     p['test_init_trials']=10
-    p['test_trials'] = 2_000
+    p['test_trials'] = 2000
     p['ff_alpha'] = 1000
     p['ff_steps_per_update']=2
     rnn = RNN(p,1,1)

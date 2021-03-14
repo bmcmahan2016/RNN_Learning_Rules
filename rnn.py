@@ -166,7 +166,7 @@ class RNN(nn.Module):
             self._J['out'][:] = torch.from_numpy(Jout).float()[:]
         self.StoreRecMag()
         
-    def createValidationSet(self, test_iters=2_000):
+    def createValidationSet(self, test_iters=2000):
         '''
         DESCRIPTION:
         Creates the validation dataset which will be used to 

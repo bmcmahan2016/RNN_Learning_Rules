@@ -27,8 +27,8 @@ p['g'] = 1.0
 p['network_size'] = 100
 p['tau'] = 0.03
 p['test_init_trials']=10
-p['test_trials'] = 2_000
-p['ff_alpha'] = 10_000
+p['test_trials'] = 2000
+p['ff_alpha'] = 10000
 p['ff_steps_per_update']=2
 rnn = FF_Demo.RNN(p,args.N*2,1)   # hyper-params, num_inputs, num_outputs
 
