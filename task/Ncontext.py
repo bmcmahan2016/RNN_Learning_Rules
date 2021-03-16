@@ -112,7 +112,7 @@ if __name__ == '__main__':
     parentdir = os.path.dirname(currentdir)
     sys.path.insert(0,parentdir) 
     
-    task = Ncontext(var=0.1, dim=4)
+    task = Ncontext(var=0.1, dim=1)
     inpts, target = task.GetInput()
     inpts = inpts.cpu().detach().numpy()
     print("target:", target.item())

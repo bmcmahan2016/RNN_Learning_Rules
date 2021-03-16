@@ -24,61 +24,47 @@ def getNumSVs(singularValues):
         counter+=1
     return counter
 
+def get_rdm_inputs(inputSize):
+    # returns inputs for the RDM task
+    NUM_INPUT_CONDITIONS = 500
+    static_inputs = np.linspace(-0.1857, 0.1857, NUM_INPUT_CONDITIONS).reshape(1, NUM_INPUT_CONDITIONS)
+    static_inputs = np.matmul(np.ones((750, 1)), static_inputs)
+    static_inputs = torch.tensor(static_inputs).float().cuda()
+    static_inputs = torch.unsqueeze(static_inputs.t(), 1)
+    
+def get_static_inputs(inputSize):
+    # will get inputs for the N = 1 context task
+    N_INPUTS_PER_CONTEXT = 10
+    N_CONTEXTS = int(inputSize / 2)
+    MIN_INPUT = -0.1857
+    MAX_INPUT = 0.1857
+    static_inpt_arr = np.zeros((N_INPUTS_PER_CONTEXT*N_CONTEXTS, inputSize))
+    # loop over contexts
+    for context in range(N_CONTEXTS):
+       strt_ix = context*N_INPUTS_PER_CONTEXT
+       end_ix = (context+1)*N_INPUTS_PER_CONTEXT
+       static_inpt_arr[strt_ix:end_ix, context] = np.linspace(MIN_INPUT, MAX_INPUT, N_INPUTS_PER_CONTEXT)  # set inputs
+       static_inpt_arr[strt_ix:end_ix, context+N_CONTEXTS] = 1  # set GO signal
+    # static_inpt_arr now filled in with shape (20, 8)
+    static_inpt_arr = np.expand_dims(static_inpt_arr, -1)  # (20, 8, 1)
+    assert static_inpt_arr.shape == (N_INPUTS_PER_CONTEXT*N_CONTEXTS, inputSize, 1)
+    inpts = np.matmul(static_inpt_arr, np.ones((1, 750))) # (20, 8, 750)
+    # feed batch of 20 inpts into network to get ativations 
+    # cast static inputs to PyTorch Tensor
+    static_inputs = torch.tensor(inpts).float().cuda() # 20, 8, 750
+    return static_inputs
+        
+        
 def getActivations(rnn_model):
     '''generates inputs for SVCCA'''
-    NUM_INPUT_CONDITIONS = 500
-    if rnn_model._inputSize == 4: # context task
-        static_inputs = np.zeros((4, NUM_INPUT_CONDITIONS))
-        static_inputs[0,:] = np.linspace(-0.1857, 0.1857, NUM_INPUT_CONDITIONS)
-        static_inputs[1,:] = np.linspace(-0.1857, 0.1857, NUM_INPUT_CONDITIONS)
-        static_inputs[2,:] = 1
-        # cast static inputs to PyTorch Tensor
-        static_inputs = torch.tensor(static_inputs).float().cuda()
-        static_inputs = torch.unsqueeze(static_inputs.t(), -1)
-        static_inputs = torch.ones((500, 4, 750)).cuda()
-    elif rnn_model._inputSize == 2: # multisensory task
-        static_inputs = np.zeros((2, NUM_INPUT_CONDITIONS))
-        static_inputs[0,:167] = np.linspace(0, 0, 167)
-        static_inputs[0,167:334] = np.linspace(0, 1.0, 167)
-        static_inputs[0,334:] = np.linspace(0, 1.0, 166)
-
-        static_inputs[1,:167] = np.linspace(0, 1.0, 167)
-        static_inputs[1,167:334] = np.linspace(0, 0, 167)
-        static_inputs[1,334:] = np.linspace(0, 1.0, 166)
-
-        static_inputs = torch.tensor(static_inputs).float().cuda()
-        static_inputs = torch.unsqueeze(static_inputs.t(), -1)
-        static_inputs = torch.matmul(static_inputs, torch.ones((1,750)).cuda())
-    elif rnn_model._inputSize == 8 or rnn_model._inputSize == 6: # N=4 task
-        N_INPUTS_PER_CONTEXT = 10
-        N_CONTEXTS = int(rnn_model._inputSize / 2)
-        MIN_INPUT = -0.1857
-        MAX_INPUT = 0.1857
-        static_inpt_arr = np.zeros((N_INPUTS_PER_CONTEXT*N_CONTEXTS, 8))
-
-        # loop over contexts
-        for context in range(N_CONTEXTS):
-           strt_ix = context*N_INPUTS_PER_CONTEXT
-           end_ix = (context+1)*N_INPUTS_PER_CONTEXT
-           static_inpt_arr[strt_ix:end_ix, context] = np.linspace(MIN_INPUT, MAX_INPUT, N_INPUTS_PER_CONTEXT)  # set inputs
-           static_inpt_arr[strt_ix:end_ix, context+N_CONTEXTS] = 1  # set GO signal
-        # static_inpt_arr now filled in with shape (20, 8)
-        static_inpt_arr = np.expand_dims(static_inpt_arr, -1)  # (20, 8, 1)
-        assert static_inpt_arr.shape == (N_INPUTS_PER_CONTEXT*N_CONTEXTS, 8, 1)
-        inpts = np.matmul(static_inpt_arr, np.ones((1, 750))) # (20, 8, 750)
-        # feed batch of 20 inpts into network to get ativations 
-        # cast static inputs to PyTorch Tensor
-        static_inputs = torch.tensor(inpts).float().cuda() # 20, 8, 750
-
-    else:  # rdm task
-        static_inputs = np.linspace(-0.1857, 0.1857, NUM_INPUT_CONDITIONS).reshape(1, NUM_INPUT_CONDITIONS)
-        static_inputs = np.matmul(np.ones((750, 1)), static_inputs)
-        static_inputs = torch.tensor(static_inputs).float().cuda()
-        static_inputs = torch.unsqueeze(static_inputs.t(), 1)
-    # if rnn_model._task._version == "Heb":
-    #     static_inputs_heb = torch.zeros((500, 2, 750)).float().cuda()
-    #     static_inputs_heb[:, 1:2, :] = static_inputs
-    #     static_inputs = static_inputs_heb
+    switcher = {
+            1:get_rdm_inputs,
+            2:get_static_inputs,
+            4:get_static_inputs,
+            6:get_static_inputs,
+            8:get_static_inputs
+        }
+    static_inputs = switcher[rnn_model._inputSize](rnn_model._inputSize)
     _, activations = rnn_model.feed(static_inputs, return_hidden=True)
     #finalActivations = activations[-1,:,:]       # keeps activation at end of trial only
     activations = np.swapaxes(activations, 0, 1).reshape(rnn_model._hiddenSize, -1)
@@ -116,10 +102,11 @@ for modelType in models:
             activations = getActivations(rnn_inst)
             modelActivations.append(activations)
  
-# this nested loop is slow
-# TODO: add a progress bar
+# compute the distance matrix
+print("computing distance matrix ...\n")
 for i in range(len(modelActivations)):
-    for j in range(i, len(modelActivations)):
+    print("    Computing row", int(i))
+    for j in range(i, len(modelActivations)):   # ~2X speedup using symmetry
         activationsI = modelActivations[i]
         activationsJ = modelActivations[j]
         activationsI -= np.mean(activationsI, axis=1, keepdims=True)
