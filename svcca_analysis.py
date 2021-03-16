@@ -12,8 +12,23 @@ import matplotlib.pyplot as plt
 import svcca.cca_core as cca_core
 from sklearn.manifold import MDS
 from sklearn.cluster import KMeans
+from sklearn.mixture import GaussianMixture
 import pdb
 import argparse
+from FP_Analysis import ComputeDistance
+
+# TODO: refactor code as class
+# class NetworkDistances:
+#     # public:
+#     def getDistances():
+#         self._getActivations()
+#     # private: 
+#     def loadRNNS():  # loads RNNs to be analyzed
+#         pass
+#     def _getActivations():  # gets the activations of all RNNs
+#         pass
+    
+
 
 def getNumSVs(singularValues):
     counter = 0
@@ -138,14 +153,26 @@ clustered_data = clustering_algorithm.fit_transform(distances)
 ################
 # compute K-Means clusters
 ################
-K_cluster = KMeans(n_clusters = 4)
+K_cluster = KMeans(n_clusters = 2)
 kmeans = K_cluster.fit(distances)
 
 plt.figure()
 colors = ['r', 'b', 'g', 'y', 'k']
 for i in range(len(clustered_data)):
     plt.scatter(clustered_data[i, 0], clustered_data[i,1], c = colors[kmeans.labels_[i]])
+plt.title("K-Means")
+    
+################
+# compute GMM clusters
+################
+gm = GaussianMixture(n_components=2).fit(distances)
+labels_ = gm.predict(distances)  # get the labels
 
+plt.figure()
+colors = ['r', 'b', 'g', 'y', 'k']
+for i in range(len(clustered_data)):
+    plt.scatter(clustered_data[i, 0], clustered_data[i,1], c = colors[labels_[i]])
+plt.title("Gaussian Mixture Model")
 ################
 
 
@@ -203,3 +230,141 @@ plt.show()
 #plt.ylabel("CCA Correlation Coefficient Value")
 #plt.legend(loc="best")
 #plt.grid()
+
+
+
+
+def Method1(rnn_distances, labels, class_counts):
+    ''' 
+    Model Agnostic Method for measuring how clustered Learning Rules are
+    1.) Find the mean for each learning rule
+    2.) Compute distance of all points for a given learning rule to the mean 
+        for that learning rule (d_lr)
+    3.) Compute the distance of all points from other learning rules to the 
+        mean for the current learning rule (d_other)
+    4.) Compute the ratio of d_lr / d_other
+    '''
+    N_RNNS = len(rnn_distances)
+    # compute the mean/centroid for each learning rule
+    centroid_positions = {0: np.zeros((N_RNNS)), 1: np.zeros((N_RNNS)), 2: np.zeros((N_RNNS)), 3: np.zeros((N_RNNS))}
+    for rnn_ix in range(N_RNNS):  # loop over all RNNs
+        centroid_positions[labels[rnn_ix]] += rnn_distances[rnn_ix]
+    # now we must normalize the means
+    for class_key in centroid_positions:
+        centroid_positions[class_key] /= class_counts[class_key]
+    # centroid_positions now contains the centroid for each learning rule
+
+    # loop through all RNNs and get distance from centroids
+    ooc_distances = {0:[], 1:[], 2:[], 3:[]}
+    within_class_distances = {0:[], 1:[], 2:[], 3:[]}
+    for rnn_ix in range(N_RNNS):
+        # compute within class distance
+        for class_key in centroid_positions:
+            if class_key == labels[rnn_ix]: 
+                # compute within class distance\
+                within_class_distances[class_key].append(ComputeDistance(centroid_positions[class_key], rnn_distances[rnn_ix]))
+            else: 
+                # compute out of class distance
+                ooc_distances[class_key].append(ComputeDistance(centroid_positions[class_key], rnn_distances[rnn_ix]))
+
+    # get the mean of each list in both dictionaries and get the ratio
+    ratios = []
+    for class_key in within_class_distances:
+        ratios.append(np.mean(within_class_distances[class_key])/np.mean(ooc_distances[class_key]))
+    return ratios
+
+
+def Method2():
+    ''' 
+    Model Agnostic Method for measuring how clustered Learning Rules are
+    1.) Compute average distance for any two points in the same learning rule 
+        (d_same)
+    2.) Compute average distance between any two points (d_all)
+    3.) Ratio of d_same / d_all
+    '''
+    pass
+
+def Purity(rnn_distances, predicted, labels):
+    '''
+    Computes purity of clusters found with SVCCA
+
+    Parameters
+    ----------
+    rnn_distances : obj
+        model will be saved as a .pt file with this name in the /models/ directory.
+        
+    predicted : list<int>
+        list of predicted class for each rnn
+        
+    labels : list<int>
+        list of true class for each rnn
+
+    Returns
+    -------
+    None.
+
+    for each cluster,
+        count the number of data points from the most common learning rule 
+        sum this accross all clusters
+    divide the running sum by the total number of data points
+        
+    '''
+    N_CLASSES = 4  # total number of rnn classes
+    N_CLUSTERS = 4 # total number of rnn clusters (should be same as classes)
+    N_RNNS = len(distances)  # total number of rnns clustered
+    # dictionary counts the number of points belonging to each class 
+    # for each cluster. For example, class_counts[0][1] = 3 would 
+    # indicate that there were three points belonging to class 1 in 
+    # cluster 3. More generally,
+    #    class_counts[cluster_id][class_id] = num_points_in_class_id_and_cluster_id
+    #
+    class_counts = {0:{0:0, 1:0, 2:0, 3:0}, 
+                    1:{0:0, 1:0, 2:0, 3:0}, 
+                    2:{0:0, 1:0, 2:0, 3:0}, 
+                    3:{0:0, 1:0, 2:0, 3:0}}  
+    for ix in range(N_RNNS):  # loop through each RNN
+        cluster_id = predicted[ix]  # cluster predicted by model
+        class_id = labels[ix]       # true class of rnn
+        # increment number of this class contained in this cluster
+        class_counts[cluster_id][class_id] += 1  
+
+    # now we must sum the total number of points for each cluster belonging to the maximum 
+    # represented class
+    max_per_class = np.zeros((N_CLUSTERS, 1))
+    for i in range(N_CLASSES):
+        # get the max in this dictionary
+        max_pts_found = -1
+        for key in class_counts[cluster_id]:
+            if class_counts[cluster_id][key] > max_pts_found:  # current class contains the most rnns
+                max_pts_found = class_counts[cluster_id][key]
+        max_per_class[i] = max_pts_found
+    # max_per_class now contains the number of points for the most represented class in 
+    # each cluster
+    purity = np.sum(max_per_class, axis=0) / N_RNNS
+    return purity
+
+def getTrueLabelsHelper(numModelsOfType):
+    '''
+    numModelsOfType is a dictionary where 
+    each key is a model type and each value
+    is the number of models of that type
+    '''
+    labels = []  # holds the ground truth labels
+    class_counts = [0, 0, 0, 0]
+    for class_id, key in enumerate(numModelsOfType):
+        if key=="total":
+            continue   # don't use totals
+        curr_class_count = 0
+        for j in range(numModelsOfType[key]):
+            labels.append(class_id)
+            curr_class_count += 1  # number of rnns in this class
+        class_counts[class_id] = curr_class_count
+    # note the labels in class_id don't have to 
+    # correspond with the labels used by the clustering
+    # algorithm since we only consider purity and not 
+    # that the labels match
+    return labels, class_counts
+    
+labels, class_counts = getTrueLabelsHelper(numModelsOfType)
+ratios = Method1(distances, labels, class_counts)
+print("ratios: ", ratios)
