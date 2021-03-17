@@ -194,44 +194,6 @@ for modelType in numModelsOfType:
 
 plt.legend(legends)
 plt.show()
-#assert False
-
-# Mean subtract activations
-#cacts1 = activations1 - np.mean(activations1, axis=1, keepdims=True)
-#cacts2 = activations2 - np.mean(activations2, axis=1, keepdims=True)
-
-# Perform SVD
-#U1, s1, V1 = np.linalg.svd(cacts1, full_matrices=False)
-#U2, s2, V2 = np.linalg.svd(cacts2, full_matrices=False)
-
-# take top 20 singular values
-#svacts1 = np.dot(s1[:20]*np.eye(20), V1[:20])
-#svacts2 = np.dot(s2[:20]*np.eye(20), V2[:20])
-
-#svcca_results = cca_core.get_cca_similarity(svacts1, svacts2, epsilon=1e-10, verbose=False)
-
-# Mean subtract baseline activations
-#cb1 = b1 - np.mean(b1, axis=0, keepdims=True)
-#cb2 = b2 - np.mean(b2, axis=0, keepdims=True)
-
-# Perform SVD
-#Ub1, sb1, Vb1 = np.linalg.svd(cb1, full_matrices=False)
-#Ub2, sb2, Vb2 = np.linalg.svd(cb2, full_matrices=False)
-
-#svb1 = np.dot(sb1[:20]*np.eye(20), Vb1[:20])
-#svb2 = np.dot(sb2[:20]*np.eye(20), Vb2[:20])
-
-#svcca_baseline = cca_core.get_cca_similarity(svb1, svb2, epsilon=1e-10, verbose=False)
-#print("Baseline", np.mean(svcca_baseline["cca_coef1"]), "and MNIST", np.mean(svcca_results["cca_coef1"]))
-
-#plt.plot(svcca_baseline["cca_coef1"], lw=2.0, label="baseline")
-#plt.plot(svcca_results["cca_coef1"], lw=2.0, label="MNIST")
-#plt.xlabel("Sorted CCA Correlation Coeff Idx")
-#plt.ylabel("CCA Correlation Coefficient Value")
-#plt.legend(loc="best")
-#plt.grid()
-
-
 
 
 def Method1(rnn_distances, labels, class_counts):
@@ -274,7 +236,7 @@ def Method1(rnn_distances, labels, class_counts):
     return ratios
 
 
-def Method2():
+def Method2(rnn_distances, labels, class_counts):
     ''' 
     Model Agnostic Method for measuring how clustered Learning Rules are
     1.) Compute average distance for any two points in the same learning rule 
@@ -282,7 +244,26 @@ def Method2():
     2.) Compute average distance between any two points (d_all)
     3.) Ratio of d_same / d_all
     '''
-    pass
+    N_RNNS = len(rnn_distances)
+
+    # loop through all RNNs and get distance from all other RNNs
+    ooc_distances = {0:[], 1:[], 2:[], 3:[]}
+    within_class_distances = {0:[], 1:[], 2:[], 3:[]}
+    for rnn_i in range(N_RNNS):
+        for rnn_j in range(rnn_i+1, N_RNNS):
+            # compute distance between RNN_i and RNN_j
+            d = ComputeDistance(rnn_distances[rnn_i], rnn_distances[rnn_j])
+            if labels[rnn_i] == labels[rnn_j]:  # update within class
+                within_class_distances[labels[rnn_i]].append(d)
+            else:  # update out-of-class
+                ooc_distances[labels[rnn_i]].append(d)
+                ooc_distances[labels[rnn_j]].append(d)
+    # get the mean of each list in both dictionaries and get the ratio
+    ratios = []
+    for class_key in within_class_distances:
+        ratios.append(np.mean(within_class_distances[class_key])/np.mean(ooc_distances[class_key]))
+    return ratios
+
 
 def Purity(rnn_distances, predicted, labels):
     '''
@@ -331,13 +312,13 @@ def Purity(rnn_distances, predicted, labels):
     # now we must sum the total number of points for each cluster belonging to the maximum 
     # represented class
     max_per_class = np.zeros((N_CLUSTERS, 1))
-    for i in range(N_CLASSES):
+    for cluster_id in range(N_CLASSES):
         # get the max in this dictionary
         max_pts_found = -1
         for key in class_counts[cluster_id]:
             if class_counts[cluster_id][key] > max_pts_found:  # current class contains the most rnns
                 max_pts_found = class_counts[cluster_id][key]
-        max_per_class[i] = max_pts_found
+        max_per_class[cluster_id] = max_pts_found
     # max_per_class now contains the number of points for the most represented class in 
     # each cluster
     purity = np.sum(max_per_class, axis=0) / N_RNNS
@@ -367,4 +348,10 @@ def getTrueLabelsHelper(numModelsOfType):
     
 labels, class_counts = getTrueLabelsHelper(numModelsOfType)
 ratios = Method1(distances, labels, class_counts)
-print("ratios: ", ratios)
+purity = Purity(distances, kmeans.labels_, labels)
+print("ratios (method #1): ", ratios)
+ratios = Method2(distances, labels, class_counts)
+print("ratios (method #2): ", ratios)
+print("purity (Kmeans): ", purity)
+purity = Purity(distances, labels_, labels)
+print("purity (GMM): ", purity)
