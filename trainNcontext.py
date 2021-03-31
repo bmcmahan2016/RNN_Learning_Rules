@@ -13,18 +13,18 @@ import argparse
 
 parser = argparse.ArgumentParser(description="Trains RNN models")
 parser.add_argument("model_name", help="name of model")
-parser.add_argument("-v", "--variance", type=float, help="input variance", default=0.5)
+parser.add_argument("-v", "--variance", type=float, help="input variance", default=0.1)
 parser.add_argument("-N", type=int, help="Number of dimensions", default = 3)
 args = parser.parse_args()
 
 var = args.variance
-task = Ncontext(var=var, device="cpu", dim=args.N)   # FULL FORCE doesn't use cuda
+task = Ncontext(mean=0.5, var=var, device="cpu", dim=args.N)   # FULL FORCE doesn't use cuda
 inps_and_targs = task.get_inps_and_targs
 
 # create the network and set hyper-parameters
 p = FF_Demo.create_parameters(dt=0.003)
 p['g'] = 1.0
-p['network_size'] = 100
+p['network_size'] = 50
 p['tau'] = 0.03
 p['test_init_trials']=10
 p['test_trials'] = 2000

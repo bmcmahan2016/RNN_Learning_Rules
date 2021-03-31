@@ -22,3 +22,6 @@ models/GA_001.pt
 *.txt
 *.pt
 *.pyc
+Hebbian/context/.vs/context/v16/.suo
+*.db
+*.json
