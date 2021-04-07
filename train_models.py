@@ -11,6 +11,7 @@ from bptt import Bptt
 import argparse
 import pdb 
 from task.Ncontext import Ncontext
+from trainNcontext import train_ff
 
 hyperParams = {                  # dictionary of all RNN hyper-parameters
    "inputSize" : 1,
@@ -91,6 +92,9 @@ def TrainN(name, hyperParams, use_ReLU=False, N=3):
     if name.lower()[:2] == "bp":
         print("begining training BPTT network")
         rnnModel = Bptt(hyperParams, task=task)
+    elif name.lower()[:2] == "ff":
+        train_ff(args.model_name, args.N, args.variance)  # train using full force
+        return # full force takes care of saving model
     elif name.lower()[:2] == "he":
         raise NotImplementedError()
     elif name.lower()[:2] == "ga" or name.lower()[:2] == "ge":      # use genetic learning rule

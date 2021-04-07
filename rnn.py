@@ -644,7 +644,7 @@ def create_test_time_ativity_tensor(rnnModel):
         activityTensor[trial_num, :, :] = np.squeeze(hidden_states[::10, :, :])        # record every 10th timestep from hidden state
     rnnModel._activityTensor = activityTensor
 
-def importHeb(name = "undeclared_heb", context_flag=False, dnms_flag=False, N_flag = False, var=1):
+def importHeb(name = "undeclared_heb", n_inputs = False, var=1):
     '''
     loads data from training with the biologically plausible learning algorithm
     (Miconi 2017) and loads it into an RNN model. Win and Jrec text files must be
@@ -662,20 +662,14 @@ def importHeb(name = "undeclared_heb", context_flag=False, dnms_flag=False, N_fl
         training algorithm (Miconi 2017).
     '''
     hidden_size = 50
-    if dnms_flag:
-        input_dim=2
-        hidden_size = 50
-        task = multi_sensory(var=8)
-    elif context_flag:
-        input_dim = 4
-        task = context_task()
-    elif N_flag:
-        input_dim = 8
-        task = Ncontext(var=0.5, dim=4)
-    else:
+    # parse input size and task
+    if n_inputs == 0:
         input_dim = 1
-        task = Williams(N=750, mean=0.1857, \
-                                  variance=var)       
+        task = Williams(N=750, mean=0.1857, variance=var)
+    else:
+        input_dim = n_inputs * 2
+        task = Ncontext(var=var, dim=n_inputs)
+     
     hyperParams = {       # dictionary of all hyper-parameters
     "inputSize" : input_dim,
     "hiddenSize" : hidden_size,
@@ -692,16 +686,16 @@ def importHeb(name = "undeclared_heb", context_flag=False, dnms_flag=False, N_fl
     }
     rnnModel = RNN(hyperParams)
     #rnnModel._task._version = "Heb"
-    Jin = np.loadtxt("Win"+str(name)+".txt")
-    Jrec = np.loadtxt("J_"+str(name)+".txt")
+    Jin = np.loadtxt(str(name)+"_win.txt")
+    Jrec = np.loadtxt(str(name)+"_J.txt")
     Jout = np.zeros((1,hidden_size))
     print("Jin: ", Jin[:,1:].shape)
     rnnModel.AssignWeights(Jin[:,1:], Jrec, Jout)   # only take the second row of Win
     rnnModel._task = task
-    create_test_time_ativity_tensor(rnnModel)        # populates activity tensors
+    #create_test_time_ativity_tensor(rnnModel)        # populates activity tensors
     
     
-    
+    name = name   # save in model directory
     rnnModel.setName(name)
     rnnModel.save()
     

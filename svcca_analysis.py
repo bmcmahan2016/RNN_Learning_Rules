@@ -153,7 +153,8 @@ clustered_data = clustering_algorithm.fit_transform(distances)
 ################
 # compute K-Means clusters
 ################
-K_cluster = KMeans(n_clusters = 2)
+n_classes = len(numModelsOfType) - 1
+K_cluster = KMeans(n_clusters = n_classes)
 kmeans = K_cluster.fit(distances)
 
 plt.figure()
@@ -165,7 +166,7 @@ plt.title("K-Means")
 ################
 # compute GMM clusters
 ################
-gm = GaussianMixture(n_components=2).fit(distances)
+gm = GaussianMixture(n_components=n_classes).fit(distances)
 labels_ = gm.predict(distances)  # get the labels
 
 plt.figure()
