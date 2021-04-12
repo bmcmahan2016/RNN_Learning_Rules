@@ -77,7 +77,8 @@ def getActivations(rnn_model):
             2:get_static_inputs,
             4:get_static_inputs,
             6:get_static_inputs,
-            8:get_static_inputs
+            8:get_static_inputs,
+            10:get_static_inputs
         }
     static_inputs = switcher[rnn_model._inputSize](rnn_model._inputSize)
     _, activations = rnn_model.feed(static_inputs, return_hidden=True)
