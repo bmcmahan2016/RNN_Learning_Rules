@@ -59,7 +59,7 @@ class Bptt(RNN):
 
         Parameters
         ----------
-        input : PyTorch CUDA Tensor
+        input : PyTorch A Tensor
             Inputs sequence to be fed into RNN. Has shape (batchSize, sequence_len, inputSize)
         
         Returns
@@ -129,7 +129,7 @@ class Bptt(RNN):
         loss_hist = []
         
         # for CUDA implementation
-        inpt = Variable(torch.zeros(int(self._batchSize), self._task.N, self._inputSize).cuda())
+        inpt = Variable(torch.zeros(int(self._batchSize), self._task.N, self._inputSize).to(self._device))
         
         #trial = 0
         loss = np.inf

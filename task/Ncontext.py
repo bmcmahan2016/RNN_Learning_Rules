@@ -13,13 +13,17 @@ from random import randrange
 
 class Ncontext():
     def __init__(self, N=750, mean=0.1857, var=1, device="cuda:0", dim=3):
+        if torch.cuda.is_available() and device=="cuda:0":
+            self._device = torch.device(device)
+        else:
+            self._device = torch.device("cpu")
+            
         self._dim = dim            # number of input contexts
         self.N = N               # trial duration
         self._mean = mean
         self._var = var
         self._version = ""
         self._name = "Ncontext"
-        self._device = torch.device(device)
 
     def _random_generate_input(self, mean):
         '''randomly generates an input channel'''

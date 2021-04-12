@@ -27,6 +27,8 @@ from task.Ncontext import Ncontext
 #from genetic import Genetic
 
 
+
+
 hyperParams = {       # dictionary of all hyper-parameters
     "inputSize" : 1,
     "hiddenSize" : 50,
@@ -46,6 +48,9 @@ hyperParams = {       # dictionary of all hyper-parameters
 class RNN(nn.Module):
     # recently changed var by normalizing it by N, before was 0.045 w/o normilazation
     def __init__(self, hyperParams, task=0):
+        self._device = torch.device("cpu")
+        if torch.cuda.is_available():
+            self._device = torch.device("cuda:0")
         super(RNN, self).__init__()                                            # initialize parent class
         self._inputSize = int(hyperParams["inputSize"])
         self._hiddenSize = int(hyperParams["hiddenSize"])
@@ -64,10 +69,10 @@ class RNN(nn.Module):
         self._tol = 1
         
         self._J = {
-        'in' : (torch.randn(self._hiddenSize, self._inputSize).cuda())*(1/2),
-        'rec' : ((self._g**2)/50)*torch.randn(self._hiddenSize, self._hiddenSize).cuda(),
-        'out' : (0.1*torch.randn(self._outputSize, self._hiddenSize).cuda()),
-        'bias' : torch.zeros(self._hiddenSize, 1).cuda()*(1/2)
+        'in' : torch.randn(self._hiddenSize, self._inputSize).to(self._device)*(1/2),
+        'rec' : ((self._g**2)/50)*torch.randn(self._hiddenSize, self._hiddenSize).to(self._device),
+        'out' : (0.1*torch.randn(self._outputSize, self._hiddenSize).to(self._device)),
+        'bias' : torch.zeros(self._hiddenSize, 1).to(self._device)*(1/2)
         }
 
 
@@ -184,8 +189,8 @@ class RNN(nn.Module):
         set
         '''
         # initialize tensors to hold validation data
-        self.validationData = torch.zeros(test_iters, self._inputSize,  self._task.N).cuda()
-        self.validationTargets = torch.zeros(test_iters,1).cuda()
+        self.validationData = torch.zeros(test_iters, self._inputSize,  self._task.N).to(self._device)
+        self.validationTargets = torch.zeros(test_iters,1).to(self._device)
         # means for validation data
         meanValues = np.linspace(0, 0.1875, 20)
         for trial in range(test_iters):
@@ -256,7 +261,7 @@ class RNN(nn.Module):
         Jin = self._J["in"]
 
         if self._use_ReLU:  # ReLU activation
-            hidden_floor = torch.zeros(self._hidden.shape).cuda()
+            hidden_floor = torch.zeros(self._hidden.shape).to(self._device)
             hidden_next = dt*torch.matmul(self._J['in'], inpt) + \
             dt*torch.matmul(self._J['rec'], (torch.max(hidden_floor, self._hidden))) + \
             (1-dt)*self._hidden + dt*self._J['bias']
@@ -346,7 +351,7 @@ class RNN(nn.Module):
         assert inpt_data.shape[1] == self._inputSize, "Size of inputs:{} does not match network's input size:{}".format(inpt_data.shape[1], self._inputSize)
         num_t_steps = inpt_data.shape[2]
         
-        output_trace = torch.zeros(num_t_steps, batch_size).cuda()
+        output_trace = torch.zeros(num_t_steps, batch_size).to(self._device)
         if return_hidden:
             hidden_trace = []
         if return_states:
@@ -494,7 +499,7 @@ class RNN(nn.Module):
 
     # maybe I should consider learning the initial state?
     def _init_hidden(self, numInputs=1):
-        self._hidden = self._hiddenInitScale*(torch.randn(self._hiddenSize, numInputs).cuda())
+        self._hidden = self._hiddenInitScale*(torch.randn(self._hiddenSize, numInputs).to(self._device))
 
     def LearningDynamics(self):
         raise NotImplementedError()                                            # this function is not being used anywhere
@@ -636,7 +641,7 @@ def create_test_time_ativity_tensor(rnnModel):
         if trial_num %100 == 0:
             print("{} trials completed of 500".format(trial_num))
         # generate a test input to the network
-        inpts = torch.zeros((rnnModel._task.N, 2)).cuda()
+        inpts = torch.zeros((rnnModel._task.N, 2)).to(device)
         inpts, target = rnnModel._task.GetInput()         # N, 1 inputs
         rnnModel._targets.append(target)                                       # append target response to network targets
         outputs, hidden_states = rnnModel.feed(torch.unsqueeze(inpts.t(), 0), return_hidden=True)      # feed the test input to the network and get hidden state

@@ -26,7 +26,7 @@ class Genetic(RNN):
         hidden = torch.zeros(superModel._hiddenSize, batch_size)
         for member in range(num_pop):
             hidden[member*self._hiddenSize:(member+1)*self._hiddenSize] = self._hidden.clone()
-        hidden = hidden.cuda()
+        hidden = hidden.to(self._device)
         superModel._hidden = hidden                                             # initializes hidden layer of concatned rnn
         
     def initializeSuperModel(self, superModel, num_pop):
@@ -84,9 +84,9 @@ class Genetic(RNN):
                 Wout[newChild, newChild*self._hiddenSize:(newChild+1)*self._hiddenSize] = parentWout 
             else:
                 # mutate the parent
-                Win_noise = torch.randn(parentWin.shape[0], parentWin.shape[1]).cuda()
-                Wrec_noise = torch.randn(parentWrec.shape[0], parentWrec.shape[1]).cuda()
-                Wout_noise = torch.randn(parentWout.shape[0]).cuda()
+                Win_noise = torch.randn(parentWin.shape[0], parentWin.shape[1]).to(self._device)
+                Wrec_noise = torch.randn(parentWrec.shape[0], parentWrec.shape[1]).to(self._device)
+                Wout_noise = torch.randn(parentWout.shape[0]).to(self._device)
                 Win[newChild*self._hiddenSize:(newChild+1)*self._hiddenSize, :] = parentWin + mutation * Win_noise
                 Wrec[newChild*self._hiddenSize:(newChild+1)*self._hiddenSize, newChild*self._hiddenSize:(newChild+1)*self._hiddenSize] = parentWrec + mutation * Wrec_noise
                 Wout[newChild, newChild*self._hiddenSize:(newChild+1)*self._hiddenSize] = parentWout + mutation * Wout_noise
@@ -129,8 +129,8 @@ class Genetic(RNN):
         
         self.createValidationSet()
         # for CUDA implementation
-        self.batch_data = torch.zeros(self._batchSize, self._inputSize, self._task.N).cuda()
-        self.batch_labels = torch.zeros(self._batchSize,1).cuda()
+        self.batch_data = torch.zeros(self._batchSize, self._inputSize, self._task.N).to(self._device)
+        self.batch_labels = torch.zeros(self._batchSize,1).to(self._device)
         self.activity_tensor = np.zeros((self._numGenerations, 75, self._hiddenSize))  # MAX_GENERATIONS x TIMESTEPS x HIDDEN_UNITS
         neuronActivities = np.zeros((75, self._hiddenSize*num_pop))        # holds activity of all population members through trial
         self.activity_targets = np.zeros((self._numGenerations))
@@ -173,7 +173,7 @@ class Genetic(RNN):
             
             lossArray = lossArray[parentSet]
             print("loss:", lossArray[0])
-            parentSet = torch.from_numpy(parentSet).cuda()
+            parentSet = torch.from_numpy(parentSet).to(self._device)
             
             # generate the parent set
             lossArraySorted = lossArray
