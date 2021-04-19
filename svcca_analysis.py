@@ -13,6 +13,7 @@ import svcca.cca_core as cca_core
 from sklearn.manifold import MDS
 from sklearn.cluster import KMeans
 from sklearn.mixture import GaussianMixture
+from sklearn.metrics import silhouette_score
 import pdb
 import argparse
 from FP_Analysis import ComputeDistance
@@ -357,3 +358,5 @@ print("ratios (method #2): ", ratios)
 print("purity (Kmeans): ", purity)
 purity = Purity(distances, labels_, labels)
 print("purity (GMM): ", purity)
+print("silhouette (KMeans): ", silhouette_score(distances, kmeans.labels_))
+print("silhouette (GMM): ", silhouette_score(distances, labels_))

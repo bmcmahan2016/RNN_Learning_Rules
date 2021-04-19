@@ -81,7 +81,11 @@ class RNN(nn.Module):
         except:
             self._use_ReLU = 0
             
-        self._task = task
+        if task == "rdm":
+            print("Using RDM task!")
+            self._task = Williams(variance=0.1)
+        else:
+            self._task = task
 
 
               
