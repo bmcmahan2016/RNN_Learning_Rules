@@ -84,6 +84,8 @@ class RNN(nn.Module):
         if task == "rdm":
             print("Using RDM task!")
             self._task = Williams(variance=0.1)
+        elif task == "context":
+            self._task = Ncontext(dim=2)
         else:
             self._task = task
 

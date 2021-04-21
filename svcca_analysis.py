@@ -42,6 +42,7 @@ def getNumSVs(singularValues):
 
 def get_rdm_inputs(inputSize):
     # returns inputs for the RDM task
+    assert False, "you are using RDM, use N=1 network instead"
     NUM_INPUT_CONDITIONS = 500
     static_inputs = np.linspace(-0.1857, 0.1857, NUM_INPUT_CONDITIONS).reshape(1, NUM_INPUT_CONDITIONS)
     static_inputs = np.matmul(np.ones((750, 1)), static_inputs)
@@ -79,7 +80,8 @@ def getActivations(rnn_model):
             4:get_static_inputs,
             6:get_static_inputs,
             8:get_static_inputs,
-            10:get_static_inputs
+            10:get_static_inputs,
+            12:get_static_inputs
         }
     static_inputs = switcher[rnn_model._inputSize](rnn_model._inputSize)
     _, activations = rnn_model.feed(static_inputs, return_hidden=True)
@@ -138,6 +140,8 @@ for i in range(len(modelActivations)):
         svacts1 = np.dot(s1[:NUM_DIMENSIONS]*np.eye(NUM_DIMENSIONS), V1[:NUM_DIMENSIONS])
         svacts2 = np.dot(s2[:NUM_DIMENSIONS]*np.eye(NUM_DIMENSIONS), V2[:NUM_DIMENSIONS])
         
+        if svacts1.shape != svacts2.shape:
+            print("here")
         svcca_results = cca_core.get_cca_similarity(svacts1, svacts2, epsilon=1e-10, verbose=False)
         distances[i, j] = 1 - np.mean(svcca_results["cca_coef1"])
         distances[j, i] = distances[i, j]
@@ -350,13 +354,14 @@ def getTrueLabelsHelper(numModelsOfType):
     return labels, class_counts
     
 labels, class_counts = getTrueLabelsHelper(numModelsOfType)
-ratios = Method1(distances, labels, class_counts)
-purity = Purity(distances, kmeans.labels_, labels)
-print("ratios (method #1): ", ratios)
-ratios = Method2(distances, labels, class_counts)
-print("ratios (method #2): ", ratios)
-print("purity (Kmeans): ", purity)
-purity = Purity(distances, labels_, labels)
-print("purity (GMM): ", purity)
-print("silhouette (KMeans): ", silhouette_score(distances, kmeans.labels_))
-print("silhouette (GMM): ", silhouette_score(distances, labels_))
+plt.title("Sillhouette Score:" + str(silhouette_score(distances, labels)))
+# ratios = Method1(distances, labels, class_counts)
+# purity = Purity(distances, kmeans.labels_, labels)
+# print("ratios (method #1): ", ratios)
+# ratios = Method2(distances, labels, class_counts)
+# print("ratios (method #2): ", ratios)
+# print("purity (Kmeans): ", purity)
+# purity = Purity(distances, labels_, labels)
+# print("purity (GMM): ", purity)
+# print("silhouette : ", silhouette_score(distances, kmeans.labels_))
+# print("silhouette (GMM): ", silhouette_score(distances, labels_))
