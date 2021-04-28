@@ -51,11 +51,14 @@ def get_rdm_inputs(inputSize):
     
 def get_static_inputs(inputSize):
     # will get inputs for the N = 1 context task
-    N_INPUTS_PER_CONTEXT = 10
+    N_INPUTS = 120   # needs to be a multiple of all possible N
+    #N_INPUTS_PER_CONTEXT = 10
     N_CONTEXTS = int(inputSize / 2)
+    N_INPUTS_PER_CONTEXT = int(N_INPUTS / N_CONTEXTS) 
     MIN_INPUT = -0.1857
     MAX_INPUT = 0.1857
-    static_inpt_arr = np.zeros((N_INPUTS_PER_CONTEXT*N_CONTEXTS, inputSize))
+    static_inpt_arr = np.zeros((N_INPUTS, inputSize))
+    #static_inpt_arr = np.zeros((N_INPUTS_PER_CONTEXT*N_CONTEXTS, inputSize))
     # loop over contexts
     for context in range(N_CONTEXTS):
        strt_ix = context*N_INPUTS_PER_CONTEXT
@@ -164,7 +167,7 @@ K_cluster = KMeans(n_clusters = n_classes)
 kmeans = K_cluster.fit(distances)
 
 plt.figure()
-colors = ['r', 'b', 'g', 'y', 'k']
+colors = ['r', 'b', 'g', 'c', 'm', 'y', 'k', 'pink']
 for i in range(len(clustered_data)):
     plt.scatter(clustered_data[i, 0], clustered_data[i,1], c = colors[kmeans.labels_[i]])
 plt.title("K-Means")

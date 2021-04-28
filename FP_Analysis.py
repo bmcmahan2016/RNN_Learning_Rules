@@ -96,7 +96,6 @@ class Roots(object):
 
             unique_roots = GetUnique(roots_found)
             for root in unique_roots:
-                print("shape of root: ", root.shape)
                 self._values.append(root)
                 self._static_inputs.append(static_input)
                 self._stability.append(IsAttractor(root, F[IX]))
@@ -189,7 +188,7 @@ class Roots(object):
             roots_embedded = self._model._pca.transform(fixed_pts)
             self._embedded = roots_embedded
 
-    def plot(self, fixed_pts=False, slow_pts=True, start_time = 0, end_time=-1):
+    def plot(self, fixed_pts=False, slow_pts=True, plot_traj=True, start_time = 0, end_time=-1):
         '''Plots the embedded fixed points in two dimensions
 
         Parameters
@@ -212,15 +211,17 @@ class Roots(object):
                 if self._stability[root_ix]:  # root is stable
                     plt.scatter(self._embedded[root_ix, 0], self._embedded[root_ix, 1], c=cmap(self._static_inputs[root_ix]), alpha=0.5, s=200)
                 else:    # root is unstable
-                    plt.scatter(self._embedded[root_ix, 0], self._embedded[root_ix, 1], marker='x', c=cmap(self._static_inputs[root_ix]), alpha=0.5)
+                    pass # don't plot unstable roots!               
+                    #plt.scatter(self._embedded[root_ix, 0], self._embedded[root_ix, 1], marker='x', c=cmap(self._static_inputs[root_ix]), alpha=0.5)
      
 
-        for i in range(10):
-            if start_time != 0:
-                pass
-                plt.plot(self._trajectories[i,:start_time,0], self._trajectories[i,:start_time,1], c = 'k', alpha=0.1)
-            plt.plot(self._trajectories[i,start_time:end_time,0], self._trajectories[i,start_time:end_time,1], c = cs[int(self._labels[i])], alpha=0.25)
-        
+        if plot_traj:
+            for i in range(10): # plot the trajectories
+                if start_time != 0:
+                    pass
+                    plt.plot(self._trajectories[i,:start_time,0], self._trajectories[i,:start_time,1], c = 'k', alpha=0.1)
+                plt.plot(self._trajectories[i,start_time:end_time,0], self._trajectories[i,start_time:end_time,1], c = cs[int(self._labels[i])], alpha=0.25)
+            
         if slow_pts:    # plot the slow points
             if self._slow_points == []:    # slow points have not been found yet
                 self.FindSlowPoints()

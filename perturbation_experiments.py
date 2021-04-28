@@ -186,7 +186,9 @@ def AnalyzeLesioned(model, fig_name, PC1_min=-10, PC1_max=10, PC2_min=-10, PC2_m
         model_roots.plot(fixed_pts=True, slow_pts=True, start_time=200)
         plt.title("Late")
         
-        model_roots.plot(fixed_pts=True, slow_pts=False)
+        plt.figure()
+        model_roots.plot(fixed_pts=True, slow_pts=False, plot_traj=False)
+        plt.title("Model Attractors")
         
         plt.figure()
         plt.title('Evaluation of Model on RDM Task')
