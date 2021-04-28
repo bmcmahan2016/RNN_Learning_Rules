@@ -25,7 +25,7 @@ def linear(x, m, b):
     y = m*x + b
     return (y)
 
-def Plot(coherence_vals, reach_data, plt_title="", ymin=-.1, ymax=1.1, fit='sigmoid', newFig=True):
+def Plot(coherence_vals, reach_data, plt_title="", ymin=-.1, ymax=1.1, fit='sigmoid', newFig=True, cs='b'):
     '''Plots psychometric data'''
 
     if newFig:     # generate a new figure
@@ -38,7 +38,7 @@ def Plot(coherence_vals, reach_data, plt_title="", ymin=-.1, ymax=1.1, fit='sigm
         axis_object.xaxis.set_label("top")
 
     # plots RNN data
-    plt.scatter(coherence_vals, reach_data)
+    plt.scatter(coherence_vals, reach_data, c=cs)
 
     if not args.nofit:  # fit a curve to data
         p0 = [max(reach_data), np.median(coherence_vals),1,min(reach_data)] 
@@ -49,7 +49,7 @@ def Plot(coherence_vals, reach_data, plt_title="", ymin=-.1, ymax=1.1, fit='sigm
         else:
             raise NotImplementedError()
 
-        plt.plot(np.linspace(min(coherence_vals), max(coherence_vals), 100), data_fit, alpha=.5)
+        plt.plot(np.linspace(min(coherence_vals), max(coherence_vals), 100), data_fit, alpha=.5, c=cs)
     
     # adds plot lables
     plt.title(plt_title)
@@ -171,6 +171,7 @@ task_type.add_argument("--N", type=int, default=0)
 
 parser.add_argument("model_name", help="filename of model to analyze")
 parser.add_argument("--nofit", action="store_true", default=False)
+parser.add_argument("--accumulate", type=int, default=0)  # adds data to existing curve plot
 
 args = parser.parse_args()
 # sets the model to be analyzed
@@ -212,11 +213,17 @@ if args.multi:    # generate pscyhometric curves for the multisensory task
 elif args.context:# generate psychometric curves for the context task
     coherence_vals = 2*np.array([-0.009, -0.09, -0.036, -0.15, 0.009, 0.036, 0.09, 0.15])
     num_right_reaches = TestCoherence(rnn, task, context_choice=0)
-    Plot(coherence_vals, num_right_reaches, plt_title="in context", fit="sigmoid")    # plot in-context psychometric data
+    cs = ['b', 'g', 'r', 'y', 'm', 'c']
+    if args.accumulate:
+        
+        Plot(coherence_vals, num_right_reaches, plt_title="in context", fit="sigmoid", \
+             newFig=False, cs=cs[args.accumulate])    # plot in-context psychometric data
+    else:
+        Plot(coherence_vals, num_right_reaches, plt_title="in context", fit="sigmoid")    # plot in-context psychometric data
 
     num_right_reaches = TestCoherence(rnn, task, context_choice=1)
     Plot(coherence_vals, num_right_reaches, plt_title="out context", fit="linear", \
-         newFig=False)   # plot out-context pyschometric data on same axis
+         newFig=False, cs=cs[args.accumulate])   # plot out-context pyschometric data on same axis
 
 elif args.N != 0: # generate psychometric curves for the Ncontext task
     coherence_vals = 2*np.array([-0.009, -0.09, -0.036, -0.15, 0.009, 0.036, 0.09, 0.15])
@@ -231,5 +238,8 @@ elif args.N != 0: # generate psychometric curves for the Ncontext task
 elif args.rdm:    # generate psychometric curves for the rdm task
     coherence_vals = 2*np.array([-0.009, -0.09, -0.036, -0.15, 0.009, 0.036, 0.09, 0.15])
     num_right_reaches = TestCoherence(rnn, task)
-    Plot(coherence_vals, num_right_reaches, plt_title="in context")
+    if args.accumulate:
+        Plot(coherence_vals, num_right_reaches, plt_title="in context", newFig=False)
+    else:
+        Plot(coherence_vals, num_right_reaches, plt_title="in context")
 plt.show()  
