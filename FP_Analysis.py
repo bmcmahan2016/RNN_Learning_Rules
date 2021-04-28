@@ -342,10 +342,24 @@ def IsAttractor(fixed_point, F, NumSimulations=25):   #NumSimulations=2500
     else:
         return True
 
-def cmap(static_inpt, max_inpt=1):
+def cmap(static_inpt, max_inpt=3):
     '''
     generates a color for plotting fixed point found under static_input. Colors 
-    go from red (positive inputs) to blue (negative inputs)
+    are generated from the following look-up table:
+        |INPUT (%of max)     COLOR
+        |>80                 blue
+        |>60                 orange
+        |>40                 green
+        |>20                 red
+        |>0                  purple
+        |>-20                brown
+        |>-40                pink
+        |>-60                grey
+        |>-inf               olive
+    This color scheme was chosen to maximize contrast over a continuous color 
+    gradient. With a continuous color gradient nearby points were difficulty to
+    discern. The colors in the lookup table may be changed to further enhance 
+    contrast.
 
     Parameters
     ----------
@@ -358,8 +372,19 @@ def cmap(static_inpt, max_inpt=1):
         r,g,b color that should be used to plot current fixed points.
 
     '''
+    # create the lookup table 
+    lookup = {}
+    lookup[-4] = 'tab:blue'
+    lookup[-3] = 'tab:orange'
+    lookup[-2] = 'tab:green'
+    lookup[-1] = 'tab:red'
+    lookup[0] = 'tab:purple'
+    lookup[1] = 'tab:brown'
+    lookup[2] = 'tab:pink'
+    lookup[3] = 'tab:gray'
+    lookup[4] = 'tab:olive'
 
-
+    # DETERMINE THE MAXIMUM INPUT VALUE
     # case 1: the static_input is two dimensional as in the multisensory task
     # we just use the maximum of the two channels
     if static_inpt.shape[0] == 2:       # multisensory task
@@ -381,19 +406,13 @@ def cmap(static_inpt, max_inpt=1):
         max_inpt = 0.1857
     elif static_inpt.shape[0] == 1:    # RDM task
         static_inpt = static_inpt[0]
-        max_inpt = 0.2
-    
-    # clamps input so RGGB values remain in range
-    if static_inpt > max_inpt:
-        static_inpt = max_inpt
-    elif static_inpt < -max_inpt:
-        static_inpt = -max_inpt
+        max_inpt = 0.6
+    # END DETERMINE MAXIMUM INPUT
+     
+    input_level = int(5*static_inpt / max_inpt)
+    if input_level > 4:
+        input_level = 4
+    elif input_level < -4:
+        input_level = -4
+    return lookup[input_level]
 
-    m_r = -0.5 / max_inpt
-    m_b = 0.5 / max_inpt
-    
-    r = m_r * static_inpt + 0.5
-    b = m_b * static_inpt + 0.5
-    g = m_r*0
-
-    return [[r, g, b]]
