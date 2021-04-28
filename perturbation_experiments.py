@@ -554,6 +554,9 @@ def context_fixed_points(model_choice, save_fixed_points=False):
     
     model_roots.plot(fixed_pts=True, slow_pts=True)
 
+    plt.figure()
+    model_roots.plot(fixed_pts=True, slow_pts=False, plot_traj=False)
+    plt.title("Model Attractors")
 
     plt.figure(123)
     plt.title('Evaluation of Model on Multisensory Task')

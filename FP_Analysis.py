@@ -209,7 +209,7 @@ class Roots(object):
         if fixed_pts and self._embedded != []:
             for root_ix in range(self._embedded.shape[0]):  # loop over roots
                 if self._stability[root_ix]:  # root is stable
-                    plt.scatter(self._embedded[root_ix, 0], self._embedded[root_ix, 1], c=cmap(self._static_inputs[root_ix]), alpha=0.5, s=200)
+                    plt.scatter(self._embedded[root_ix, 0], self._embedded[root_ix, 1], c=cmap(self._static_inputs[root_ix]), alpha=0.5, s=500)
                 else:    # root is unstable
                     pass # don't plot unstable roots!               
                     #plt.scatter(self._embedded[root_ix, 0], self._embedded[root_ix, 1], marker='x', c=cmap(self._static_inputs[root_ix]), alpha=0.5)
