@@ -281,6 +281,9 @@ class RNN(nn.Module):
                 hidden_next = dt*torch.matmul(Jin, inpt) + \
                 dt*torch.matmul(self._J['rec'], (torch.tanh(self._hidden))) + \
                 (1-dt)*self._hidden + dt*self._J['bias'] + 0*noiseTerm
+                self._hidden[1] = 1       # Bias from Miconi 2017
+                self._hidden[10] = 1
+                self._hidden[11] = -1
 
             else:
                 noiseTerm=0
@@ -576,7 +579,7 @@ class RNN(nn.Module):
                         x[1] = 1       # Bias from Miconi 2017
                         x[10] = 1
                         x[11] = -1
-                        return np.tanh(x)
+                        return x
                     #return lambda x: np.squeeze( dt*np.matmul(W_in, inpt) + dt*np.matmul(W_rec, (np.tanh(x.reshape(self._hiddenSize,1)))) - dt*x.reshape(self._hiddenSize,1) + b*dt)
                     return update_fcn
                 else:

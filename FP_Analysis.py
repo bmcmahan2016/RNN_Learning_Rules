@@ -321,6 +321,9 @@ def IsAttractor(fixed_point, F, NumSimulations=25):   #NumSimulations=2500
 
     for simulation in range(NumSimulations):
         epsilon = 10e-5 * np.random.randn(len(fixed_point), 1)                 #10e-3
+        epsilon[1] = 1
+        epsilon[10] = 1
+        epsilon[11] = -1
         nearby_point = fixed_point+epsilon
         initial_distance = ComputeDistance(nearby_point, fixed_point)
         for iterator in range(100):
