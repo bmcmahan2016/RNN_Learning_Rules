@@ -30,6 +30,9 @@ import argparse
 from FP_Analysis import Roots
 import perturbation_experiments as analyze
 
+N_NEIGHBORS = 3    # How many neighbors to consider in clustering
+N_FIXED_POINTS = 10 # how many fixed points to consider in clustering
+
 def find_fixed_points(modelPath):
     '''finds fixed points for a model'''
     # look at text file to see how many inputs rnn has and then decide on task based on the input size
@@ -104,7 +107,7 @@ def getMDS(modelNum, learningRule="bptt"):
         
     roots = Roots()
     try:  # load roots
-        roots.load("hack") #modelPath)
+        roots.load(modelPath)
     except FileNotFoundError as e:
         find_fixed_points(modelPath)    # solves for and saves model fixed points
         roots.load(modelPath)            # load newly found fixed points
@@ -113,7 +116,7 @@ def getMDS(modelNum, learningRule="bptt"):
     inpt_values = np.array(roots._static_inputs)[:,0]  #model._fixedPoints[:,1]
     fixed_points = np.squeeze(np.array(roots._values))
     
-    nbrs = NearestNeighbors(n_neighbors=3, algorithm='ball_tree').fit(fixed_points)
+    nbrs = NearestNeighbors(n_neighbors=N_NEIGHBORS, algorithm='ball_tree').fit(fixed_points)
     distances, indices = nbrs.kneighbors(fixed_points)
     # indices are (num_fixed_points, 3) and represent the two nearest neighbors to the fixed point
     # indexed by the first column
@@ -121,9 +124,9 @@ def getMDS(modelNum, learningRule="bptt"):
     MDS_embedding = np.array(inpt_values)[indices]
     num_fixed_points_found = 5
     start_idx = 0
-    end_idx = num_fixed_points_found
+    end_idx = N_FIXED_POINTS
     
-    return MDS_embedding[start_idx:end_idx].reshape(num_fixed_points_found,3)
+    return MDS_embedding[start_idx:end_idx].reshape(N_FIXED_POINTS,N_NEIGHBORS)
 
 # determines what analysis to run
 parser = argparse.ArgumentParser(description="Clusters RNNs by Topology of Fixed Points")
