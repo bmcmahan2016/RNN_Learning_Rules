@@ -30,7 +30,7 @@ args = parser.parse_args()
 ##############################################################
 
 if args.rdm:
-    niave_network('models/'+args.model_name, xmin=-10, xmax=10, ymin=-10, ymax=10)
+    rdm_fixed_points('models/'+args.model_name)
 elif args.context:
     plt.figure()
     context_fixed_points('models/'+args.model_name, save_fixed_points=args.save_fp)

@@ -306,9 +306,33 @@ def MeasureAccuracy(network_choices, target_choices, tol=1):
 
 
 
-def niave_network(modelPath, xmin=-10, xmax=10, ymin=-10, ymax=10, test_inpt=.1):
+def rdm_fixed_points(modelPath, inputs, save_fp=False):
+    assert (inputs == 'large' or inputs == 'small'), "Must use either small or large inputs"
     model = loadRNN(modelPath)
-    AnalyzeLesioned(model, modelPath, xmin, xmax, ymin, ymax)
+    #AnalyzeLesioned(model, modelPath, xmin, xmax, ymin, ymax)
+    
+    inpts = {}  # two sets of inputs for solving fixed points
+    inpts['large'] = np.array ( [[0.5], [0.2], [0], [-0.2], [-0.5]] )
+    inpts['small'] = 0.03 * np.array( [[1], [0.75], [.5], [0.25], [0], [-0.25], 
+                                [-.5], [-0.75], [-1]] )
+    input_values = inpts[inputs]   # user specified input set
+
+    model_roots = Roots(model)
+    model_roots.FindFixedPoints(input_values)  # compute RNNs fixed points
+   
+    model_roots.plot(fixed_pts=True, slow_pts=True, end_time = 50)
+    plt.title("Early")
+    model_roots.plot(fixed_pts=True, slow_pts=True, start_time=50, end_time=200)
+    plt.title("Mid")
+    model_roots.plot(fixed_pts=True, slow_pts=True, start_time=200)
+    plt.title("Late")
+    
+    plt.figure(2)
+    model_roots.plot(fixed_pts=True, slow_pts=False, plot_traj=False)
+    plt.title("Model Attractors") 
+    
+    if save_fp:
+        model_roots.save(modelPath)   
 
 def GetNeuronIdx(model_choice):
     model = RNN(1,50,1)

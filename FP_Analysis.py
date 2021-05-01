@@ -172,7 +172,7 @@ class Roots(object):
         cs = ['r', 'r', 'r', 'r', 'r', 'b', 'b', 'b', 'b', 'b']
         # TODO: check that record is working properly inside this function call
         trial_data, self._labels = r.record(self._model, \
-            title='fixed points', print_out=True, plot_recurrent=False, cs=cs)
+            title='fixed points', print_out=False, plot_recurrent=False, cs=cs)
         self._model._pca = PCA()
         self._trajectories = self._model._pca.fit_transform(trial_data.reshape(-1, self._model._hiddenSize)).reshape(10,-1,self._model._hiddenSize)
         # model_trajectories is (t_steps, hiddenSize)
@@ -387,16 +387,13 @@ def cmap(static_inpt, max_inpt=3):
     # DETERMINE THE MAXIMUM INPUT VALUE
     # case 1: the static_input is two dimensional as in the multisensory task
     # we just use the maximum of the two channels
-    if static_inpt.shape[0] == 2:       # multisensory task
-        static_inpt = np.max(static_inpt)
-        max_inpt = 1
-    elif static_inpt.shape[0] == 4:     # context task
+    if static_inpt.shape[0] == 4:     # context task
         ix_of_nonzero_inpt = np.nonzero(static_inpt[:2])
         if len(ix_of_nonzero_inpt[0]) == 0:    # both inputs are zero
             static_inpt = 0
         else:
             static_inpt = static_inpt[ix_of_nonzero_inpt][0]
-        max_inpt = 0.1857
+        max_inpt = 0.1
     elif static_inpt.shape[0] == 6:     # Ncontext task
         ix_of_nonzero_inpt = np.nonzero(static_inpt[:3])
         if len(ix_of_nonzero_inpt[0]) == 0:    # both inputs are zero
