@@ -681,11 +681,11 @@ def importHeb(name = "undeclared_heb", n_inputs = False, var=1):
         input_dim = 1
         task = Williams(N=750, mean=0.1857, variance=var)
     else:
-        input_dim = n_inputs * 2
+        input_dim = n_inputs
         task = Ncontext(var=var, dim=n_inputs)
      
     hyperParams = {       # dictionary of all hyper-parameters
-    "inputSize" : input_dim,
+    "inputSize" : 2*input_dim,
     "hiddenSize" : hidden_size,
     "outputSize" : 1,
     "g" : 1 ,

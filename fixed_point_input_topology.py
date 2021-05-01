@@ -45,7 +45,7 @@ def find_fixed_points(modelPath):
     elif hyperParams['inputSize'] == 4:
         analyze.context_fixed_points(modelPath)
     elif hyperParams['inputSize'] == 1:
-        raise NotImplementedError()
+        analyze.niave_network(modelPath)
     else:
         raise NameError("This RNN does not have a valid input size")
 
@@ -100,20 +100,14 @@ def getMDS(modelNum, learningRule="bptt"):
 
     '''
     learningRule = parse_learning_rule(learningRule)
-
-
-    if modelNum < 100:
-        modelPath = "models/" + learningRule + "_0" + str(modelNum)
-    else:
-        modelPath = "models/" + learningRule + "_" + str(modelNum)
-    
+    modelPath = 'models\\' + learningRule + '_' + modelNum
+        
     roots = Roots()
     try:  # load roots
-        roots.load(modelPath)
+        roots.load("hack") #modelPath)
     except FileNotFoundError as e:
         find_fixed_points(modelPath)    # solves for and saves model fixed points
         roots.load(modelPath)            # load newly found fixed points
-
 
     print(modelPath)
     inpt_values = np.array(roots._static_inputs)[:,0]  #model._fixedPoints[:,1]
@@ -156,8 +150,8 @@ for list_ix in range(num_lists):
             names.append(model_num)
             new_line = False
             continue
-        num = int(model_num)
-        embeddings.append(getMDS(num, learningRule=names[-1]).reshape(1,-1))
+        #num = int(model_num)
+        embeddings.append(getMDS(model_num, learningRule=names[-1]).reshape(1,-1))
         counter += 1
     end_ix.append(counter)
     new_line = True

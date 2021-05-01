@@ -91,7 +91,7 @@ def plotPCTrajectories(trial_data, trial_labels, pca, average=True):
     plt.xlim([windowScale*minX, windowScale*maxX])
     plt.ylim([windowScale*minY, windowScale*maxY])
 
-def AnalyzeLesioned(model, fig_name, PC1_min=-10, PC1_max=10, PC2_min=-10, PC2_max=10, test_inpt=0.2):
+def AnalyzeLesioned(model, modelPath, PC1_min=-10, PC1_max=10, PC2_min=-10, PC2_max=10, test_inpt=0.2):
     '''
     AnalyzedLesioned performs a standard set of analysis on a fully trained RNN
     model and then plots the results as multiple figures. The following analyses 
@@ -118,31 +118,31 @@ def AnalyzeLesioned(model, fig_name, PC1_min=-10, PC1_max=10, PC2_min=-10, PC2_m
     ###########################################################################
     #TENSOR COMPONENT ANALYSIS
     ###########################################################################
-    activity_tensor = model._activityTensor
-    neuron_factor = r.plotTCs(activity_tensor, model._targets, 1)
-    neuron_idx = np.argsort(neuron_factor)     # sorted indices of artificial neurons
+    # activity_tensor = model._activityTensor
+    # neuron_factor = r.plotTCs(activity_tensor, model._targets, 1)
+    # neuron_idx = np.argsort(neuron_factor)     # sorted indices of artificial neurons
     
-    # find the index where neuron_factors changes sign
-    # p is the index that partitions neuron_idx into two clusters
-    sign_change_idx = np.diff(np.sign(neuron_factor[neuron_idx]))
-    if not np.all(sign_change_idx==0):
-        # executes when neuron factors are not all the same sign
-        last_pos_neuron = np.nonzero(sign_change_idx)[0][0]
-        print('number of positive neurons:', last_pos_neuron)
-        print('number of negative neurons:', len(neuron_factor)-last_pos_neuron)
-        p = np.nonzero(np.diff(np.sign(neuron_factor[neuron_idx])))[0][0] + 1
-    else:
-        # executes when neuron factors all have the same sign
-        print('artifical neurons all have sign', np.sign(neuron_factor[0]))
-        p = 25
+    # # find the index where neuron_factors changes sign
+    # # p is the index that partitions neuron_idx into two clusters
+    # sign_change_idx = np.diff(np.sign(neuron_factor[neuron_idx]))
+    # if not np.all(sign_change_idx==0):
+    #     # executes when neuron factors are not all the same sign
+    #     last_pos_neuron = np.nonzero(sign_change_idx)[0][0]
+    #     print('number of positive neurons:', last_pos_neuron)
+    #     print('number of negative neurons:', len(neuron_factor)-last_pos_neuron)
+    #     p = np.nonzero(np.diff(np.sign(neuron_factor[neuron_idx])))[0][0] + 1
+    # else:
+    #     # executes when neuron factors all have the same sign
+    #     print('artifical neurons all have sign', np.sign(neuron_factor[0]))
+    #     p = 25
     
     
-    ###########################################################################
-    #VISUALIZE RECURRENT WEIGHTS
-    ###########################################################################
-    model._neuronIX = neuron_idx
-    model.VisualizeWeightMatrix()
-    model.VisualizeWeightClusters(neuron_idx, p)
+    # ###########################################################################
+    # #VISUALIZE RECURRENT WEIGHTS
+    # ###########################################################################
+    # model._neuronIX = neuron_idx
+    # model.VisualizeWeightMatrix()
+    # model.VisualizeWeightClusters(neuron_idx, p)
      
     
     ###########################################################################
@@ -165,9 +165,9 @@ def AnalyzeLesioned(model, fig_name, PC1_min=-10, PC1_max=10, PC2_min=-10, PC2_m
                         [.45],[.4],[.35],[.3],[.25],[.2],[.15],[.05],[0],[-.05],[-.1],\
                             [-.15],[-.2],[-.25],[-.3],[-.35],[-.4],[-.45],[-.5],[-.55],[-.6],[-.65],\
                             [-.7],[-.75],[-.8],[-.85],[-.9],[-.95],[-1]]
-        input_values = [[0]]
-        input_values = [[1],[.5],[0],[-.5],[-1]]
-        input_values = 3 * test_inpt * np.array(input_values)
+        #input_values = [[0]]
+        #input_values = [[1],[.5],[0],[-.5],[-1]]
+        input_values = 0.1 * test_inpt * np.array(input_values)
     
         model_roots = Roots(model)
         model_roots.FindFixedPoints(input_values)
@@ -194,7 +194,7 @@ def AnalyzeLesioned(model, fig_name, PC1_min=-10, PC1_max=10, PC2_min=-10, PC2_m
         plt.title('Evaluation of Model on RDM Task')
         r.TestTaskInputs(model)     
         
-        model_roots.save(model_choice)   
+        model_roots.save(modelPath)   
         
 
     for i in range(10):
@@ -308,8 +308,7 @@ def MeasureAccuracy(network_choices, target_choices, tol=1):
 
 def niave_network(modelPath, xmin=-10, xmax=10, ymin=-10, ymax=10, test_inpt=.1):
     model = loadRNN(modelPath)
-    modelPath+='_control'
-    AnalyzeLesioned(model, model_choice, xmin, xmax, ymin, ymax)
+    AnalyzeLesioned(model, modelPath, xmin, xmax, ymin, ymax)
 
 def GetNeuronIdx(model_choice):
     model = RNN(1,50,1)
@@ -499,36 +498,36 @@ def context_fixed_points(model_choice, save_fixed_points=False):
     
     ###########################################################################
     #TENSOR COMPONENT ANALYSIS
-    ###########################################################################
-    activity_tensor = model._activityTensor
-    neuron_factor = r.plotTCs(activity_tensor, model._targets, 1)
-    neuron_idx = np.argsort(neuron_factor)     # sorted indices of artificial neurons
+    # ###########################################################################
+    # activity_tensor = model._activityTensor
+    # neuron_factor = r.plotTCs(activity_tensor, model._targets, 1)
+    # neuron_idx = np.argsort(neuron_factor)     # sorted indices of artificial neurons
     
-    # find the index where neuron_factors changes sign
-    # p is the index that partitions neuron_idx into two clusters
-    sign_change_idx = np.diff(np.sign(neuron_factor[neuron_idx]))
-    if not np.all(sign_change_idx==0):
-        # executes when neuron factors are not all the same sign
-        last_pos_neuron = np.nonzero(sign_change_idx)[0][0]
-        print('number of positive neurons:', last_pos_neuron)
-        print('number of negative neurons:', len(neuron_factor)-last_pos_neuron)
-        p = np.nonzero(np.diff(np.sign(neuron_factor[neuron_idx])))[0][0] + 1
-    else:
-        # executes when neuron factors all have the same sign
-        print('artifical neurons all have sign', np.sign(neuron_factor[0]))
-        p = 25
+    # # find the index where neuron_factors changes sign
+    # # p is the index that partitions neuron_idx into two clusters
+    # sign_change_idx = np.diff(np.sign(neuron_factor[neuron_idx]))
+    # if not np.all(sign_change_idx==0):
+    #     # executes when neuron factors are not all the same sign
+    #     last_pos_neuron = np.nonzero(sign_change_idx)[0][0]
+    #     print('number of positive neurons:', last_pos_neuron)
+    #     print('number of negative neurons:', len(neuron_factor)-last_pos_neuron)
+    #     p = np.nonzero(np.diff(np.sign(neuron_factor[neuron_idx])))[0][0] + 1
+    # else:
+    #     # executes when neuron factors all have the same sign
+    #     print('artifical neurons all have sign', np.sign(neuron_factor[0]))
+    #     p = 25
     
     
-    ###########################################################################
-    #VISUALIZE RECURRENT WEIGHTS
-    ###########################################################################
-    model._neuronIX = neuron_idx
-    model.VisualizeWeightMatrix()
-    model.VisualizeWeightClusters(neuron_idx, p)
+    # ###########################################################################
+    # #VISUALIZE RECURRENT WEIGHTS
+    # ###########################################################################
+    # model._neuronIX = neuron_idx
+    # model.VisualizeWeightMatrix()
+    # model.VisualizeWeightClusters(neuron_idx, p)
      
 
-    fixed_point_resolution = 5
-    input_scale = 5.385  # makes fixed points range from +/-1
+    fixed_point_resolution = 30
+    input_scale = 0.1
     static_inpts = np.zeros((2*fixed_point_resolution, 4))
     static_inpts[:fixed_point_resolution, 0] = input_scale*np.linspace(-0.1857, 0.1857, fixed_point_resolution)     # motion context
     static_inpts[:fixed_point_resolution, 2] = 1                                    # go signal for motion context
