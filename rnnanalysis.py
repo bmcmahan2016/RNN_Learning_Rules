@@ -51,20 +51,18 @@ def context_fixed_points(modelPath, inputs, save_fp=False):
 
     # construct inputs
     if inputs=='small':
-        fixed_point_resolution = 30
-        input_scale = 0.1
+        fixed_point_resolution = 21
         static_inpts = np.zeros((2*fixed_point_resolution, 4))
-        static_inpts[:fixed_point_resolution, 0] = input_scale*np.linspace(-0.1857, 0.1857, fixed_point_resolution)     # motion context
+        static_inpts[:fixed_point_resolution, 0] = np.linspace(-0.02, 0.02, fixed_point_resolution)     # motion context
         static_inpts[:fixed_point_resolution, 2] = 1                                    # go signal for motion context
-        static_inpts[fixed_point_resolution:, 1] = input_scale*np.linspace(-0.1857, 0.1857, fixed_point_resolution)     # color context
+        static_inpts[fixed_point_resolution:, 1] = np.linspace(-0.02, 0.02, fixed_point_resolution)     # color context
         static_inpts[fixed_point_resolution:, 3] = 1                                    # go signal for color context
     elif inputs == 'large':
         fixed_point_resolution = 5
-        input_scale = 0.1
         static_inpts = np.zeros((2*fixed_point_resolution, 4))
-        static_inpts[:fixed_point_resolution, 0] = input_scale*np.linspace(-0.4, 0.4, fixed_point_resolution)     # motion context
+        static_inpts[:fixed_point_resolution, 0] = np.linspace(-0.4, 0.4, fixed_point_resolution)     # motion context
         static_inpts[:fixed_point_resolution, 2] = 1                                    # go signal for motion context
-        static_inpts[fixed_point_resolution:, 1] = input_scale*np.linspace(-0.4, 0.4, fixed_point_resolution)     # color context
+        static_inpts[fixed_point_resolution:, 1] = np.linspace(-0.4, 0.4, fixed_point_resolution)     # color context
         static_inpts[fixed_point_resolution:, 3] = 1         
 
     model_roots = Roots(model)

@@ -383,6 +383,7 @@ def cmap(static_inpt, max_inpt=3):
     lookup[2] = 'tab:pink'
     lookup[3] = 'tab:gray'
     lookup[4] = 'tab:olive'
+    lookup['!'] = 'k'     # special case of exactly zero
 
     # DETERMINE THE MAXIMUM INPUT VALUE
     # case 1: the static_input is two dimensional as in the multisensory task
@@ -393,7 +394,7 @@ def cmap(static_inpt, max_inpt=3):
             static_inpt = 0
         else:
             static_inpt = static_inpt[ix_of_nonzero_inpt][0]
-        max_inpt = 0.1
+        max_inpt = 0.4
     elif static_inpt.shape[0] == 6:     # Ncontext task
         ix_of_nonzero_inpt = np.nonzero(static_inpt[:3])
         if len(ix_of_nonzero_inpt[0]) == 0:    # both inputs are zero
@@ -405,8 +406,10 @@ def cmap(static_inpt, max_inpt=3):
         static_inpt = static_inpt[0]
         max_inpt = 0.6
     # END DETERMINE MAXIMUM INPUT
-     
-    input_level = int(5*static_inpt / max_inpt)
+    if static_inpt == 0:
+        return 'k'
+    else:
+        input_level = int(5*static_inpt / max_inpt)
     if input_level > 4:
         input_level = 4
     elif input_level < -4:

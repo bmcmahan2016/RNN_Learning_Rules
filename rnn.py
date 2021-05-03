@@ -29,21 +29,21 @@ from task.Ncontext import Ncontext
 
 
 
-hyperParams = {       # dictionary of all hyper-parameters
-    "inputSize" : 1,
-    "hiddenSize" : 50,
-    "outputSize" : 1,
-    "g" : 1 ,
-    "inputVariance" : 0.5,
-    "outputVariance" : 0.5,
-    "biasScale" : 0,
-    "initScale" : 0.3,
-    "dt" : 0.1,
-    "batchSize" : 500,
-    "taskMean" : 0.5,
-    "taskVar" : 1,
-    "ReLU" : 0
-    }
+# hyperParams = {       # dictionary of all hyper-parameters
+#     "inputSize" : 1,
+#     "hiddenSize" : 50,
+#     "outputSize" : 1,
+#     "g" : 1 ,
+#     "inputVariance" : 0.5,
+#     "outputVariance" : 0.5,
+#     "biasScale" : 0,
+#     "initScale" : 0.3,
+#     "dt" : 0.1,
+#     "batchSize" : 500,
+#     "taskMean" : 0.5,
+#     "taskVar" : 1,
+#     "ReLU" : 0
+#     }
 
 class RNN(nn.Module):
     # recently changed var by normalizing it by N, before was 0.045 w/o normilazation
@@ -83,7 +83,7 @@ class RNN(nn.Module):
             
         if task == "rdm":
             print("Using RDM task!")
-            self._task = Williams(variance=0.1)
+            self._task = Williams(variance=hyperParams["taskVar"])
         elif task == "context":
             self._task = Ncontext(dim=2)
         else:
