@@ -29,6 +29,7 @@ import pdb
 import argparse
 from FP_Analysis import Roots
 import perturbation_experiments as analyze
+from sklearn.metrics import silhouette_score
 
 N_NEIGHBORS = 3    # How many neighbors to consider in clustering
 N_FIXED_POINTS = 10 # how many fixed points to consider in clustering
@@ -146,6 +147,8 @@ counter = 0
 new_line = True
 num_lists = len(list_of_lists)
 
+numModelsOfType = {}   # indicates how many models of each type we have
+count = 0
 for list_ix in range(num_lists):
     start_ix.append(counter)
     for model_num in list_of_lists[list_ix]:
@@ -168,10 +171,18 @@ embeddings = np.squeeze(np.array(embeddings))
 
 
 # plot MDS clusters
+true_labels = np.zeros((start_ix[-1]))
+true_labels -= 1
+for ix in start_ix[:-1]:
+    true_labels[ix:] += 1
+print("score:", silhouette_score(embeddings, true_labels))
 clustering_algorithm = MDS()
 clustered_data = clustering_algorithm.fit_transform(embeddings)
 plt.figure()
 for ix in range(num_lists):
     plt.scatter(clustered_data[start_ix[ix]:end_ix[ix],0], clustered_data[start_ix[ix]:end_ix[ix],1])
-plt.legend(names)      
+plt.legend(names) 
+plt.title("Silhouette Score " + str(silhouette_score(embeddings, true_labels)))
+
+
 plt.show()
