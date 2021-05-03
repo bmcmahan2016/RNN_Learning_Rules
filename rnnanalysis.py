@@ -42,6 +42,13 @@ def rdm_fixed_points(modelPath, inputs, save_fp=False):
     model_roots.plot(fixed_pts=True, slow_pts=False, plot_traj=False)
     plt.title("Model Attractors") 
     
+    plt.figure()
+    model_roots.plot(fixed_pts=False, slow_pts=False, plot_traj=False, plot_PC1=True)
+    plt.title("PC1")
+    plt.xlabel("Time")
+    plt.ylabel("PC1")
+            
+    
     if save_fp:
         model_roots.save(modelPath)   
 

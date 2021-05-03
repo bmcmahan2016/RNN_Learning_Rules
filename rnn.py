@@ -86,7 +86,7 @@ class RNN(nn.Module):
             self._task = Williams(variance=hyperParams["taskVar"])
         elif task == "context":
             self._task = Ncontext(dim=2)
-        else:
+        else:  # task is an actual object of type task
             self._task = task
 
 

@@ -167,12 +167,13 @@ class Roots(object):
                 totalNumRoots += currNumRoots
         return totalNumRoots
 
-    def _embed(self, save_fixed_points=False):
+    def _embed(self, save_fixed_points=False, mean_overide=1, pulse=True):
         # perform PCA on trajectories to get embedding
         cs = ['r', 'r', 'r', 'r', 'r', 'b', 'b', 'b', 'b', 'b']
         # TODO: check that record is working properly inside this function call
         trial_data, self._labels = r.record(self._model, \
-            title='fixed points', print_out=False, plot_recurrent=False, cs=cs)
+            title='fixed points', print_out=False, plot_recurrent=False, cs=cs,
+            mean_overide=mean_overide, pulse=pulse)
         self._model._pca = PCA()
         self._trajectories = self._model._pca.fit_transform(trial_data.reshape(-1, self._model._hiddenSize)).reshape(10,-1,self._model._hiddenSize)
         # model_trajectories is (t_steps, hiddenSize)
@@ -188,7 +189,7 @@ class Roots(object):
             roots_embedded = self._model._pca.transform(fixed_pts)
             self._embedded = roots_embedded
 
-    def plot(self, fixed_pts=False, slow_pts=True, plot_traj=True, start_time = 0, end_time=-1):
+    def plot(self, fixed_pts=False, slow_pts=True, plot_traj=True, plot_PC1=False, start_time = 0, end_time=-1):
         '''Plots the embedded fixed points in two dimensions
 
         Parameters
@@ -234,6 +235,13 @@ class Roots(object):
                 slow_embedded = self._model._pca.transform(slow_pts)
                 for ix in range(num_slow_pts):
                     plt.scatter(slow_embedded[ix, 0], slow_embedded[ix, 1], c='k', marker='x', alpha=0.1)
+        
+        if plot_PC1:  # plot PC1 against time
+            inpt_colors = ['r', 'g', 'b', 'y', 'm', 'c']
+            for ii, mean in enumerate([0, 0.2, 0.6]):
+                self._embed(mean_overide=mean, pulse=False)
+                for i in range(10):
+                    plt.plot(self._trajectories[i,start_time:end_time,0], c = inpt_colors[ii], alpha=0.25)
             
 
     def save(self, fname):

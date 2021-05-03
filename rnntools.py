@@ -259,7 +259,8 @@ def pulse_inputs(taskData):
         return False # unable to pulse inputs
     return True  # inputs succesfully pulsed
 
-def record(model, cs=['r', 'b', 'k', 'g', 'y'], title='', print_out=True, plot_recurrent=True, pulse=True, only_out=False):
+
+def record(model, cs=['r', 'b', 'k', 'g', 'y'], title='', print_out=True, plot_recurrent=True, pulse=True, only_out=False, mean_overide=1):
     '''
     Records from recurrent neurons during an identical input sequence of length 50 while
     plotting the hidden state and activation of output neuron. Will also return hidden states 
@@ -291,12 +292,10 @@ def record(model, cs=['r', 'b', 'k', 'g', 'y'], title='', print_out=True, plot_r
 
     model._hiddenInitScale = model._hiddenInitScale * 0
 
-    
-
     #loop over conditions to create trials
     for _ in range(10):
         length_of_data=750    #200   #100
-        taskData, target = model._task.GetInput(mean_overide=1)
+        taskData, target = model._task.GetInput(mean_overide=mean_overide)
         if pulse:
             pulse_inputs(taskData)
         trial_labels.append(target)
