@@ -28,7 +28,7 @@ import sys
 import pdb
 import argparse
 from FP_Analysis import Roots
-import perturbation_experiments as analyze
+import rnnanalysis as analyze
 from sklearn.metrics import silhouette_score
 
 N_NEIGHBORS = 3    # How many neighbors to consider in clustering
@@ -47,7 +47,7 @@ def find_fixed_points(modelPath):
     if hyperParams['inputSize'] == 2:
         analyze.multi_fixed_points(modelPath)
     elif hyperParams['inputSize'] == 4:
-        analyze.context_fixed_points(modelPath)
+        analyze.context_fixed_points(modelPath, 'small')
     elif hyperParams['inputSize'] == 1:
         analyze.niave_network(modelPath)
     else:

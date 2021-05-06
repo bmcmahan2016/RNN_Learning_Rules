@@ -24,8 +24,8 @@ def rdm_fixed_points(modelPath, inputs, save_fp=False):
     
     inpts = {}  # two sets of inputs for solving fixed points
     inpts['large'] = np.array ( [[0.5], [0.2], [0], [-0.2], [-0.5]] )
-    inpts['small'] = 0.03 * np.array( [[1], [0.75], [.5], [0.25], [0], [-0.25], 
-                                [-.5], [-0.75], [-1]] )
+    inpts['small'] = 0.03 * np.array( [[0], [0.25], [-0.25], [0.5], [-0.5], [0.75], 
+                                [-0.75], [1], [-1]] )
     input_values = inpts[inputs]   # user specified input set
 
     model_roots = Roots(model)
@@ -59,18 +59,24 @@ def context_fixed_points(modelPath, inputs, save_fp=False):
     # construct inputs
     if inputs=='small':
         fixed_point_resolution = 21
+        tmp = np.linspace(-0.02, 0.02, fixed_point_resolution)    
+        tmp = tmp[np.argsort(np.abs(tmp))]
         static_inpts = np.zeros((2*fixed_point_resolution, 4))
-        static_inpts[:fixed_point_resolution, 0] = np.linspace(-0.02, 0.02, fixed_point_resolution)     # motion context
-        static_inpts[:fixed_point_resolution, 2] = 1                                    # go signal for motion context
-        static_inpts[fixed_point_resolution:, 1] = np.linspace(-0.02, 0.02, fixed_point_resolution)     # color context
-        static_inpts[fixed_point_resolution:, 3] = 1                                    # go signal for color context
+        static_inpts[0::2, 2] = 1
+        static_inpts[0::2, 0] = tmp
+        static_inpts[1::2, 3] = 1
+        static_inpts[1::2, 1] = tmp
+                                 # go signal for color context
     elif inputs == 'large':
         fixed_point_resolution = 5
+        tmp = np.linspace(-0.4, 0.4, fixed_point_resolution)    
+        tmp = tmp[np.argsort(np.abs(tmp))]
         static_inpts = np.zeros((2*fixed_point_resolution, 4))
-        static_inpts[:fixed_point_resolution, 0] = np.linspace(-0.4, 0.4, fixed_point_resolution)     # motion context
-        static_inpts[:fixed_point_resolution, 2] = 1                                    # go signal for motion context
-        static_inpts[fixed_point_resolution:, 1] = np.linspace(-0.4, 0.4, fixed_point_resolution)     # color context
-        static_inpts[fixed_point_resolution:, 3] = 1         
+        static_inpts[0::2, 2] = 1
+        static_inpts[0::2, 0] = tmp
+        static_inpts[1::2, 3] = 1
+        static_inpts[1::2, 1] = tmp
+       
 
     model_roots = Roots(model)
     model_roots.FindFixedPoints(static_inpts)
