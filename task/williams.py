@@ -9,12 +9,13 @@ import pdb
 
 
 class Williams():
-    def __init__(self, N=750, mean=1, variance=0.333, version=""):
+    def __init__(self, N=750, mean=1, variance=0.333, version="", device="cuda:0"):
         self.N = N
         self._mean = mean
         self.variance = variance
         self._version = version
         self._name = "rdm"
+        self._device = device
         
     def GetInput(self, mean_overide=-1, var_overide=False):
         '''
@@ -64,7 +65,7 @@ class Williams():
         #ensures a PyTorch Tensor object is returned
         if not torch.is_tensor(inp):
             inp = torch.from_numpy(inp).float()
-        return inp.to(torch.device('cuda')), condition
+        return inp.to(self._device), condition
 
 
     def GetInputPulse(self, mean_overide=-1, var_overide=False):
@@ -116,7 +117,7 @@ class Williams():
         #ensures a PyTorch Tensor object is returned
         if not torch.is_tensor(inp):
             inp = torch.from_numpy(inp).float()
-        return inp.to(torch.device('cuda')), condition
+        return inp.to(self._device), condition
 
     # TODO: delete GetDesired function
     def GetDesired(self):

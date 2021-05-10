@@ -47,10 +47,10 @@ from task.Ncontext import Ncontext
 
 class RNN(nn.Module):
     # recently changed var by normalizing it by N, before was 0.045 w/o normilazation
-    def __init__(self, hyperParams, task=0):
-        self._device = torch.device("cpu")
-        if torch.cuda.is_available():
-            self._device = torch.device("cuda:0")
+    def __init__(self, hyperParams, task=0, device='cuda:0'):
+        #self._device = torch.device("cpu")
+        #if torch.cuda.is_available():
+        self._device = torch.device(device)
         super(RNN, self).__init__()                                            # initialize parent class
         self._inputSize = int(hyperParams["inputSize"])
         self._hiddenSize = int(hyperParams["hiddenSize"])
@@ -83,7 +83,7 @@ class RNN(nn.Module):
             
         if task == "rdm":
             print("Using RDM task!")
-            self._task = Williams(variance=hyperParams["taskVar"])
+            self._task = Williams(variance=hyperParams["taskVar"], device=device)  # task must b
         elif task == "context":
             self._task = Ncontext(dim=2)
         else:  # task is an actual object of type task
@@ -457,6 +457,8 @@ class RNN(nn.Module):
         # load attributes in model dictionary
         if 'weights' in model_dict:
             self._J = model_dict['weights']
+            for layer in self._J:  # move weights to correct device
+                self._J[layer] = self._J[layer].to(self._device)
         else:
             print('WARNING!! NO WEIGHTS FOUND\n\n')
         if 'activities' in model_dict:
@@ -628,7 +630,7 @@ def loadRNN(fName, optimizer="", load_hyper=False, task="rdm"):
         from genetic import Genetic
         model = Genetic(hyperParams)
     else:
-        model = RNN(hyperParams, task=task)
+        model = RNN(hyperParams, task=task, device="cpu")
             
     model.load(fName)      # loads the RNN object
     model._MODEL_NAME = fName
