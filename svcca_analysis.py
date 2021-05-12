@@ -51,13 +51,13 @@ def get_rdm_inputs(inputSize):
     
 def get_static_inputs(inputSize):
     # will get inputs for the N = 1 context task
-    N_INPUTS = 120   # needs to be a multiple of all possible N
-    #N_INPUTS_PER_CONTEXT = 10
+    # N_INPUTS = 120   # needs to be a multiple of all possible N
+    N_INPUTS_PER_CONTEXT = 10
     N_CONTEXTS = int(inputSize / 2)
-    N_INPUTS_PER_CONTEXT = int(N_INPUTS / N_CONTEXTS) 
+    #N_INPUTS_PER_CONTEXT = int(N_INPUTS / N_CONTEXTS) 
     MIN_INPUT = -0.1857
     MAX_INPUT = 0.1857
-    static_inpt_arr = np.zeros((N_INPUTS, inputSize))
+    static_inpt_arr = np.zeros((N_INPUTS_PER_CONTEXT*N_CONTEXTS, inputSize))
     #static_inpt_arr = np.zeros((N_INPUTS_PER_CONTEXT*N_CONTEXTS, inputSize))
     # loop over contexts
     for context in range(N_CONTEXTS):
@@ -71,7 +71,7 @@ def get_static_inputs(inputSize):
     inpts = np.matmul(static_inpt_arr, np.ones((1, 750))) # (20, 8, 750)
     # feed batch of 20 inpts into network to get ativations 
     # cast static inputs to PyTorch Tensor
-    static_inputs = torch.tensor(inpts).float().cuda() # 20, 8, 750
+    static_inputs = torch.tensor(inpts).float() # 20, 8, 750
     return static_inputs
         
         
@@ -161,100 +161,79 @@ clustered_data = clustering_algorithm.fit_transform(distances)
 
 ################
 # compute K-Means clusters
-################
-n_classes = len(numModelsOfType) - 1
-K_cluster = KMeans(n_clusters = n_classes)
-kmeans = K_cluster.fit(distances)
+# ################
+# n_classes = len(numModelsOfType) - 1
+# K_cluster = KMeans(n_clusters = n_classes)
+# kmeans = K_cluster.fit(distances)
 
-plt.figure(5)
-colors = ['r', 'b', 'g', 'c', 'm', 'y', 'k', 'pink']
-for i in range(len(clustered_data)):
-    plt.scatter(clustered_data[i, 0], clustered_data[i,1], c = colors[kmeans.labels_[i]])
-plt.title("K-Means")
+# plt.figure(5)
+# colors = ['r', 'b', 'g', 'c', 'm', 'y', 'k', 'pink']
+# for i in range(len(clustered_data)):
+#     plt.scatter(clustered_data[i, 0], clustered_data[i,1], c = colors[kmeans.labels_[i]])
+# plt.title("K-Means")
     
-################
-# compute GMM clusters
-################
-gm = GaussianMixture(n_components=n_classes).fit(distances)
-labels_ = gm.predict(distances)  # get the labels
+# ################
+# # compute GMM clusters
+# ################
+# gm = GaussianMixture(n_components=n_classes).fit(distances)
+# labels_ = gm.predict(distances)  # get the labels
 
-plt.figure()
-colors = ['r', 'b', 'g', 'y', 'k']
-for i in range(len(clustered_data)):
-    plt.scatter(clustered_data[i, 0], clustered_data[i,1], c = colors[labels_[i]])
-plt.title("Gaussian Mixture Model")
+# plt.figure()
+# colors = ['r', 'b', 'g', 'y', 'k']
+# for i in range(len(clustered_data)):
+#     plt.scatter(clustered_data[i, 0], clustered_data[i,1], c = colors[labels_[i]])
+# plt.title("Gaussian Mixture Model")
 ################
 
-N_colors = ['r', 'orange', 'g', 'b', 'indigo', 'violet']
-plt.figure(11)  # Scatter plot all the models
-count = 0     # keeps track of how many models plotted so far
-legends = []  # holds model names to be used in legend
-ci = -1       # each N group has its own color
-for modelType in numModelsOfType:
-    if modelType == "total": # no plotting for total since it isn't a valid model type
-        continue
-    value = numModelsOfType[modelType]
-    if modelType[0] == 'B':
-        ci += 1
-        plt.scatter(clustered_data[count:count+value,0], clustered_data[count:count+value,1], marker = 'o', c=N_colors[ci])
-    else:
-        plt.scatter(clustered_data[count:count+value,0], clustered_data[count:count+value,1], marker='x', c=N_colors[ci])
-    i+=1
-    count += value  # increment the number of models plotted
-    legends.append(modelType) # add this model type name to the legend
+
+
+# ANALYSIS OF ALL N BLOCKS TOGETHER
+##########################################################################
+# # get the start index for each group of models that share the same N value
+# pos = 0  # points to current position in block
+# block_ixs = []
+# for modelType in numModelsOfType:  # loop through all model types
+#     if modelType[0:4].lower() == "bptt":  # append this as starting position 
+#         block_ixs.append(pos)
+#     if modelType == "total": # exit after counting all models
+#         break
+#     pos += numModelsOfType[modelType] # update current position
+# block_ixs.append(pos)  # now contains the start and stop indices of all N blocks
+
+# # compute silhouette score for each group of models with the same N value
+# block_silhouettes = []  # holds the silhouette score for each group of models with the same N value
+# for i in range(len(block_ixs)-1):
+#     N_block = distances[block_ixs[i]:block_ixs[i+1], block_ixs[i]:block_ixs[i+1]]
+#     block_labels = labels[block_ixs[i]:block_ixs[i+1]]
+#     block_silhouettes.append(silhouette_score(N_block, block_labels))
+
+# # Visualize clusters for each N value
+# plt.figure()  # initial throw away figure
+# count = 0     # keeps track of how many models plotted so far
+# legends = []  # holds model names to be used in legend
+# ttl = 0
+# i = -1
+# for modelType in numModelsOfType: # loop over all model types
+#     if modelType[:4].lower() == "bptt":  # open a new figure
+#         print("Creating new figure")
+#         plt.legend(legends)
+#         plt.title("N=" + str(ttl)+ "(silhouette:" + str(block_silhouettes[i]))
+#         plt.figure() 
+#         ttl += 1
+#         i+=1
+#         legends = []
+#     if modelType == "total": # all blocks plotted
+#         break
+#     value = numModelsOfType[modelType]
+#     plt.scatter(clustered_data[count:count+value,0], clustered_data[count:count+value,1])
     
-#plt.scatter(clustered_data[N_BPTT_MODELS:N_BPTT_MODELS+N_GA_MODELS,0], clustered_data[N_BPTT_MODELS:N_BPTT_MODELS+N_GA_MODELS,1], c='g')
-#plt.scatter(clustered_data[N_BPTT_MODELS+N_GA_MODELS:N_BPTT_MODELS+N_GA_MODELS+N_FF_MODELS,0], clustered_data[N_BPTT_MODELS+N_GA_MODELS:N_BPTT_MODELS+N_GA_MODELS+N_FF_MODELS,1], c='b')
-#plt.scatter(clustered_data[N_BPTT_MODELS+N_GA_MODELS+N_FF_MODELS:N_BPTT_MODELS+N_GA_MODELS+N_FF_MODELS+N_H_MODELS,0], clustered_data[N_BPTT_MODELS+N_GA_MODELS+N_FF_MODELS:N_BPTT_MODELS+N_GA_MODELS+N_FF_MODELS+N_H_MODELS,1], c='y')
+#     count += value  # increment the number of models plotted
+#     legends.append(modelType)
 
-plt.legend(legends)
-
-
-# get the start index for each group of models that share the same N value
-pos = 0  # points to current position in block
-block_ixs = []
-for modelType in numModelsOfType:  # loop through all model types
-    if modelType[0:4].lower() == "bptt":  # append this as starting position 
-        block_ixs.append(pos)
-    if modelType == "total": # exit after counting all models
-        break
-    pos += numModelsOfType[modelType] # update current position
-block_ixs.append(pos)  # now contains the start and stop indices of all N blocks
-
-# compute silhouette score for each group of models with the same N value
-block_silhouettes = []  # holds the silhouette score for each group of models with the same N value
-for i in range(len(block_ixs)-1):
-    N_block = distances[block_ixs[i]:block_ixs[i+1], block_ixs[i]:block_ixs[i+1]]
-    block_labels = labels[block_ixs[i]:block_ixs[i+1]]
-    block_silhouettes.append(silhouette_score(N_block, block_labels))
-
-# Visualize clusters for each N value
-plt.figure()  # initial throw away figure
-count = 0     # keeps track of how many models plotted so far
-legends = []  # holds model names to be used in legend
-ttl = 0
-i = -1
-for modelType in numModelsOfType: # loop over all model types
-    if modelType[:4].lower() == "bptt":  # open a new figure
-        print("Creating new figure")
-        plt.legend(legends)
-        plt.title("N=" + str(ttl)+ "(silhouette:" + str(block_silhouettes[i]))
-        plt.figure() 
-        ttl += 1
-        i+=1
-        legends = []
-    if modelType == "total": # all blocks plotted
-        break
-    value = numModelsOfType[modelType]
-    plt.scatter(clustered_data[count:count+value,0], clustered_data[count:count+value,1])
-    
-    count += value  # increment the number of models plotted
-    legends.append(modelType)
-
-plt.legend(legends)
-plt.title("N=" + str(ttl) + "(silhouette:" + str(block_silhouettes[i]))
-
-# plot the silhouette scores against model complexity
+# plt.legend(legends)
+# plt.title("N=" + str(ttl) + "(silhouette:" + str(block_silhouettes[i]))
+##########################################################################
+# END ANALYSIS OF ALL N BLOCKS TOGETHER
 
 plt.show()
 
@@ -410,15 +389,33 @@ def getTrueLabelsHelper(numModelsOfType):
     return labels, class_counts
     
 labels, class_counts = getTrueLabelsHelper(numModelsOfType)
+
+N_colors = ['r', 'orange', 'g', 'b', 'indigo', 'violet']
+plt.figure(11)  # Scatter plot
+count = 0     # keeps track of how many models plotted so far
+ci = 0
+legends = []  # holds model names to be used in legend
+for modelType in numModelsOfType:
+    if modelType == "total": # no plotting for total since it isn't a valid model type
+        continue
+    value = numModelsOfType[modelType]
+    if modelType[0] == 'B':
+        ci += 1
+        plt.scatter(clustered_data[count:count+value,0], clustered_data[count:count+value,1], marker = 'o', c=N_colors[ci])
+    else:
+        plt.scatter(clustered_data[count:count+value,0], clustered_data[count:count+value,1], marker='x', c=N_colors[ci+1])
+    i+=1
+    count += value  # increment the number of models plotted
+    legends.append(modelType) # add this model type name to the legend
+    
+plt.legend(legends)
 plt.title("Sillhouette Score:" + str(silhouette_score(distances, labels)))
-# ratios = Method1(distances, labels, class_counts)
-# purity = Purity(distances, kmeans.labels_, labels)
-# print("ratios (method #1): ", ratios)
-# ratios = Method2(distances, labels, class_counts)
-# print("ratios (method #2): ", ratios)
-# print("purity (Kmeans): ", purity)
-# purity = Purity(distances, labels_, labels)
-# print("purity (GMM): ", purity)
-# print("silhouette : ", silhouette_score(distances, kmeans.labels_))
-# print("silhouette (GMM): ", silhouette_score(distances, labels_))
-silhouette_score(distances, labels)
+
+
+plt.figure()
+x = np.array([ 0.1, 0.5, 1])
+y = np.array([0.114, 0.148, 0.154])
+
+m, b = np.polyfit(x, y, 1)
+plt.plot(x, y, 'o')
+plt.plot(x, m*x + b)

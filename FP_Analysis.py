@@ -413,6 +413,9 @@ def cmap(static_inpt, max_inpt=3):
     elif static_inpt.shape[0] == 1:    # RDM task
         static_inpt = static_inpt[0]
         max_inpt = 0.6
+    else:
+        # TODO: handle Ncontext tasks
+        static_inpt = 0
     # END DETERMINE MAXIMUM INPUT
     if static_inpt == 0:
         return 'k'

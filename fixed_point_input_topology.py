@@ -51,7 +51,7 @@ def find_fixed_points(modelPath):
     elif hyperParams['inputSize'] == 1:
         analyze.niave_network(modelPath)
     else:
-        raise NameError("This RNN does not have a valid input size")
+        analyze.N_fixed_points(modelPath, 'small', save_fp=True)
 
 def key2array(key):
     '''
@@ -161,7 +161,7 @@ for list_ix in range(num_lists):
         counter += 1
     end_ix.append(counter)
     new_line = True
-
+start_ix.append(counter)  # last element of start ix is the total
 embeddings = np.squeeze(np.array(embeddings))
 
 # pad embeddings to account for differences in number of fixed points between RNNs
