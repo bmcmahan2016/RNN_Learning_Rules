@@ -47,7 +47,7 @@ def find_fixed_points(modelPath):
     if hyperParams['inputSize'] == 2:
         analyze.multi_fixed_points(modelPath)
     elif hyperParams['inputSize'] == 4:
-        analyze.context_fixed_points(modelPath, 'small')
+        analyze.context_fixed_points(modelPath, 'small', save_fp=True)
     elif hyperParams['inputSize'] == 1:
         analyze.niave_network(modelPath)
     else:
@@ -104,8 +104,9 @@ def getMDS(modelNum, learningRule="bptt"):
 
     '''
     learningRule = parse_learning_rule(learningRule)
-    modelPath = 'models\\' + learningRule + '_' + modelNum
-        
+    #modelPath = 'models\\' + learningRule + '_' + modelNum
+    modelPath = 'models\\' + modelNum
+    
     roots = Roots()
     try:  # load roots
         roots.load(modelPath)

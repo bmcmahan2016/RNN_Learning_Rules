@@ -37,6 +37,6 @@ else:            # N-dimensional context task
         context_fixed_points('models/'+args.model_name, args.input_choice)
     else:
         print("abstract N dimensional context")
-        N_fixed_points('models/'+args.model_name)
+        N_fixed_points('models/'+args.model_name, args.input_choice)
 
 plt.show()

@@ -55,7 +55,8 @@ def rdm_fixed_points(modelPath, inputs, save_fp=False):
 
 
 def context_fixed_points(modelPath, inputs, save_fp=False):
-    model = loadRNN(modelPath, task="context")
+    model = loadRNN(modelPath)
+    model._task = Ncontext(device="cpu", dim=2)
 
     # construct inputs
     if inputs=='small':

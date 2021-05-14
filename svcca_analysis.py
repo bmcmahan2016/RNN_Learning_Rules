@@ -32,13 +32,14 @@ from FP_Analysis import ComputeDistance
 
 
 def getNumSVs(singularValues):
-    counter = 0
-    explainedVariance = 0
-    SVNorm = np.linalg.norm(singularValues)
-    while (explainedVariance < 0.95):
-        explainedVariance += (singularValues[counter] / SVNorm)**2
-        counter+=1
-    return counter
+    sv_squares = singularValues**2
+    svs_needed = 0
+    explained_var = 0
+    sv_square_totals = np.sum(sv_squares)
+    while (explained_var < 0.95):
+        explained_var += (singularValues[svs_needed]**2 / sv_square_totals)
+        svs_needed+=1
+    return svs_needed
 
 def get_rdm_inputs(inputSize):
     # returns inputs for the RDM task
@@ -139,12 +140,14 @@ for i in range(len(modelActivations)):
         U2, s2, V2 = np.linalg.svd(activationsJ, full_matrices=False)
         
         #print("Number of singular values needed to explain 95% of variance:", getNumSVs(s1))
-
+        NUM_DIMENSIONS = getNumSVs(s1)
         svacts1 = np.dot(s1[:NUM_DIMENSIONS]*np.eye(NUM_DIMENSIONS), V1[:NUM_DIMENSIONS])
+        NUM_DIMENSIONS = getNumSVs(s2)
         svacts2 = np.dot(s2[:NUM_DIMENSIONS]*np.eye(NUM_DIMENSIONS), V2[:NUM_DIMENSIONS])
         
         if svacts1.shape != svacts2.shape:
-            print("here")
+            print("SVACTS1:", svacts1.shape)
+            print("SVACTS2:", svacts2.shape)
         svcca_results = cca_core.get_cca_similarity(svacts1, svacts2, epsilon=1e-10, verbose=False)
         distances[i, j] = 1 - np.mean(svcca_results["cca_coef1"])
         distances[j, i] = distances[i, j]
@@ -153,87 +156,14 @@ for i in range(len(modelActivations)):
 
 
 plt.imshow(distances)
+plt.clim(0, 1.0/3)
 plt.colorbar()
 plt.title("SVCCA Distances Between Networks")
 
 clustering_algorithm = MDS()
 clustered_data = clustering_algorithm.fit_transform(distances)
 
-################
-# compute K-Means clusters
-# ################
-# n_classes = len(numModelsOfType) - 1
-# K_cluster = KMeans(n_clusters = n_classes)
-# kmeans = K_cluster.fit(distances)
 
-# plt.figure(5)
-# colors = ['r', 'b', 'g', 'c', 'm', 'y', 'k', 'pink']
-# for i in range(len(clustered_data)):
-#     plt.scatter(clustered_data[i, 0], clustered_data[i,1], c = colors[kmeans.labels_[i]])
-# plt.title("K-Means")
-    
-# ################
-# # compute GMM clusters
-# ################
-# gm = GaussianMixture(n_components=n_classes).fit(distances)
-# labels_ = gm.predict(distances)  # get the labels
-
-# plt.figure()
-# colors = ['r', 'b', 'g', 'y', 'k']
-# for i in range(len(clustered_data)):
-#     plt.scatter(clustered_data[i, 0], clustered_data[i,1], c = colors[labels_[i]])
-# plt.title("Gaussian Mixture Model")
-################
-
-
-
-# ANALYSIS OF ALL N BLOCKS TOGETHER
-##########################################################################
-# # get the start index for each group of models that share the same N value
-# pos = 0  # points to current position in block
-# block_ixs = []
-# for modelType in numModelsOfType:  # loop through all model types
-#     if modelType[0:4].lower() == "bptt":  # append this as starting position 
-#         block_ixs.append(pos)
-#     if modelType == "total": # exit after counting all models
-#         break
-#     pos += numModelsOfType[modelType] # update current position
-# block_ixs.append(pos)  # now contains the start and stop indices of all N blocks
-
-# # compute silhouette score for each group of models with the same N value
-# block_silhouettes = []  # holds the silhouette score for each group of models with the same N value
-# for i in range(len(block_ixs)-1):
-#     N_block = distances[block_ixs[i]:block_ixs[i+1], block_ixs[i]:block_ixs[i+1]]
-#     block_labels = labels[block_ixs[i]:block_ixs[i+1]]
-#     block_silhouettes.append(silhouette_score(N_block, block_labels))
-
-# # Visualize clusters for each N value
-# plt.figure()  # initial throw away figure
-# count = 0     # keeps track of how many models plotted so far
-# legends = []  # holds model names to be used in legend
-# ttl = 0
-# i = -1
-# for modelType in numModelsOfType: # loop over all model types
-#     if modelType[:4].lower() == "bptt":  # open a new figure
-#         print("Creating new figure")
-#         plt.legend(legends)
-#         plt.title("N=" + str(ttl)+ "(silhouette:" + str(block_silhouettes[i]))
-#         plt.figure() 
-#         ttl += 1
-#         i+=1
-#         legends = []
-#     if modelType == "total": # all blocks plotted
-#         break
-#     value = numModelsOfType[modelType]
-#     plt.scatter(clustered_data[count:count+value,0], clustered_data[count:count+value,1])
-    
-#     count += value  # increment the number of models plotted
-#     legends.append(modelType)
-
-# plt.legend(legends)
-# plt.title("N=" + str(ttl) + "(silhouette:" + str(block_silhouettes[i]))
-##########################################################################
-# END ANALYSIS OF ALL N BLOCKS TOGETHER
 
 plt.show()
 
@@ -413,8 +343,8 @@ plt.title("Sillhouette Score:" + str(silhouette_score(distances, labels)))
 
 
 plt.figure()
-x = np.array([ 0.1, 0.5, 1])
-y = np.array([0.114, 0.148, 0.154])
+x = np.array([ 1, 2, 3, 4, 5, 6])
+y = np.array([0.34, 0.13, 0.12, 0.21, 0.38, 0.45])
 
 m, b = np.polyfit(x, y, 1)
 plt.plot(x, y, 'o')

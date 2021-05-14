@@ -44,6 +44,9 @@ def TrainRDM(name, hyperParams, use_ReLU=False):
     else:
         print("unclear which learning rule should be used for training")
         raise NotImplementedError()
+    rnnModel.setName(name)
+    rnnModel.train()
+    rnnModel.save()
 
 
 def TrainMulti(name, hyperParams, use_ReLU=False):
