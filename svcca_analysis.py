@@ -43,12 +43,13 @@ def getNumSVs(singularValues):
 
 def get_rdm_inputs(inputSize):
     # returns inputs for the RDM task
-    assert False, "you are using RDM, use N=1 network instead"
-    NUM_INPUT_CONDITIONS = 500
+    #assert False, "you are using RDM, use N=1 network instead"
+    NUM_INPUT_CONDITIONS = 10
     static_inputs = np.linspace(-0.1857, 0.1857, NUM_INPUT_CONDITIONS).reshape(1, NUM_INPUT_CONDITIONS)
     static_inputs = np.matmul(np.ones((750, 1)), static_inputs)
-    static_inputs = torch.tensor(static_inputs).float().cuda()
+    static_inputs = torch.tensor(static_inputs).float()
     static_inputs = torch.unsqueeze(static_inputs.t(), 1)
+    return static_inputs
     
 def get_static_inputs(inputSize):
     # will get inputs for the N = 1 context task
@@ -344,8 +345,9 @@ plt.title("Sillhouette Score:" + str(silhouette_score(distances, labels)))
 
 plt.figure()
 x = np.array([ 1, 2, 3, 4, 5, 6])
-y = np.array([0.34, 0.13, 0.12, 0.21, 0.38, 0.45])
+y = np.array([0.203, 0.346, 0.0343, -0.125, -0.0421, 0.0126])
 
 m, b = np.polyfit(x, y, 1)
 plt.plot(x, y, 'o')
 plt.plot(x, m*x + b)
+plt.ylim([-0.1, 0.5])

@@ -9,13 +9,21 @@ import pdb
 
 
 class Williams():
-    def __init__(self, N=750, mean=1, variance=0.333, version="", device="cuda:0"):
+    def __init__(self, N=750, mean=0.1857, variance=0.333, version="", device="cuda:0"):
         self.N = N
         self._mean = mean
         self.variance = variance
         self._version = version
         self._name = "rdm"
         self._device = device
+        
+        
+    def get_inps_and_targs(self, mean_overide=-1, var_overide=0, dt=""):
+        '''returns inputs, hints, and targets for FF training algorithm'''
+        inpts, target = self.GetInput(mean_overide=mean_overide, var_overide=var_overide)
+        inpts = inpts.cpu().detach().numpy()
+        targets = np.ones((self.N, 1))*target.item()
+        return inpts, targets, targets
         
     def GetInput(self, mean_overide=-1, var_overide=False):
         '''

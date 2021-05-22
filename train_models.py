@@ -11,7 +11,7 @@ from bptt import Bptt
 import argparse
 import pdb 
 from task.Ncontext import Ncontext
-from trainNcontext import train_ff
+from trainNcontext import train_ff, train_ff_rdm
 
 hyperParams = {                  # dictionary of all RNN hyper-parameters
    "inputSize" : 1,
@@ -41,6 +41,9 @@ def TrainRDM(name, hyperParams, use_ReLU=False):
         raise NotImplementedError()
     elif name.lower()[:2] == "ga" or name.lower()[:2] == "ge":      # use genetic learning rule
         rnnModel = Genetic(hyperParams)
+    elif name.lower()[:2] == "ff":
+        train_ff_rdm(args.model_name, args.variance)  # train
+        return # this model has its own saver method
     else:
         print("unclear which learning rule should be used for training")
         raise NotImplementedError()
@@ -140,7 +143,7 @@ elif args.N != 0:
     hyperParams["inputSize"] = args.N * 2
     hyperParams["g"] = 1
     hyperParams["hiddenSize"] = 50
-    TrainN(args.model_name, hyperParams, N=args.N)
+    TrainN(args.model_name, hyperParams, N=args.N, use_ReLU=args.relu)
 else:
     print("Please specify a training task")
     exit()  

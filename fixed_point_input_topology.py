@@ -44,9 +44,7 @@ def find_fixed_points(modelPath):
         key, value = line.strip().split(':')
         hyperParams[key.strip()] = float(value.strip())
     f.close()
-    if hyperParams['inputSize'] == 2:
-        analyze.multi_fixed_points(modelPath)
-    elif hyperParams['inputSize'] == 4:
+    if hyperParams['inputSize'] == 4:
         analyze.context_fixed_points(modelPath, 'small', save_fp=True)
     elif hyperParams['inputSize'] == 1:
         analyze.niave_network(modelPath)
