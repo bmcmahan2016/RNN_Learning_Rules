@@ -15,6 +15,7 @@ from task.context import context_task
 from task.Ncontext import Ncontext
 import argparse
 import pdb
+import os
 
 
 global coherence_vals
@@ -129,7 +130,7 @@ def TestCoherence(rnn, task, context_choice=0):
     num_right_reaches = []
     num_right_reaches_com = []
 
-    task_data = torch.zeros(num_trials, rnn._inputSize, 750).cuda()
+    task_data = torch.zeros(num_trials, rnn._inputSize, 750)
     #task_data = torch.unsqueeze(task_data.t(), 1)
     
     for _, coherence in enumerate(coherence_vals):   # loop over coherence vals
@@ -143,10 +144,7 @@ def TestCoherence(rnn, task, context_choice=0):
         
         output = rnn.feed(task_data)
         network_decisions = output[-1,:]         # outputs are (t_steps, num_trials)
-        if args.multi:                           # scales outputs from [0,1] -> [-1,1]
-            print("Multisensory RNN scaling applied to network outputs")
-            # TODO: uncomment below line to if network outputs [0, 1]
-            #network_decisions = 2 * (network_decisions - 0.5)
+        
 
         # computes fraction of reaches that were to the right
         ReachFraction = CountReaches(network_decisions)
@@ -164,82 +162,88 @@ def TestCoherence(rnn, task, context_choice=0):
 # determines what analysis to run
 parser = argparse.ArgumentParser(description="Generates psychometric curve for RNN")
 task_type = parser.add_mutually_exclusive_group()
-task_type.add_argument("--rdm", action="store_true")
-task_type.add_argument("--context", action="store_true")
-task_type.add_argument("--multi", action="store_true")
 task_type.add_argument("--N", type=int, default=0)
 
-parser.add_argument("model_name", help="filename of model to analyze")
+parser.add_argument("fname", help="filename of model to analyze")
 parser.add_argument("--nofit", action="store_true", default=False)
 parser.add_argument("--accumulate", type=int, default=0)  # adds data to existing curve plot
 
-args = parser.parse_args()
-# sets the model to be analyzed
-model_name = "models/" + args.model_name     
+args = parser.parse_args()  
 
-print('evaluating model #', model_name)
-# set the task (either context or Williams)
-if args.rdm:
-    rnn, hyperParams = loadRNN(model_name, load_hyper=True)
-    task = Williams()
-elif args.context:
-    rnn, hyperParams = loadRNN(model_name, load_hyper=True)
-    task = context_task()
-elif args.multi:
-    rnn, hyperParams = loadRNN(model_name, load_hyper=True, task="multi")
-    task = multi_sensory(var=hyperParams["taskVar"])
-elif args.N != 0:
-    hyperParams = {}
-    loadHyperParams(model_name, hyperParams)
-    task = Ncontext(var=hyperParams["taskVar"], dim=args.N)
-    rnn, hyperParams = loadRNN(model_name, load_hyper=True, task=task)
+a_file = open("models/"+args.fname, 'r')
+nested_models_list = [(line.strip()).split() for line in a_file]
+
+a_file.close()
+
+# loop over all models
+names = []
+start_ix = []
+end_ix = []
+counter = 0
+new_line = True
+num_model_types = len(nested_models_list)
+numModelsOfType = {}   # indicates how many models of each type we have
+count = 0
+coherence_vals = 2*np.array([-0.009, -0.09, -0.036, -0.15, 0.009, 0.036, 0.09, 0.15])
+for model_ix in range(num_model_types):
+    start_ix.append(counter)
+    for model_num in nested_models_list[model_ix]:
+        if new_line:
+            names.append(model_num)
+            if os.path.isfile("models/"+args.fname[:-4] + "_" + names[-1] + "_pschometrics.npy"):  # file exists
+                new_line = True
+                model_ix += 1
+                break
+                #psycho_statistics = np.load("models/"+args.fname[:-4] + "_" + names[-1] + "_pschometrics.npy")
+            new_line = False
+            n_models = len(nested_models_list[model_ix])-1  # models of this type
+            n_inputs = np.max((args.N, 1))                  # model input dimension
+            n_coherence_vals = 8                            # coherence values
+            psycho_data = np.zeros((n_inputs, n_models, n_coherence_vals))
+            model_count = 0
+            continue
+        # load the current RNN
+        model_name = "models/" + nested_models_list[model_ix][model_count+1]
+        if args.N != 0:  # CDI task
+            hyperParams = {}
+            loadHyperParams(model_name, hyperParams)
+            task = Ncontext(var=hyperParams["taskVar"], dim=args.N, device="cpu")
+            rnn, hyperParams = loadRNN(model_name, load_hyper=True, task=task)
+            
+            titles = ["in context", "out context"] 
+            fit_type = ["sigmoid", "linear"]
+            use_new_fig = [1, 0]
+            for N in range(args.N):
+                psycho_data[N, model_count, :] = TestCoherence(rnn, task, context_choice=N)[:,0]
+            #Plot(coherence_vals, num_right_reaches, plt_title=titles[N>=1], fit=fit_type[N>=1], newFig=(N==0))    # plot in-context psychometric data
+
+        else:  # RDM task
+            rnn, hyperParams = loadRNN(model_name, load_hyper=True)
+            task = Williams(device="cpu")
+            num_right_reaches = TestCoherence(rnn, task)
+            if args.accumulate:
+                Plot(coherence_vals, num_right_reaches, plt_title="in context", newFig=False)
+            else:
+                Plot(coherence_vals, num_right_reaches, plt_title="in context")
+        # end load the current RNN
+        #num = int(model_num)
+        #embeddings.append(getMDS(model_num, learningRule=names[-1]).reshape(1,-1))
+        counter += 1
+        model_count += 1
+    if not new_line:
+        psycho_statistics = np.zeros((2, args.N, n_coherence_vals))
+        psycho_statistics[0] = np.mean(psycho_data, 1)
+        psycho_statistics[1] = np.std(psycho_data, 1)
+        save_name = args.fname[:-4] + "_" + names[-1] + "_pschometrics"
+        np.save("models/" + save_name, psycho_data)
+    end_ix.append(counter)
+    new_line = True
+start_ix.append(counter)  # last element of start ix is the total
+embeddings = np.squeeze(np.array(embeddings))
+
+
     
 ###############################################################################
 # End Analysis Specification
 ###############################################################################
-
-if args.multi:    # generate pscyhometric curves for the multisensory task
-    coherence_vals = np.array([0.0, 0.2, 0.4, 0.5, 0.6, 0.8, 1])
-    print("Generating psychometric curves for RNN trained on multisensory integration task...\n")
-
-    num_right_reaches_auditory = TestCoherence(rnn, task, context_choice=0)
-    num_right_reaches_visual = TestCoherence(rnn, task, context_choice=1)
-    num_right_reaches_congruent = TestCoherence(rnn, task, context_choice=2)
-
-    Plot(coherence_vals, num_right_reaches_auditory)
-    Plot(coherence_vals, num_right_reaches_visual, newFig=False)
-    Plot(coherence_vals, num_right_reaches_congruent, newFig=False, plt_title="Multisensory Psychometric Curves")
-    plt.legend(["Auditory", "Visual", "Multisensory"])   # legend for generated plots  
-elif args.context:# generate psychometric curves for the context task
-    coherence_vals = 2*np.array([-0.009, -0.09, -0.036, -0.15, 0.009, 0.036, 0.09, 0.15])
-    num_right_reaches = TestCoherence(rnn, task, context_choice=0)
-    cs = ['b', 'g', 'r', 'y', 'm', 'c']
-    if args.accumulate:
-        
-        Plot(coherence_vals, num_right_reaches, plt_title="in context", fit="sigmoid", \
-             newFig=False, cs=cs[args.accumulate])    # plot in-context psychometric data
-    else:
-        Plot(coherence_vals, num_right_reaches, plt_title="in context", fit="sigmoid")    # plot in-context psychometric data
-
-    num_right_reaches = TestCoherence(rnn, task, context_choice=1)
-    Plot(coherence_vals, num_right_reaches, plt_title="out context", fit="linear", \
-         newFig=False, cs=cs[args.accumulate])   # plot out-context pyschometric data on same axis
-
-elif args.N != 0: # generate psychometric curves for the Ncontext task
-    coherence_vals = 2*np.array([-0.009, -0.09, -0.036, -0.15, 0.009, 0.036, 0.09, 0.15])
-    titles = ["in context", "out context"] 
-    fit_type = ["sigmoid", "linear"]
-    use_new_fig = [1, 0]
-    for N in range(args.N):
-        num_right_reaches = TestCoherence(rnn, task, context_choice=N)
-        Plot(coherence_vals, num_right_reaches, plt_title=titles[N>=1], fit=fit_type[N>=1], newFig=(N==0))    # plot in-context psychometric data
-
-
-elif args.rdm:    # generate psychometric curves for the rdm task
-    coherence_vals = 2*np.array([-0.009, -0.09, -0.036, -0.15, 0.009, 0.036, 0.09, 0.15])
-    num_right_reaches = TestCoherence(rnn, task)
-    if args.accumulate:
-        Plot(coherence_vals, num_right_reaches, plt_title="in context", newFig=False)
-    else:
-        Plot(coherence_vals, num_right_reaches, plt_title="in context")
 plt.show()  

@@ -93,7 +93,7 @@ class RNN:
         rnn_params = self.rnn_par
         def rnn_update(inp, activity):
             # updated to reflect tanh()+1 activation instead of tanh()
-            dx = p['dt']/p['tau'] * (-activity + np.dot(1+np.tanh(activity),rnn_params['rec_weights']) + 
+            dx = p['dt']/p['tau'] * (-activity + np.dot(np.tanh(activity),rnn_params['rec_weights']) + 
                                         np.dot(inp, rnn_params['inp_weights']) + rnn_params['bias'] + 
                                         npr.randn(1,activity.shape[1]) * p['noise_std'])
             return activity + dx

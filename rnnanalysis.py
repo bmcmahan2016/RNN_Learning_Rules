@@ -25,8 +25,9 @@ def rdm_fixed_points(modelPath, inputs, save_fp=False):
     
     inpts = {}  # two sets of inputs for solving fixed points
     inpts['large'] = np.array ( [[0.5], [0.2], [0], [-0.2], [-0.5]] )
-    inpts['small'] = 0.03 * np.array( [[0], [0.25], [-0.25], [0.5], [-0.5], [0.75], 
-                                [-0.75], [1], [-1]] )
+    inpts['small'] = 0.03 * np.array( [[0], [0.1], [-0.1], [0.2], [-0.2], [0.3], [-0.3], [0.4], [-0.4], [0.5], 
+                                [-0.5], [0.6], [-0.6], [0.7], [-0.7], [0.8], 
+                                [-0.8], [0.9], [-0.9], [1.0], [-1.0]] )
     input_values = inpts[inputs]   # user specified input set
 
     model_roots = Roots(model)

@@ -284,8 +284,12 @@ class RNN(nn.Module):
                 self._hidden[1] = 1       # Bias from Miconi 2017
                 self._hidden[10] = 1
                 self._hidden[11] = -1
-
-            else:
+            elif self._useForce:
+                noiseTerm=0
+                hidden_next = dt*torch.matmul(Jin, inpt) + \
+                dt*torch.matmul(self._J['rec'], (torch.tanh(self._hidden))) + \
+                (1-dt)*self._hidden + dt*self._J['bias'] + 0*noiseTerm
+            else:  # BPTT and GA networks
                 noiseTerm=0
                 hidden_next = dt*torch.matmul(Jin, inpt) + \
                 dt*torch.matmul(self._J['rec'], (1+torch.tanh(self._hidden))) + \
@@ -584,7 +588,9 @@ class RNN(nn.Module):
                         return x
                     #return lambda x: np.squeeze( dt*np.matmul(W_in, inpt) + dt*np.matmul(W_rec, (np.tanh(x.reshape(self._hiddenSize,1)))) - dt*x.reshape(self._hiddenSize,1) + b*dt)
                     return update_fcn
-                else:
+                elif self._useForce:
+                    return lambda x: np.squeeze( dt*np.matmul(W_in, inpt) + dt*np.matmul(W_rec, (np.tanh(x.reshape(self._hiddenSize,1)))) - dt*x.reshape(self._hiddenSize,1) + b*dt)
+                else:  # BPTT and GA RNNs
                     return lambda x: np.squeeze( dt*np.matmul(W_in, inpt) + dt*np.matmul(W_rec, (1+np.tanh(x.reshape(self._hiddenSize,1)))) - dt*x.reshape(self._hiddenSize,1) + b*dt)
 
         return master_function
@@ -680,14 +686,14 @@ def importHeb(name = "undeclared_heb", n_inputs = False, var=1):
     hidden_size = 50
     # parse input size and task
     if n_inputs == 0:
-        input_dim = 1
+        input_dim = 0.5
         task = Williams(N=750, mean=0.1857, variance=var)
     else:
         input_dim = n_inputs
         task = Ncontext(var=var, dim=n_inputs)
      
     hyperParams = {       # dictionary of all hyper-parameters
-    "inputSize" : 2*input_dim,
+    "inputSize" : int(2*input_dim),
     "hiddenSize" : hidden_size,
     "outputSize" : 1,
     "g" : 1 ,

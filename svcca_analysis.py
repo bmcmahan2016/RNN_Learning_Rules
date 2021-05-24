@@ -97,8 +97,8 @@ def getActivations(rnn_model):
 # get a file of models to analyze
 parser = argparse.ArgumentParser(description="Clusters RNNs by SVCCA")
 parser.add_argument("fname", help="name of file containing RNNs to analyze")
+parser.add_argument("-reload", action="store_true", default=False)
 args = parser.parse_args()
-
 file_of_rnns = open("models/"+args.fname, 'r')
 models = [(line.strip()).split() for line in file_of_rnns]
 file_of_rnns.close()
@@ -115,47 +115,51 @@ for i in range(len(models)):
     count += len(models[i]) - 1
 numModelsOfType["total"] = count
 
-distances = np.zeros((numModelsOfType["total"], numModelsOfType["total"]))
-for modelType in models:
-    for count, model in enumerate(modelType):
-        if (count == 0):
-            print("model name:", model)
-        else:
-            print("name:", model)
-            rnn_inst = rnn.loadRNN("models/"+model)
-            activations = getActivations(rnn_inst)
-            modelActivations.append(activations)
- 
-# compute the distance matrix
-print("computing distance matrix ...\n")
-for i in range(len(modelActivations)):
-    print("    Computing row", int(i))
-    for j in range(i, len(modelActivations)):   # ~2X speedup using symmetry
-        activationsI = modelActivations[i]
-        activationsJ = modelActivations[j]
-        activationsI -= np.mean(activationsI, axis=1, keepdims=True)
-        activationsJ -= np.mean(activationsJ, axis=1, keepdims=True)
-        
-        # take top 20 singular values
-        U1, s1, V1 = np.linalg.svd(activationsI, full_matrices=False)
-        U2, s2, V2 = np.linalg.svd(activationsJ, full_matrices=False)
-        
-        #print("Number of singular values needed to explain 95% of variance:", getNumSVs(s1))
-        NUM_DIMENSIONS = getNumSVs(s1)
-        svacts1 = np.dot(s1[:NUM_DIMENSIONS]*np.eye(NUM_DIMENSIONS), V1[:NUM_DIMENSIONS])
-        NUM_DIMENSIONS = getNumSVs(s2)
-        svacts2 = np.dot(s2[:NUM_DIMENSIONS]*np.eye(NUM_DIMENSIONS), V2[:NUM_DIMENSIONS])
-        
-        if svacts1.shape != svacts2.shape:
-            print("SVACTS1:", svacts1.shape)
-            print("SVACTS2:", svacts2.shape)
-        svcca_results = cca_core.get_cca_similarity(svacts1, svacts2, epsilon=1e-10, verbose=False)
-        distances[i, j] = 1 - np.mean(svcca_results["cca_coef1"])
-        distances[j, i] = distances[i, j]
-        # distances are shape (numRNNs, numRNNs)
 
-
-
+if args.reload:    
+    distances = np.zeros((numModelsOfType["total"], numModelsOfType["total"]))
+    for modelType in models:
+        for count, model in enumerate(modelType):
+            if (count == 0):
+                print("model name:", model)
+            else:
+                print("name:", model)
+                rnn_inst = rnn.loadRNN("models/"+model)
+                activations = getActivations(rnn_inst)
+                modelActivations.append(activations)
+     
+    # compute the distance matrix
+    print("computing distance matrix ...\n")
+    for i in range(len(modelActivations)):
+        print("    Computing row", int(i))
+        for j in range(i, len(modelActivations)):   # ~2X speedup using symmetry
+            activationsI = modelActivations[i]
+            activationsJ = modelActivations[j]
+            activationsI -= np.mean(activationsI, axis=1, keepdims=True)
+            activationsJ -= np.mean(activationsJ, axis=1, keepdims=True)
+            
+            # take top 20 singular values
+            U1, s1, V1 = np.linalg.svd(activationsI, full_matrices=False)
+            U2, s2, V2 = np.linalg.svd(activationsJ, full_matrices=False)
+            
+            #print("Number of singular values needed to explain 95% of variance:", getNumSVs(s1))
+            NUM_DIMENSIONS = getNumSVs(s1)
+            svacts1 = np.dot(s1[:NUM_DIMENSIONS]*np.eye(NUM_DIMENSIONS), V1[:NUM_DIMENSIONS])
+            NUM_DIMENSIONS = getNumSVs(s2)
+            svacts2 = np.dot(s2[:NUM_DIMENSIONS]*np.eye(NUM_DIMENSIONS), V2[:NUM_DIMENSIONS])
+            
+            if svacts1.shape != svacts2.shape:
+                print("SVACTS1:", svacts1.shape)
+                print("SVACTS2:", svacts2.shape)
+            svcca_results = cca_core.get_cca_similarity(svacts1, svacts2, epsilon=1e-10, verbose=False)
+            distances[i, j] = 1 - np.mean(svcca_results["cca_coef1"])
+            distances[j, i] = distances[i, j]
+            # distances are shape (numRNNs, numRNNs)
+    
+    # save the distances
+    np.save("models/" + args.fname[:-4] + "_distances", distances)
+else:
+    distances = np.load("models/" + args.fname[:-4] + "_distances.npy")
 plt.imshow(distances)
 plt.clim(0, 1.0/3)
 plt.colorbar()
@@ -332,8 +336,9 @@ for modelType in numModelsOfType:
     value = numModelsOfType[modelType]
     if modelType[0] == 'B':
         ci += 1
-        plt.scatter(clustered_data[count:count+value,0], clustered_data[count:count+value,1], marker = 'o', c=N_colors[ci])
+        plt.scatter(clustered_data[count:count+value,0], clustered_data[count:count+value,1], marker = 'x', c=N_colors[ci])
     else:
+        ci+=1
         plt.scatter(clustered_data[count:count+value,0], clustered_data[count:count+value,1], marker='x', c=N_colors[ci+1])
     i+=1
     count += value  # increment the number of models plotted

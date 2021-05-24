@@ -31,7 +31,7 @@ from FP_Analysis import Roots
 import rnnanalysis as analyze
 from sklearn.metrics import silhouette_score
 
-N_NEIGHBORS = 3    # How many neighbors to consider in clustering
+N_NEIGHBORS = 3     # How many neighbors to consider in clustering
 N_FIXED_POINTS = 10 # how many fixed points to consider in clustering
 
 def find_fixed_points(modelPath):
@@ -47,7 +47,7 @@ def find_fixed_points(modelPath):
     if hyperParams['inputSize'] == 4:
         analyze.context_fixed_points(modelPath, 'small', save_fp=True)
     elif hyperParams['inputSize'] == 1:
-        analyze.niave_network(modelPath)
+        analyze.rdm_fixed_points(modelPath, 'small', save_fp=True)
     else:
         analyze.N_fixed_points(modelPath, 'small', save_fp=True)
 
