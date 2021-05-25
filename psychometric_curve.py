@@ -193,6 +193,7 @@ for model_ix in range(num_model_types):
             if os.path.isfile("models/"+args.fname[:-4] + "_" + names[-1] + "_pschometrics.npy"):  # file exists
                 new_line = True
                 model_ix += 1
+                print("skipped ", model_num, " models!")
                 break
                 #psycho_statistics = np.load("models/"+args.fname[:-4] + "_" + names[-1] + "_pschometrics.npy")
             new_line = False
@@ -239,7 +240,6 @@ for model_ix in range(num_model_types):
     end_ix.append(counter)
     new_line = True
 start_ix.append(counter)  # last element of start ix is the total
-embeddings = np.squeeze(np.array(embeddings))
 
 
     

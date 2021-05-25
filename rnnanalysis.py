@@ -19,7 +19,7 @@ from task.Ncontext import Ncontext
 
 
 def rdm_fixed_points(modelPath, inputs, save_fp=False):
-    assert (inputs == 'large' or inputs == 'small'), "Must use either small or large inputs"
+    assert (inputs == 'large' or inputs == 'small' or inputs == 'sparse'), "Must use either small, large, or sparse inputs"
     model = loadRNN(modelPath)
     #AnalyzeLesioned(model, modelPath, xmin, xmax, ymin, ymax)
     
@@ -28,27 +28,32 @@ def rdm_fixed_points(modelPath, inputs, save_fp=False):
     inpts['small'] = 0.03 * np.array( [[0], [0.1], [-0.1], [0.2], [-0.2], [0.3], [-0.3], [0.4], [-0.4], [0.5], 
                                 [-0.5], [0.6], [-0.6], [0.7], [-0.7], [0.8], 
                                 [-0.8], [0.9], [-0.9], [1.0], [-1.0]] )
+    inpts['sparse'] = 0.03 * np.array( [[0], [0.2], [-0.2], [0.4], [-0.4], [0.6], [-0.6], [0.8], 
+                                [-0.8], [1.0], [-1.0]] )
+    
     input_values = inpts[inputs]   # user specified input set
 
     model_roots = Roots(model)
     model_roots.FindFixedPoints(input_values)  # compute RNNs fixed points
    
-    model_roots.plot(fixed_pts=True, slow_pts=True, end_time = 50)
-    plt.title("Early")
-    model_roots.plot(fixed_pts=True, slow_pts=True, start_time=50, end_time=200)
-    plt.title("Mid")
-    model_roots.plot(fixed_pts=True, slow_pts=True, start_time=200)
-    plt.title("Late")
+    if inputs=="large":
+        model_roots.plot(fixed_pts=True, slow_pts=True, end_time = 50)
+        plt.title("Early")
+        model_roots.plot(fixed_pts=True, slow_pts=True, start_time=50, end_time=200)
+        plt.title("Mid")
+        model_roots.plot(fixed_pts=True, slow_pts=True, start_time=200)
+        plt.title("Late")
     
     plt.figure(2)
     model_roots.plot(fixed_pts=True, slow_pts=False, plot_traj=False)
     plt.title("Model Attractors") 
     
-    plt.figure()
-    model_roots.plot(fixed_pts=False, slow_pts=False, plot_traj=False, plot_PC1=True)
-    plt.title("PC1")
-    plt.xlabel("Time")
-    plt.ylabel("PC1")
+    if inputs=="large":
+        plt.figure()
+        model_roots.plot(fixed_pts=False, slow_pts=False, plot_traj=False, plot_PC1=True)
+        plt.title("PC1")
+        plt.xlabel("Time")
+        plt.ylabel("PC1")
             
     
     if save_fp:

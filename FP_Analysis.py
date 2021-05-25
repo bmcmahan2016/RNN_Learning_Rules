@@ -208,9 +208,14 @@ class Roots(object):
         cs = ['g', 'b', 'r']
         plt.figure()
         if fixed_pts and self._embedded != []:
-            for root_ix in range(self._embedded.shape[0]):  # loop over roots
+            n_roots = self._embedded.shape[0]
+            if len(self._static_inputs) > 22:  # use high resolution map
+                colors = high_res_cmap 
+            else:  # use standard color map when there are less than 44 static inputs
+                colors = cmap 
+            for root_ix in range(n_roots):  # loop over roots
                 if self._stability[root_ix]:  # root is stable
-                    plt.scatter(self._embedded[root_ix, 0], self._embedded[root_ix, 1], c=cmap(self._static_inputs[root_ix]), alpha=0.5, s=500)
+                    plt.scatter(self._embedded[root_ix, 0], self._embedded[root_ix, 1], edgecolors=colors(self._static_inputs[root_ix]), alpha=0.5, s=500, facecolors='none', linewidth=3)
                 else:    # root is unstable
                     pass # don't plot unstable roots!               
                     #plt.scatter(self._embedded[root_ix, 0], self._embedded[root_ix, 1], marker='x', c=cmap(self._static_inputs[root_ix]), alpha=0.5)
@@ -427,3 +432,49 @@ def cmap(static_inpt, max_inpt=3):
         input_level = -4
     return lookup[input_level]
 
+
+def high_res_cmap(static_inpt, max_inpt=0.02):
+    '''
+    generates a color for plotting fixed point found under static_input. Colors 
+    go from red (positive inputs) to blue (negative inputs)
+    Parameters. This function is only appropriate for plotting the attractors 
+    near zero.
+    ----------
+    static_inpt : float
+        input value to network for which current fixed point was found.
+    Returns
+    -------
+    list
+        r,g,b color that should be used to plot current fixed points.
+    '''
+    if static_inpt.shape[0] == 4:     # context task
+        ix_of_nonzero_inpt = np.nonzero(static_inpt[:2])
+        if len(ix_of_nonzero_inpt[0]) == 0:    # both inputs are zero
+            static_inpt = 0
+        else:
+            static_inpt = static_inpt[ix_of_nonzero_inpt][0]
+        max_inpt = 0.02
+
+    elif static_inpt.shape[0] == 1:    # RDM task
+        static_inpt = static_inpt[0]
+        max_inpt = 0.03
+        
+    else:   # we don't care about the colors for other tasks
+        return [[0, 0, 0]]
+    
+    # clamps input so RGGB values remain in range
+    if static_inpt > max_inpt:
+        static_inpt = max_inpt
+    elif static_inpt < -max_inpt:
+        static_inpt = -max_inpt
+        
+    if static_inpt == 0:
+        return [[0,0,0]]  # return black for THE zero input
+    
+    m_r = -0.5 / max_inpt
+    m_b = 0.5 / max_inpt
+    
+    r = m_r * static_inpt + 0.5
+    b = m_b * static_inpt + 0.5
+    g = m_r*0
+    return [[r, g, b]]

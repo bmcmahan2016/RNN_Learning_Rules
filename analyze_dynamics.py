@@ -32,11 +32,7 @@ if args.N == 0:  # RDM Task
     rdm_fixed_points('models/'+args.model_name, args.input_choice)
 else:            # N-dimensional context task
     plt.figure()
-    if args.N == 2:
-        print("contextual integration task")
-        context_fixed_points('models/'+args.model_name, args.input_choice)
-    else:
-        print("abstract N dimensional context")
-        N_fixed_points('models/'+args.model_name, args.input_choice)
+    print("abstract N dimensional context")
+    N_fixed_points('models/'+args.model_name, args.input_choice)
 
 plt.show()
