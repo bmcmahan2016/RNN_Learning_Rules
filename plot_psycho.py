@@ -19,8 +19,8 @@ from task.Ncontext import Ncontext
 import argparse
 import pdb
 import os
-paths = ["models/analysis/fig1/cdi_models_BPTT_pschometrics.npy", "models/analysis/fig1/cdi_models_GA_pschometrics.npy",
-         "models/analysis/fig1/cdi_models_HEB_pschometrics.npy", "models/analysis/fig1/cdi_models_FF_pschometrics.npy"]
+paths = ["models/analysis/fig1/rdm_models_BPTT_pschometrics.npy", "models/analysis/fig1/rdm_models_GA_pschometrics.npy",
+         "models/analysis/fig1/rdm_models_HEB_pschometrics.npy", "models/analysis/fig1/rdm_models_FF_pschometrics.npy"]
 color_ix = 0
 for data_path in paths:
     psycho_data = np.load(data_path)
@@ -51,7 +51,7 @@ for data_path in paths:
         return data_fit
     
     
-    def Plot(coherence_vals, reach_data, marker="x", ymin=-.1, ymax=1.1, fit='sigmoid', newFig=True, cs='b'):
+    def Plot(coherence_vals, reach_data, reach_std, marker="x", ymin=-.1, ymax=1.1, fit='sigmoid', newFig=True, cs='b'):
         '''Plots psychometric data'''
     
         if newFig:     # generate a new figure
@@ -65,7 +65,8 @@ for data_path in paths:
     
         # plots RNN data
         plt.scatter(coherence_vals, reach_data, marker=marker, c=cs, s=100)
-    
+        plt.errorbar(coherence_vals, reach_data, yerr=reach_std/np.sqrt(50))
+        
         p0 = [max(reach_data), np.median(coherence_vals),1,min(reach_data)] 
         if fit=="sigmoid":
             data_fit = fit_sigmoid(coherence_vals, reach_data, p0)
@@ -74,8 +75,7 @@ for data_path in paths:
         else:
             raise NotImplementedError()
     
-        plt.plot(np.linspace(min(coherence_vals), max(coherence_vals), 100), data_fit, alpha=.5, c=cs)
-        
+        plt.plot(np.linspace(min(coherence_vals), max(coherence_vals), 100), data_fit, alpha=.5, c=cs)        
         # adds plot lables
         plt.title("Psychometrics")
         plt.ylim([ymin, ymax])
@@ -87,7 +87,7 @@ for data_path in paths:
     colors=['r', 'g', 'b', 'y']
     use_new_fig = [1, 0]
     for N in range(2):
-        Plot(coherence_vals, psycho_statistics[0,N], marker=markers[N>=1], fit=fit_type[N>=1], newFig=(0), cs=colors[color_ix])    # plot in-context psychometric data
+        Plot(coherence_vals, psycho_statistics[0,N], psycho_statistics[1,N], marker=markers[N>=1], fit=fit_type[N>=1], newFig=(0), cs=colors[color_ix])    # plot in-context psychometric data
     color_ix += 1
 
 plt.legend(['BPTT', 'BPTT', 'GA', 'GA', 'HEB', 'HEB', 'FF', 'FF'])
