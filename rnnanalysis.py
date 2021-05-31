@@ -17,6 +17,12 @@ import pdb
 import matplotlib.pyplot as plt
 from task.Ncontext import Ncontext
 
+def weights_and_outputs(modelPath):
+    model = loadRNN(modelPath)
+    '''Plots sample outputs and weights sorted by neuron factor'''
+    cs = ['r', 'r', 'r', 'r', 'r', 'b', 'b', 'b', 'b', 'b']
+    trial_data, trial_labels = r.record(model, \
+        title='fixed points', print_out=True, plot_recurrent=False, cs=cs)
 
 def rdm_fixed_points(modelPath, inputs, save_fp=False):
     assert (inputs == 'large' or inputs == 'small' or inputs == 'sparse'), "Must use either small, large, or sparse inputs"
@@ -115,7 +121,7 @@ def context_fixed_points(modelPath, inputs, save_fp=False):
 
     plt.show()
 
-def N_fixed_points(modelPath, inputs, save_fp=False):
+def N_fixed_points(modelPath, inputs, save_fp=False, verbose=False):
     
     model = loadRNN(modelPath)
     n_contexts = int(model._inputSize / 2)
@@ -130,6 +136,16 @@ def N_fixed_points(modelPath, inputs, save_fp=False):
             static_inpts[context_count::n_contexts, context_count + n_contexts] = 1  # skip n_context rows at a time
             static_inpts[context_count::n_contexts, context_count] = tmp
                                  # go signal for color context
+    elif inputs == 'sparse':
+        fixed_point_resolution = 11
+        tmp = np.linspace(-0.02, 0.02, fixed_point_resolution)     
+        tmp = tmp[np.argsort(np.abs(tmp))]
+        static_inpts = np.zeros((2*fixed_point_resolution, 4))
+        static_inpts[0::2, 2] = 1
+        static_inpts[0::2, 0] = tmp
+        static_inpts[1::2, 3] = 1
+        static_inpts[1::2, 1] = tmp
+        
     elif inputs == 'large':
         fixed_point_resolution = 5
         tmp = np.linspace(-0.4, 0.4, fixed_point_resolution)    
@@ -143,27 +159,29 @@ def N_fixed_points(modelPath, inputs, save_fp=False):
 
     model_roots = Roots(model)
     model_roots.FindFixedPoints(static_inpts)
-    plt.figure(100)
-    plt.title("PCA of Fixed Points For Contextual Integration Task")
+    if verbose:
+        plt.figure(100)
+        plt.title("PCA of Fixed Points For Contextual Integration Task")
+        
+        
+        model_roots.plot(fixed_pts=True, slow_pts=True, end_time = 100)
+        plt.title("Early")
+        model_roots.plot(fixed_pts=True, slow_pts=True, start_time = 100, end_time = 300)
+        plt.title("Mid")
+        model_roots.plot(fixed_pts=True, slow_pts=True, start_time = 400)
+        plt.title("Late")
+        
+        model_roots.plot(fixed_pts=True, slow_pts=True)
     
+        plt.figure()
+        model_roots.plot(fixed_pts=True, slow_pts=False, plot_traj=False)
+        plt.title("Model Attractors")
     
-    model_roots.plot(fixed_pts=True, slow_pts=True, end_time = 100)
-    plt.title("Early")
-    model_roots.plot(fixed_pts=True, slow_pts=True, start_time = 100, end_time = 300)
-    plt.title("Mid")
-    model_roots.plot(fixed_pts=True, slow_pts=True, start_time = 400)
-    plt.title("Late")
-    
-    model_roots.plot(fixed_pts=True, slow_pts=True)
-
-    plt.figure()
-    model_roots.plot(fixed_pts=True, slow_pts=False, plot_traj=False)
-    plt.title("Model Attractors")
-
-    plt.figure(123)
-    plt.title('Evaluation of Model on Multisensory Task')   
+        plt.figure(123)
+        plt.title('Evaluation of Model on Multisensory Task')   
 
     if save_fp:
         model_roots.save(modelPath)   
 
-    plt.show()
+    if verbose:
+        plt.show()

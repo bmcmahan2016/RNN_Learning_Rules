@@ -209,7 +209,7 @@ class Roots(object):
         plt.figure()
         if fixed_pts and self._embedded != []:
             n_roots = self._embedded.shape[0]
-            if len(self._static_inputs) > 22:  # use high resolution map
+            if len(self._static_inputs) > 10:  # use high resolution map
                 colors = high_res_cmap 
             else:  # use standard color map when there are less than 44 static inputs
                 colors = cmap 

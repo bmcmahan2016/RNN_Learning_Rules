@@ -221,11 +221,7 @@ for model_ix in range(num_model_types):
         else:  # RDM task
             rnn, hyperParams = loadRNN(model_name, load_hyper=True)
             task = Williams(device="cpu")
-            num_right_reaches = TestCoherence(rnn, task)
-            if args.accumulate:
-                Plot(coherence_vals, num_right_reaches, plt_title="in context", newFig=False)
-            else:
-                Plot(coherence_vals, num_right_reaches, plt_title="in context")
+            psycho_data[0, model_count, :] = TestCoherence(rnn, task)[:,0]
         # end load the current RNN
         #num = int(model_num)
         #embeddings.append(getMDS(model_num, learningRule=names[-1]).reshape(1,-1))

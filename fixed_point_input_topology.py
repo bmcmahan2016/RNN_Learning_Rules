@@ -31,8 +31,9 @@ from FP_Analysis import Roots
 import rnnanalysis as analyze
 from sklearn.metrics import silhouette_score
 
-N_NEIGHBORS = 3     # How many neighbors to consider in clustering
-N_FIXED_POINTS = 10 # how many fixed points to consider in clustering
+N_level = 1
+N_NEIGHBORS = 3*N_level      # How many neighbors to consider in clustering
+N_FIXED_POINTS = 10*N_level  #10 # how many fixed points to consider in clustering
 
 def find_fixed_points(modelPath):
     '''finds fixed points for a model'''
@@ -178,8 +179,16 @@ print("score:", silhouette_score(embeddings, true_labels))
 clustering_algorithm = MDS()
 clustered_data = clustering_algorithm.fit_transform(embeddings)
 plt.figure()
+
+
+if num_lists != 4 and num_lists != 2:
+    N_colors = ['r', 'orange', 'g', 'b', 'indigo', 'violet']  # use when plotting against noise levels
+else:
+    N_colors = ['blue', 'orange', 'green', 'red']
+c_ix = 0
 for ix in range(num_lists):
-    plt.scatter(clustered_data[start_ix[ix]:end_ix[ix],0], clustered_data[start_ix[ix]:end_ix[ix],1])
+    plt.scatter(clustered_data[start_ix[ix]:end_ix[ix],0], clustered_data[start_ix[ix]:end_ix[ix],1], c=N_colors[c_ix])
+    c_ix += 1
 plt.legend(names) 
 plt.title("Silhouette Score " + str(silhouette_score(embeddings, true_labels)))
 

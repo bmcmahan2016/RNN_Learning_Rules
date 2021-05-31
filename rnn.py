@@ -646,6 +646,24 @@ def loadRNN(fName, optimizer="", load_hyper=False, task="rdm"):
     elif fName[7].lower() == 'f':
         print("using RNN update for Full FORCE network")
         model._useForce = True
+
+    # sets the model task
+    task_var = hyperParams["taskVar"]
+    input_size = hyperParams["inputSize"]
+    if input_size == 1:
+        model._task = Williams(variance=task_var, device='CPU')
+    elif input_size == 2:
+        model._task = Ncontext(var=task_var, dim=int(input_size/2), device='CPU')
+    elif input_size==4:
+        model._task = Ncontext(var=task_var, dim=int(input_size/2), device='CPU')
+    elif input_size == 6:
+        model._task = Ncontext(var=task_var, dim=int(input_size/2), device='CPU')
+    elif input_size == 8:
+        model._task = Ncontext(var=task_var, dim=int(input_size/2), device='CPU')
+    elif input_size == 10:
+        model._task = Ncontext(var=task_var, dim=int(input_size/2), device='CPU')
+    elif input_size == 12:
+        model._task = Ncontext(var=task_var, dim=int(input_size/2), device='CPU')
     if load_hyper:
         return model, hyperParams
     return model

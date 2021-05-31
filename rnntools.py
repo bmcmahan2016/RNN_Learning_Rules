@@ -1,4 +1,3 @@
-# TODO: perhaps put in RNN class; integrate a bit better code
 '''
 This file contains some useful functions that can be applied to trained RNNs
 Authors: Brandon McMahan and Michael Kleinman

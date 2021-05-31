@@ -90,6 +90,12 @@ def getActivations(rnn_model):
         }
     static_inputs = switcher[rnn_model._inputSize](rnn_model._inputSize)
     _, activations = rnn_model.feed(static_inputs, return_hidden=True)
+    if rnn_model._useHeb:
+        heb_mask = np.ones(50).astype(int)
+        heb_mask[1] = 0; heb_mask[10] = 0; heb_mask[11] = 0
+        activations = activations[:, np.where(heb_mask==1)[0], :]
+        activations = np.swapaxes(activations, 0, 1).reshape(rnn_model._hiddenSize-3, -1)
+        return activations #finalActivations    # 50 x 500  ----> numHidden x numInputs
     #finalActivations = activations[-1,:,:]       # keeps activation at end of trial only
     activations = np.swapaxes(activations, 0, 1).reshape(rnn_model._hiddenSize, -1)
     return activations #finalActivations    # 50 x 500  ----> numHidden x numInputs
@@ -325,7 +331,10 @@ def getTrueLabelsHelper(numModelsOfType):
     
 labels, class_counts = getTrueLabelsHelper(numModelsOfType)
 
-N_colors = ['r', 'orange', 'g', 'b', 'indigo', 'violet']
+if len(numModelsOfType) != 5 and len(numModelsOfType) != 3:
+    N_colors = ['r', 'orange', 'g', 'b', 'indigo', 'violet']  # use when plotting against noise levels
+else:
+    N_colors = ['blue', 'orange', 'green', 'red']              # use when plotting the 4 learning rules
 plt.figure(11)  # Scatter plot
 count = 0     # keeps track of how many models plotted so far
 ci = 0
@@ -335,12 +344,13 @@ for modelType in numModelsOfType:
         continue
     value = numModelsOfType[modelType]
     if modelType[0] == 'B':
-        ci += 1
-        plt.scatter(clustered_data[count:count+value,0], clustered_data[count:count+value,1], marker = 'x', c=N_colors[ci])
+        
+        plt.scatter(clustered_data[count:count+value,0], clustered_data[count:count+value,1], c=N_colors[ci])
     else:
-        ci+=1
-        plt.scatter(clustered_data[count:count+value,0], clustered_data[count:count+value,1], marker='x', c=N_colors[ci+1])
+        
+        plt.scatter(clustered_data[count:count+value,0], clustered_data[count:count+value,1], c=N_colors[ci])
     i+=1
+    ci+=1
     count += value  # increment the number of models plotted
     legends.append(modelType) # add this model type name to the legend
     
@@ -350,7 +360,7 @@ plt.title("Sillhouette Score:" + str(silhouette_score(distances, labels)))
 
 plt.figure()
 x = np.array([ 1, 2, 3, 4, 5, 6])
-y = np.array([0.203, 0.346, 0.0343, -0.125, -0.0421, 0.0126])
+y = np.array([0.25, 6.2e-4, 0.012, -0.013, -1.7e-5, -0.015])
 
 m, b = np.polyfit(x, y, 1)
 plt.plot(x, y, 'o')
