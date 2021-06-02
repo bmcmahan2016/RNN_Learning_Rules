@@ -1,12 +1,18 @@
 # RNN_Learning_Rules
 
 ### Dependencies
-The following should be installed<br/>
+To install dependencies please run <br/>
+pip install -r requirements.txt
+
+You can also manually install packages as needed.
+This list may not be complete but some of the notable packages are:<br/>
 NumPy<br/>
 SciPy (version must be 1.2.0)<br/>
-matplotlib
+matplotlib<br\>
+PyTorch<br\>
+scikit-learn
 
-You will also need to install tensortools by running the following command: <br/>
+If you are manually installing dependencies, you will also need to install tensortools by running the following command: <br/>
 pip install git+https://github.com/ahwillia/tensortools
 
 
