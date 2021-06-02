@@ -1,6 +1,6 @@
 # RNN_Learning_Rules
 
-# Dependencies
+### Dependencies
 
 To train models
 To plot model fixed points
