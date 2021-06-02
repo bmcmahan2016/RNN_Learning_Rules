@@ -2,15 +2,21 @@
 
 ### Dependencies
 The following should be installed
+
 NumPy
+
 SciPy (version must be 1.2.0)
+
 matplotlib
 
 
 ### Model Training
 To train an RNN model on the CDI-task, run the following:
+
 python model_name -v 0.5 --N 2
+
 alternatively, to train on the RDM-task,
+
 python model_name -v 0.5 --rdm
 
 where model_name can be any string designating the name to save your model after training. -v 0.5 specifies to train the model with an input variance of 0.5. You can also try setting -v to 0.1 or 1.0.
