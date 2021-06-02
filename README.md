@@ -9,6 +9,9 @@ SciPy (version must be 1.2.0)
 
 matplotlib
 
+You will also need to install tensortools by running the following command: <\br>
+pip install git+https://github.com/ahwillia/tensortools
+
 
 ### Model Training
 To train an RNN model on the CDI-task, run the following:
